@@ -1,0 +1,57 @@
+{% extends "emails/base.html" %}
+{% block header_eyebrow %}<p class="eyebrow">Reminder &middot; Your booking</p>{% endblock %}
+{% block content %}
+<h1>{% if window_label == '1h' %}Your booking is in 1 hour{% else %}Your booking is tomorrow{% endif %}</h1>
+<p>Hi {{ customer_name }},</p>
+<p>
+  This is a friendly reminder that your booking with <strong>{{ business_name }}</strong>
+  is coming up. Here are the details:
+</p>
+
+<div class="info-card">
+  {% if service_description %}
+  <div class="info-row">
+    <span class="info-label">Service</span>
+    <span class="info-value">{{ service_description }}</span>
+  </div>
+  {% endif %}
+  <div class="info-row">
+    <span class="info-label">Date</span>
+    <span class="info-value">{{ booking_date }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Time</span>
+    <span class="info-value">{{ start_time }}</span>
+  </div>
+  {% if staff_name %}
+  <div class="info-row">
+    <span class="info-label">With</span>
+    <span class="info-value">{{ staff_name }}</span>
+  </div>
+  {% endif %}
+  {% if location %}
+  <div class="info-row">
+    <span class="info-label">Location</span>
+    <span class="info-value">{{ location }}</span>
+  </div>
+  {% endif %}
+</div>
+
+{% if reschedule_url %}
+<div style="text-align:center;">
+  <a href="{{ reschedule_url }}" class="btn">Reschedule or cancel →</a>
+</div>
+{% endif %}
+
+{% if notes %}
+<div class="highlight-box">
+  <p><strong>A note from {{ business_name }}:</strong> {{ notes }}</p>
+</div>
+{% endif %}
+
+<div class="divider"></div>
+<p style="font-size:13px; color:#9ca3af;">
+  Questions? Reply to this email
+  {% if business_phone %}or call <strong>{{ business_phone }}</strong>{% endif %}.
+</p>
+{% endblock %}

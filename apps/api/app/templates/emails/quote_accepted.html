@@ -1,0 +1,43 @@
+{% extends "emails/base.html" %}
+{% block header_eyebrow %}<p class="eyebrow">Quote accepted</p>{% endblock %}
+{% block content %}
+<h1>Great news — your quote has been accepted ✓</h1>
+<p>Hi {{ customer_name }},</p>
+<p>
+  Thanks for confirming! <strong>{{ business_name }}</strong> has been notified
+  that you've accepted quote <strong>{{ quote_number }}</strong>. Here's a copy
+  for your records.
+</p>
+
+<div class="info-card">
+  <div class="info-row">
+    <span class="info-label">Quote</span>
+    <span class="info-value">{{ quote_number }} &mdash; {{ quote_title }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Total</span>
+    <span class="info-value">£{{ '%.2f'|format(total_pence / 100) }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Status</span>
+    <span class="info-value"><span class="badge badge-success">Accepted</span></span>
+  </div>
+</div>
+
+<p>
+  We'll be in touch shortly to confirm dates, deposit and any next steps.
+  {% if deposit_required %}A deposit of <strong>£{{ '%.2f'|format(deposit_required / 100) }}</strong> is required to secure your booking.{% endif %}
+</p>
+
+{% if invoice_url %}
+<div style="text-align:center;">
+  <a href="{{ invoice_url }}" class="btn">Pay deposit / view invoice →</a>
+</div>
+{% endif %}
+
+<div class="divider"></div>
+<p style="font-size:13px; color:#9ca3af;">
+  Questions? Reply to this email
+  {% if business_phone %}or call <strong>{{ business_phone }}</strong>{% endif %}.
+</p>
+{% endblock %}

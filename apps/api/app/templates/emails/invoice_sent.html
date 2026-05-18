@@ -1,0 +1,60 @@
+{% extends "emails/base.html" %}
+{% block content %}
+<h1>Invoice {{ invoice_number }} 💳</h1>
+<p>Hi {{ customer_name }},</p>
+<p>
+  Please find your invoice from <strong>{{ business_name }}</strong> below.
+  Payment is due by <strong>{{ due_date | default('30 days') }}</strong>.
+</p>
+
+<div class="info-card">
+  <div class="info-row">
+    <span class="info-label">Invoice</span>
+    <span class="info-value">{{ invoice_number }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Description</span>
+    <span class="info-value">{{ invoice_title }}</span>
+  </div>
+  {% if due_date %}
+  <div class="info-row">
+    <span class="info-label">Due Date</span>
+    <span class="info-value">{{ due_date }}</span>
+  </div>
+  {% endif %}
+  <div class="info-row">
+    <span class="info-label">Subtotal</span>
+    <span class="info-value">£{{ "%.2f"|format(subtotal_pence / 100) }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">VAT (20%)</span>
+    <span class="info-value">£{{ "%.2f"|format(vat_pence / 100) }}</span>
+  </div>
+  <div class="info-row" style="background:#f0fdf4; margin: 0 -24px; padding: 12px 24px;">
+    <span class="info-label" style="color:#15803d; font-weight:700;">Total Due</span>
+    <span class="info-value" style="color:#15803d; font-weight:800; font-size:18px;">£{{ "%.2f"|format(total_pence / 100) }}</span>
+  </div>
+</div>
+
+{% if stripe_payment_link %}
+<div style="text-align:center;">
+  <a href="{{ stripe_payment_link }}" class="btn">Pay Now — £{{ "%.2f"|format(total_pence / 100) }} →</a>
+</div>
+<p style="font-size:13px; color:#6b7280; text-align:center;">
+  Secure payment powered by Stripe. Accepts all major cards.
+</p>
+{% endif %}
+
+{% if notes %}
+<div class="highlight-box">
+  <p>{{ notes }}</p>
+</div>
+{% endif %}
+
+<div class="divider"></div>
+<p style="font-size:13px; color:#9ca3af;">
+  Questions about this invoice? Contact {{ business_name }}
+  {% if business_phone %} on <a href="tel:{{ business_phone }}" style="color:#6b7280;">{{ business_phone }}</a>{% endif %}
+  {% if business_email %} or <a href="mailto:{{ business_email }}" style="color:#6b7280;">{{ business_email }}</a>{% endif %}.
+</p>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "emails/base.html" %}
+{% block content %}
+<h1>How did we do? 🌟</h1>
+<p>Hi {{ customer_name }},</p>
+<p>
+  Thank you for choosing <strong>{{ business_name }}</strong>{% if service_description %} for your recent
+  <em>{{ service_description }}</em>{% endif %}. We really hope you're happy with the work.
+</p>
+<p>
+  Could you spare 30 seconds to share your experience? Your feedback genuinely helps us
+  serve customers like you better — and helps other local people find a trusted tradesperson.
+</p>
+
+<div style="text-align:center; padding:8px 0;">
+  <div class="rating-stars">⭐⭐⭐⭐⭐</div>
+  <a href="{{ review_url }}" class="btn">Leave My Review →</a>
+</div>
+
+<div class="highlight-box">
+  <p>🔒 <strong>Quick & private.</strong> Your feedback goes directly to {{ business_name }}.
+  Happy customers are invited to share on Google — unhappy ones go straight to the team so we can make it right.</p>
+</div>
+
+<div class="divider"></div>
+
+<p style="font-size:13px; color:#9ca3af; text-align:center;">
+  If you'd prefer not to receive review requests, you can
+  {% if unsubscribe_url %}<a href="{{ unsubscribe_url }}">unsubscribe here</a>{% else %}reply to this email{% endif %}.
+  This request was sent on behalf of {{ business_name }}.
+</p>
+{% endblock %}

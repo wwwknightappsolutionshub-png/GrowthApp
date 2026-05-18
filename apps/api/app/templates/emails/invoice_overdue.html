@@ -1,0 +1,52 @@
+{% extends "emails/base.html" %}
+{% block header_eyebrow %}<p class="eyebrow">Payment reminder</p>{% endblock %}
+{% block content %}
+<h1>{% if days_overdue and days_overdue > 14 %}A quick note about invoice {{ invoice_number }}{% else %}Friendly reminder &mdash; invoice {{ invoice_number }}{% endif %}</h1>
+<p>Hi {{ customer_name }},</p>
+<p>
+  Our records show that invoice <strong>{{ invoice_number }}</strong>
+  from <strong>{{ business_name }}</strong> is now {{ days_overdue | default(0) }} day{% if days_overdue != 1 %}s{% endif %} past its due date.
+  Apologies if it's slipped through &mdash; here are the details so you can settle quickly.
+</p>
+
+<div class="info-card">
+  <div class="info-row">
+    <span class="info-label">Invoice</span>
+    <span class="info-value">{{ invoice_number }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Amount due</span>
+    <span class="info-value">£{{ '%.2f'|format(amount_due_pence / 100) }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Original due date</span>
+    <span class="info-value">{{ due_date }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Status</span>
+    <span class="info-value">
+      <span class="badge {% if days_overdue and days_overdue > 14 %}badge-danger{% else %}badge-warning{% endif %}">
+        {{ days_overdue | default(0) }} day{% if days_overdue != 1 %}s{% endif %} overdue
+      </span>
+    </span>
+  </div>
+</div>
+
+{% if pay_url %}
+<div style="text-align:center;">
+  <a href="{{ pay_url }}" class="btn">Pay invoice now →</a>
+</div>
+{% endif %}
+
+<div class="alert-warning">
+  <p><strong>Already paid?</strong> Apologies for the cross-over &mdash; just reply
+  with the date and reference and we'll mark it down right away.</p>
+</div>
+
+<div class="divider"></div>
+<p style="font-size:13px; color:#9ca3af;">
+  Need a payment plan or have a question? Reply to this email
+  {% if business_phone %}or call <strong>{{ business_phone }}</strong>{% endif %} &mdash;
+  we'll always find a way.
+</p>
+{% endblock %}

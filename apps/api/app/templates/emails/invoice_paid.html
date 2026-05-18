@@ -1,0 +1,58 @@
+{% extends "emails/base.html" %}
+{% block header_eyebrow %}<p class="eyebrow">Receipt &middot; Invoice paid</p>{% endblock %}
+{% block content %}
+<h1>Payment received — thank you!</h1>
+<p>Hi {{ customer_name }},</p>
+<p>
+  We've received your payment for invoice <strong>{{ invoice_number }}</strong>
+  from <strong>{{ business_name }}</strong>. Treat this email as your receipt.
+</p>
+
+<div class="info-card">
+  <div class="info-row">
+    <span class="info-label">Invoice</span>
+    <span class="info-value">{{ invoice_number }}</span>
+  </div>
+  {% if invoice_title %}
+  <div class="info-row">
+    <span class="info-label">Description</span>
+    <span class="info-value">{{ invoice_title }}</span>
+  </div>
+  {% endif %}
+  <div class="info-row">
+    <span class="info-label">Amount paid</span>
+    <span class="info-value">£{{ '%.2f'|format(amount_paid_pence / 100) }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Paid on</span>
+    <span class="info-value">{{ paid_at }}</span>
+  </div>
+  {% if payment_method %}
+  <div class="info-row">
+    <span class="info-label">Method</span>
+    <span class="info-value">{{ payment_method }}</span>
+  </div>
+  {% endif %}
+  <div class="info-row">
+    <span class="info-label">Status</span>
+    <span class="info-value"><span class="badge badge-success">Paid in full</span></span>
+  </div>
+</div>
+
+{% if receipt_url %}
+<div style="text-align:center;">
+  <a href="{{ receipt_url }}" class="btn-outline btn">View / print receipt →</a>
+</div>
+{% endif %}
+
+<div class="highlight-box">
+  <p>💚 <strong>Loved the work?</strong> We'd really appreciate a quick review.
+  {% if review_url %}<a href="{{ review_url }}" style="color:#025422; font-weight:600;">Share your experience →</a>{% endif %}</p>
+</div>
+
+<div class="divider"></div>
+<p style="font-size:13px; color:#9ca3af;">
+  Questions about your invoice? Reply to this email
+  {% if business_email %}or write to <strong>{{ business_email }}</strong>{% endif %}.
+</p>
+{% endblock %}

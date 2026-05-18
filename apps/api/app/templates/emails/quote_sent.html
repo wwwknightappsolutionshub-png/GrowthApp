@@ -1,0 +1,73 @@
+{% extends "emails/base.html" %}
+{% block content %}
+<h1>Your quote is ready 📋</h1>
+<p>Hi {{ customer_name }},</p>
+<p>
+  <strong>{{ business_name }}</strong> has sent you a quote for the work you requested.
+  Review the details below and accept or decline directly online.
+</p>
+
+<div class="info-card">
+  <div class="info-row">
+    <span class="info-label">Quote Number</span>
+    <span class="info-value">{{ quote_number }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Description</span>
+    <span class="info-value">{{ quote_title }}</span>
+  </div>
+  {% if valid_until %}
+  <div class="info-row">
+    <span class="info-label">Valid Until</span>
+    <span class="info-value">{{ valid_until }}</span>
+  </div>
+  {% endif %}
+  <div class="info-row">
+    <span class="info-label">Subtotal</span>
+    <span class="info-value">£{{ "%.2f"|format(subtotal_pence / 100) }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">VAT (20%)</span>
+    <span class="info-value">£{{ "%.2f"|format(vat_pence / 100) }}</span>
+  </div>
+  <div class="info-row" style="background:#f0fdf4; margin: 0 -24px; padding: 12px 24px; font-size:16px;">
+    <span class="info-label" style="color:#15803d; font-weight:700;">Total</span>
+    <span class="info-value" style="color:#15803d; font-weight:800; font-size:18px;">£{{ "%.2f"|format(total_pence / 100) }}</span>
+  </div>
+</div>
+
+{% if line_items %}
+<p style="font-size:13px; color:#6b7280; margin-bottom:8px;"><strong>Breakdown:</strong></p>
+<div class="info-card" style="margin-top:0;">
+  {% for item in line_items %}
+  <div class="info-row">
+    <span class="info-label" style="flex:1;">{{ item.description }}{% if item.quantity > 1 %} &times;{{ item.quantity }}{% endif %}</span>
+    <span class="info-value">£{{ "%.2f"|format(item.line_total_pence / 100) }}</span>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if notes %}
+<div class="highlight-box">
+  <p><strong>Note from {{ business_name }}:</strong> {{ notes }}</p>
+</div>
+{% endif %}
+
+<div style="text-align:center;">
+  <a href="{{ quote_url }}" class="btn">View & Accept Quote →</a>
+</div>
+
+<p style="font-size:13px; color:#6b7280; text-align:center;">
+  This quote is valid until {{ valid_until | default('further notice') }}.
+  Clicking the button above takes you to a secure page where you can accept or decline.
+</p>
+
+<div class="divider"></div>
+
+<p style="font-size:13px; color:#9ca3af;">
+  If you have any questions about this quote, please don't hesitate to get in touch with
+  {{ business_name }} directly.
+  {% if business_phone %}Phone: <a href="tel:{{ business_phone }}" style="color:#6b7280;">{{ business_phone }}</a>{% endif %}
+</p>
+{% endblock %}

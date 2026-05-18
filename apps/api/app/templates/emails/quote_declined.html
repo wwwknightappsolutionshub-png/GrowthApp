@@ -1,0 +1,42 @@
+{% extends "emails/base.html" %}
+{% block header_eyebrow %}<p class="eyebrow">Quote update</p>{% endblock %}
+{% block content %}
+<h1>Thanks for letting us know</h1>
+<p>Hi {{ customer_name }},</p>
+<p>
+  We've recorded your response on quote <strong>{{ quote_number }}</strong>
+  from <strong>{{ business_name }}</strong>. We understand the timing or scope
+  may not be right today.
+</p>
+
+<div class="info-card">
+  <div class="info-row">
+    <span class="info-label">Quote</span>
+    <span class="info-value">{{ quote_number }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Status</span>
+    <span class="info-value"><span class="badge badge-warning">Declined</span></span>
+  </div>
+  {% if decline_reason %}
+  <div class="info-row">
+    <span class="info-label">Reason</span>
+    <span class="info-value">{{ decline_reason }}</span>
+  </div>
+  {% endif %}
+</div>
+
+<p>
+  If circumstances change, we'd love the chance to revisit the work &mdash;
+  just reply to this email or get in touch and we'll prepare a fresh quote.
+</p>
+
+{% if business_phone %}
+<div class="highlight-box">
+  <p>📞 Speak to us directly: <strong>{{ business_phone }}</strong></p>
+</div>
+{% endif %}
+
+<div class="divider"></div>
+<p style="font-size:13px; color:#9ca3af;">Thanks for considering {{ business_name }}.</p>
+{% endblock %}

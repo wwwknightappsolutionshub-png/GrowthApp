@@ -1,0 +1,78 @@
+{% extends "emails/base.html" %}
+
+{% block header_eyebrow %}
+<p class="eyebrow">Welcome to CustomerFlow AI</p>
+{% endblock %}
+
+{% block content %}
+<h1>Welcome, {{ first_name | default('there') }}! 🎉</h1>
+
+<p>
+  Your <strong>14-day free trial</strong> is now live. You have full access to
+  every feature on the Growth plan — no credit card, no commitment.
+</p>
+
+<p>
+  CustomerFlow AI replaces 10+ disconnected tools with a single intelligent platform
+  that runs quietly in the background while you focus on doing great work.
+</p>
+
+<div class="highlight-box">
+  <p>
+    <strong>Quick stat:</strong> The average CustomerFlow AI customer recovers
+    their first month's subscription cost in under 7 days — from a single
+    recovered missed-call lead alone.
+  </p>
+</div>
+
+<p style="text-align:center;">
+  <a href="{{ dashboard_url | default('https://app.customerflow.ai/dashboard') }}" class="btn">
+    Go to your dashboard →
+  </a>
+</p>
+
+<div class="divider"></div>
+
+<p><strong>Your 5-minute setup checklist:</strong></p>
+
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+  <tr>
+    <td style="padding:10px 0; border-bottom:1px solid #e5e7eb;">
+      <span style="background:#ecfdf4; color:#025422; border-radius:50%; width:24px; height:24px; display:inline-block; text-align:center; line-height:24px; font-weight:700; font-size:12px; margin-right:12px;">1</span>
+      <strong>Add your business details</strong>
+      <span style="color:#6b7280; font-size:13px; margin-left:8px;">Set your name, logo &amp; number</span>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:10px 0; border-bottom:1px solid #e5e7eb;">
+      <span style="background:#ecfdf4; color:#025422; border-radius:50%; width:24px; height:24px; display:inline-block; text-align:center; line-height:24px; font-weight:700; font-size:12px; margin-right:12px;">2</span>
+      <strong>Connect your Google Business profile</strong>
+      <span style="color:#6b7280; font-size:13px; margin-left:8px;">Start collecting reviews automatically</span>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:10px 0; border-bottom:1px solid #e5e7eb;">
+      <span style="background:#ecfdf4; color:#025422; border-radius:50%; width:24px; height:24px; display:inline-block; text-align:center; line-height:24px; font-weight:700; font-size:12px; margin-right:12px;">3</span>
+      <strong>Import or add your first customers</strong>
+      <span style="color:#6b7280; font-size:13px; margin-left:8px;">Your CRM is ready — add 5 customers now</span>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:10px 0;">
+      <span style="background:#ecfdf4; color:#025422; border-radius:50%; width:24px; height:24px; display:inline-block; text-align:center; line-height:24px; font-weight:700; font-size:12px; margin-right:12px;">4</span>
+      <strong>Set up missed-call SMS recovery</strong>
+      <span style="color:#6b7280; font-size:13px; margin-left:8px;">Never lose a lead to a competitor again</span>
+    </td>
+  </tr>
+</table>
+
+<p style="font-size:14px; color:#6b7280;">
+  Need help? Reply to this email or WhatsApp us at <strong>+44 7756 183 484</strong>.
+  We typically respond within 2 hours.
+</p>
+
+<p style="font-size:14px; color:#6b7280;">
+  To your growth,<br/>
+  <strong style="color:#025422;">The CustomerFlow AI Team</strong>
+</p>
+{% endblock %}

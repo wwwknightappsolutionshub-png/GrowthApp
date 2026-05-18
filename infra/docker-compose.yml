@@ -1,0 +1,191 @@
+version: "3.9"
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+      - api
+    networks:
+      - customerflow
+
+  web:
+    build:
+      context: ../apps/web
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://api:8000}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-https://app.yourdomain.com}
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - customerflow
+
+  api:
+    build:
+      context: ../apps/api
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - SMS_PROVIDER=${SMS_PROVIDER:-mock}
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-mock}
+      - PAYMENT_PROVIDER=${PAYMENT_PROVIDER:-mock}
+      - AI_PROVIDER=${AI_PROVIDER:-mock}
+      - SOCIAL_PROVIDER=${SOCIAL_PROVIDER:-mock}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID:-}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN:-}
+      - TWILIO_FROM_NUMBER=${TWILIO_FROM_NUMBER:-}
+      - TWILIO_WEBHOOK_BASE_URL=${TWILIO_WEBHOOK_BASE_URL:-}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-noreply@yourdomain.com}
+      - RESEND_WEBHOOK_SECRET=${RESEND_WEBHOOK_SECRET:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - FRONTEND_URL=${FRONTEND_URL:-https://app.yourdomain.com}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-https://app.yourdomain.com}
+      - COOKIE_DOMAIN=${COOKIE_DOMAIN:-}
+      - COOKIE_SECURE=${COOKIE_SECURE:-true}
+      - COOKIE_SAMESITE=${COOKIE_SAMESITE:-lax}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - customerflow
+
+  worker:
+    # Worker shares the api codebase — same image, different entrypoint.
+    build:
+      context: ../apps/api
+      dockerfile: Dockerfile
+    command: ["uv", "run", "arq", "app.workers.worker_settings.WorkerSettings"]
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - SMS_PROVIDER=${SMS_PROVIDER:-mock}
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-mock}
+      - PAYMENT_PROVIDER=${PAYMENT_PROVIDER:-mock}
+      - AI_PROVIDER=${AI_PROVIDER:-mock}
+      - SOCIAL_PROVIDER=${SOCIAL_PROVIDER:-mock}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID:-}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN:-}
+      - TWILIO_FROM_NUMBER=${TWILIO_FROM_NUMBER:-}
+      - TWILIO_WEBHOOK_BASE_URL=${TWILIO_WEBHOOK_BASE_URL:-}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - RESEND_FROM_EMAIL=${RESEND_FROM_EMAIL:-noreply@yourdomain.com}
+      - RESEND_WEBHOOK_SECRET=${RESEND_WEBHOOK_SECRET:-}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - FRONTEND_URL=${FRONTEND_URL:-https://app.yourdomain.com}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - customerflow
+
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-customerflow_ai}
+      - POSTGRES_USER=${POSTGRES_USER:-customerflow}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-customerflow}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - customerflow
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - customerflow
+
+  # ── Database backup ──────────────────────────────────────────────────────
+  # Runs daily at 02:00 UTC. Stores compressed dumps in pg_backups volume.
+  # Optional: set S3_BUCKET + AWS credentials to also push to S3.
+  backup:
+    build:
+      context: ./backup
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=${POSTGRES_DB:-customerflow_ai}
+      - POSTGRES_USER=${POSTGRES_USER:-customerflow}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - BACKUP_DIR=/backups
+      - RETAIN_DAILY=${BACKUP_RETAIN_DAILY:-7}
+      - RETAIN_WEEKLY=${BACKUP_RETAIN_WEEKLY:-4}
+      - RETAIN_MONTHLY=${BACKUP_RETAIN_MONTHLY:-3}
+      # Optional S3 — leave blank to use local-only
+      - S3_BUCKET=${BACKUP_S3_BUCKET:-}
+      - S3_PREFIX=${BACKUP_S3_PREFIX:-customerflow/postgres}
+      - AWS_ACCESS_KEY_ID=${BACKUP_AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${BACKUP_AWS_SECRET_ACCESS_KEY:-}
+      - AWS_DEFAULT_REGION=${BACKUP_AWS_REGION:-eu-west-2}
+      # Optional: Slack/webhook alert URL for failures
+      - BACKUP_ALERT_WEBHOOK=${BACKUP_ALERT_WEBHOOK:-}
+    volumes:
+      - pg_backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - customerflow
+
+volumes:
+  caddy_data:
+  caddy_config:
+  pg_data:
+  redis_data:
+  pg_backups:
+
+networks:
+  customerflow:
+    driver: bridge

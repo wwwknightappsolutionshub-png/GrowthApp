@@ -1,0 +1,228 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------------------------------- *
+ *  CustomerFlow AI — Design Tokens
+ *
+ *  Brand:
+ *    - Forest:  #025422   (HSL 141 95% 17%)   primary, anchor, CTA
+ *    - Teal:    #20ccce   (HSL 181 73% 47%)   accent, focus, highlight
+ *
+ *  Typography:
+ *    --font-display → Cabinet Grotesk (headings, statements)
+ *    --font-sans    → Anek Latin       (body, UI, controls)
+ *
+ *  Surfaces lean neutral & enterprise: white backgrounds, sober slate text,
+ *  ~6px radii, monospace numerals for KPIs, no rainbow gradients.
+ * ------------------------------------------------------------------------- */
+
+@layer base {
+  :root {
+    /* Brand */
+    --brand-forest: 141 95% 17%;
+    --brand-forest-foreground: 0 0% 100%;
+    --brand-teal: 181 73% 47%;
+    --brand-teal-foreground: 165 60% 8%;
+
+    /* Surface */
+    --background: 0 0% 100%;
+    --foreground: 222 24% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 24% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 24% 12%;
+
+    /* Semantic */
+    --primary: 141 95% 17%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 24% 12%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 42%;
+    --accent: 181 73% 47%;
+    --accent-foreground: 165 60% 8%;
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 141 70% 28%;
+    --success-foreground: 0 0% 100%;
+    --warning: 36 95% 47%;
+    --warning-foreground: 0 0% 100%;
+
+    /* Lines + focus ring */
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 141 70% 28%;
+
+    /* Radii (enterprise = restrained) */
+    --radius: 0.375rem;
+
+    /* Typography wiring (next/font sets --font-anek and --font-cabinet) */
+    --font-sans: var(--font-anek), 'Anek Latin', -apple-system, BlinkMacSystemFont,
+      'Segoe UI', system-ui, sans-serif;
+    --font-display: var(--font-cabinet), 'Cabinet Grotesk', var(--font-anek),
+      'Anek Latin', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco,
+      'Cascadia Mono', Consolas, monospace;
+  }
+
+  /**
+   *  Surface-scoped overrides — applied via a wrapper div on routes that
+   *  must keep their visual identity regardless of the user's OS dark-mode
+   *  preference (marketing landing, auth panel, public widgets, etc).
+   */
+  .surface-light {
+    color-scheme: light;
+    /* Reset inherited `color` from `body` when `html.dark` is active — otherwise
+       labels/inputs inherit near-white text while fields use light `--background`
+       (invisible text). Tie default text to these scoped tokens. */
+    color: hsl(var(--foreground));
+    --background: 0 0% 100%;
+    --foreground: 222 24% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 24% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 24% 12%;
+    --primary: 141 95% 17%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222 24% 12%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 9% 42%;
+    --accent: 181 73% 47%;
+    --accent-foreground: 165 60% 8%;
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 141 70% 28%;
+    --success-foreground: 0 0% 100%;
+    --warning: 36 95% 47%;
+    --warning-foreground: 0 0% 100%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 141 70% 28%;
+    --brand-forest: 141 95% 17%;
+    --brand-forest-foreground: 0 0% 100%;
+    --brand-teal: 181 73% 47%;
+    --brand-teal-foreground: 165 60% 8%;
+  }
+
+  .dark {
+    /* Brand stays — we boost the readable form on dark surfaces */
+    --brand-forest: 141 50% 34%;
+    --brand-forest-foreground: 0 0% 100%;
+    --brand-teal: 181 73% 47%;
+    --brand-teal-foreground: 165 60% 8%;
+
+    --background: 141 22% 6%;
+    --foreground: 0 0% 98%;
+    --card: 141 18% 9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 141 18% 8%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 141 50% 34%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 141 16% 14%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 141 16% 14%;
+    --muted-foreground: 220 10% 65%;
+    --accent: 181 73% 47%;
+    --accent-foreground: 165 60% 8%;
+    --destructive: 0 62% 40%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 141 60% 38%;
+    --success-foreground: 0 0% 100%;
+    --warning: 36 92% 50%;
+    --warning-foreground: 0 0% 0%;
+
+    --border: 141 14% 18%;
+    --input: 141 14% 18%;
+    --ring: 181 73% 47%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    /* Stops the dotted-line scroll-anchoring jump when fonts load. */
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1;
+    letter-spacing: -0.005em;
+    overflow-x: hidden;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    font-feature-settings: 'ss01' 1, 'ss02' 1;
+  }
+  code, pre, kbd, samp {
+    font-family: var(--font-mono);
+  }
+  /* Monospace numerals when used inside a tabular context */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Reusable layout primitives -------------------------------------------- */
+
+.kanban-col {
+  min-height: 500px;
+}
+
+/* Subtle background grid used on enterprise hero / auth panel */
+.bg-grid-faint {
+  background-image:
+    linear-gradient(to right, hsl(var(--border) / 0.6) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(var(--border) / 0.6) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.bg-grid-forest {
+  background-image:
+    linear-gradient(to right, hsl(0 0% 100% / 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, hsl(0 0% 100% / 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* Brand "lift" — used sparingly under hero CTAs */
+.brand-glow {
+  box-shadow:
+    0 0 0 1px hsl(var(--brand-forest) / 0.04),
+    0 10px 30px -10px hsl(var(--brand-forest) / 0.35),
+    0 4px 12px -4px hsl(var(--brand-teal) / 0.18);
+}
+
+/* ── TipTap editor ------------------------------------------------------ */
+
+.tiptap {
+  @apply min-h-[160px] outline-none;
+  font-family: var(--font-sans);
+}
+.tiptap p { @apply my-2; }
+.tiptap h1 { @apply text-2xl font-bold mt-4 mb-2; font-family: var(--font-display); }
+.tiptap h2 { @apply text-xl font-semibold mt-4 mb-2; font-family: var(--font-display); }
+.tiptap h3 { @apply text-lg font-semibold mt-3 mb-2; font-family: var(--font-display); }
+.tiptap ul { @apply list-disc pl-5 my-2; }
+.tiptap ol { @apply list-decimal pl-5 my-2; }
+.tiptap blockquote {
+  @apply border-l-4 border-border pl-4 italic text-muted-foreground my-2;
+}
+.tiptap a { @apply text-primary underline underline-offset-2; }
+.tiptap code {
+  @apply bg-muted px-1 py-0.5 rounded text-xs;
+  font-family: var(--font-mono);
+}
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  @apply text-muted-foreground float-left pointer-events-none h-0;
+}

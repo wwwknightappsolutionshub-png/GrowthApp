@@ -1,0 +1,19 @@
+{
+  "name": "customerflow-ai",
+  "private": true,
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "generate-types": "node infra/scripts/generate-types.js"
+  },
+  "devDependencies": {
+    "turbo": "^1.13.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.1.0"
+}

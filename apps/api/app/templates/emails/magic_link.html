@@ -1,0 +1,31 @@
+{% extends "emails/base.html" %}
+{% block header_eyebrow %}<p class="eyebrow">Sign-in link</p>{% endblock %}
+{% block content %}
+<h1>Your CustomerFlow AI sign-in link</h1>
+<p>Hi {{ full_name | default('there') }},</p>
+<p>
+  You requested a passwordless sign-in link for <strong>{{ email }}</strong>.
+  Click below to sign in &mdash; no password required. The link is valid for
+  {{ expires_in_minutes | default(15) }} minutes and can be used once.
+</p>
+
+<div style="text-align:center;">
+  <a href="{{ magic_url }}" class="btn btn-accent">Sign in to CustomerFlow AI →</a>
+</div>
+
+<p style="font-size:13px; color:#6b7280;">
+  Or copy &amp; paste this link into your browser:<br />
+  <span style="font-family: 'SF Mono', Monaco, monospace; word-break: break-all; color: #025422;">{{ magic_url }}</span>
+</p>
+
+<div class="highlight-box">
+  <p>🔒 <strong>One link, one use.</strong> For your security this link works once
+  and only on the device that requested it. Once used, it expires immediately.</p>
+</div>
+
+<div class="divider"></div>
+<p style="font-size:12px; color:#9ca3af;">
+  If you didn't request this sign-in link, simply ignore this email &mdash; your
+  account remains secure.
+</p>
+{% endblock %}

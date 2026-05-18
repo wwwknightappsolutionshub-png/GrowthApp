@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+.uv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+.turbo/
+*.tsbuildinfo
+
+# Test artefacts
+coverage/
+playwright-report/
+test-results/
+.playwright/
+
+# Env
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Docker
+*.log
+.preview-pids.json
+api-out.txt
+api-err.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Alembic (keep versions)
+# alembic/versions/ - intentionally tracked
+
+# Uploads
+uploads/

@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  api-test:
+    name: API Tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: customerflow_ai_test
+          POSTGRES_USER: customerflow
+          POSTGRES_PASSWORD: testpassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      - name: Install dependencies
+        working-directory: apps/api
+        run: uv sync
+      - name: Run migrations
+        working-directory: apps/api
+        env:
+          DATABASE_URL: postgresql+asyncpg://customerflow:testpassword@localhost:5432/customerflow_ai_test
+        run: uv run alembic upgrade head
+      - name: Run tests
+        working-directory: apps/api
+        env:
+          DATABASE_URL: postgresql+asyncpg://customerflow:testpassword@localhost:5432/customerflow_ai_test
+          REDIS_URL: redis://localhost:6379/1
+          JWT_SECRET: test_jwt_secret_for_ci_only
+          JWT_REFRESH_SECRET: test_refresh_secret_for_ci_only
+          ENVIRONMENT: testing
+        run: uv run pytest -v --tb=short
+
+  web-build:
+    name: Web Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+      - name: Install dependencies
+        run: pnpm install
+      - name: Type check
+        working-directory: apps/web
+        run: pnpm type-check
+      - name: Lint
+        working-directory: apps/web
+        run: pnpm lint
+      - name: Build
+        working-directory: apps/web
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8000
+          NEXTAUTH_SECRET: build_secret
+          NEXTAUTH_URL: http://localhost:3000
+        run: pnpm build

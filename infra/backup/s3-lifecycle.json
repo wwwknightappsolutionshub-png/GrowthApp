@@ -1,0 +1,22 @@
+{
+  "Rules": [
+    {
+      "ID": "customerflow-daily-retention",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "customerflow/postgres/daily/" },
+      "Expiration": { "Days": 7 }
+    },
+    {
+      "ID": "customerflow-weekly-retention",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "customerflow/postgres/weekly/" },
+      "Expiration": { "Days": 35 }
+    },
+    {
+      "ID": "customerflow-monthly-retention",
+      "Status": "Enabled",
+      "Filter": { "Prefix": "customerflow/postgres/monthly/" },
+      "Expiration": { "Days": 365 }
+    }
+  ]
+}

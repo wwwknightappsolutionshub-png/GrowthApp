@@ -1,0 +1,68 @@
+{% extends "emails/base.html" %}
+
+{% block header_eyebrow %}
+<p class="eyebrow">Action required — trial ending soon</p>
+{% endblock %}
+
+{% block content %}
+<h1>
+  {% if hours_remaining is defined and hours_remaining <= 24 %}
+    Your trial ends in {{ hours_remaining }} hours, {{ first_name | default('there') }}
+  {% else %}
+    Your 14-day trial ends tomorrow, {{ first_name | default('there') }}
+  {% endif %}
+</h1>
+
+<div class="alert-warning">
+  <p>
+    <strong>Tomorrow your account will switch to the free tier.</strong>
+    You'll lose access to automations, AI features, the SMS gateway, and full CRM.
+    Your data is safe — it's waiting for you when you return.
+  </p>
+</div>
+
+<p>
+  If you've been busy and haven't had a chance to explore the platform properly,
+  we're happy to extend your trial by 7 days — just reply to this email and ask.
+</p>
+
+<p>
+  Or, if you're ready to commit, upgrading takes less than 2 minutes:
+</p>
+
+<p style="text-align:center;">
+  <a href="{{ upgrade_url | default('https://app.customerflow.ai/dashboard/billing') }}" class="btn btn-accent">
+    Upgrade now &amp; save your account →
+  </a>
+</p>
+
+<div class="info-card">
+  <div class="info-row">
+    <span class="info-label">Starter</span>
+    <span class="info-value">£99 / month · 3 AI leads · Core CRM</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Growth ⭐</span>
+    <span class="info-value">£149 / month · 10 AI leads · All automations</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Pro</span>
+    <span class="info-value">£199 / month · 25 AI leads · Unlimited seats</span>
+  </div>
+</div>
+
+<p style="font-size:13px; color:#9ca3af; text-align:center;">
+  All plans include: 14-day money-back guarantee · No setup fees · Cancel anytime
+</p>
+
+<div class="divider"></div>
+
+<p style="font-size:14px; color:#6b7280;">
+  Need a chat before deciding? WhatsApp us at <strong>+44 7756 183 484</strong> —
+  we'll find the right plan for your business or extend your trial if you need more time.
+</p>
+
+<p style="font-size:14px; color:#6b7280;">
+  — {{ sender_name | default('The CustomerFlow AI Team') }}
+</p>
+{% endblock %}

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CustomerFlow AI">
+  <rect width="512" height="512" fill="#025422"/>
+  <circle cx="382" cy="130" r="42" fill="#20ccce"/>
+  <path d="M104 328c74-140 176-202 284-210" fill="none" stroke="#ffffff" stroke-width="42" stroke-linecap="round"/>
+  <path d="M116 358c62-58 130-78 204-50" fill="none" stroke="#20ccce" stroke-width="42" stroke-linecap="round"/>
+  <path d="M104 398h304" fill="none" stroke="#ffffff" stroke-opacity=".9" stroke-width="32" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,71 @@
+{% extends "emails/base.html" %}
+{% block content %}
+<h1>Your booking is confirmed ✅</h1>
+<p>Hi {{ customer_name }},</p>
+<p>
+  Great news — your appointment with <strong>{{ business_name }}</strong> has been confirmed.
+  Here are your booking details:
+</p>
+
+<div class="info-card">
+  <div class="info-row">
+    <span class="info-label">Service</span>
+    <span class="info-value">{{ service_description | default('General appointment') }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Date</span>
+    <span class="info-value">{{ booking_date }}</span>
+  </div>
+  <div class="info-row">
+    <span class="info-label">Time</span>
+    <span class="info-value">{{ start_time }}</span>
+  </div>
+  {% if staff_name %}
+  <div class="info-row">
+    <span class="info-label">Engineer / Staff</span>
+    <span class="info-value">{{ staff_name }}</span>
+  </div>
+  {% endif %}
+  {% if deposit_required_pence and deposit_required_pence > 0 %}
+  <div class="info-row">
+    <span class="info-label">Deposit</span>
+    <span class="info-value">
+      {% if deposit_paid %}
+        £{{ "%.2f"|format(deposit_required_pence / 100) }} — Paid ✅
+      {% else %}
+        £{{ "%.2f"|format(deposit_required_pence / 100) }} — Due
+      {% endif %}
+    </span>
+  </div>
+  {% endif %}
+</div>
+
+{% if notes %}
+<div class="highlight-box">
+  <p><strong>Notes from the team:</strong> {{ notes }}</p>
+</div>
+{% endif %}
+
+<p>We'll be in touch if anything changes. If you need to reschedule or have questions, please contact us:</p>
+
+<div class="info-card">
+  {% if business_phone %}
+  <div class="info-row">
+    <span class="info-label">Phone</span>
+    <span class="info-value"><a href="tel:{{ business_phone }}" style="color:#2563eb;">{{ business_phone }}</a></span>
+  </div>
+  {% endif %}
+  {% if business_email %}
+  <div class="info-row">
+    <span class="info-label">Email</span>
+    <span class="info-value"><a href="mailto:{{ business_email }}" style="color:#2563eb;">{{ business_email }}</a></span>
+  </div>
+  {% endif %}
+</div>
+
+<div class="divider"></div>
+<p style="font-size:13px; color:#9ca3af;">
+  Please ensure someone is available at the property at the time of the appointment.
+  A 24-hour notice is required for cancellations.
+</p>
+{% endblock %}

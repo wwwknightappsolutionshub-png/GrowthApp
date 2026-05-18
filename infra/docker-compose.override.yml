@@ -1,0 +1,41 @@
+version: "3.9"
+
+# Local development overrides
+services:
+  api:
+    build:
+      context: ../apps/api
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ../apps/api:/app
+    environment:
+      - ENVIRONMENT=development
+      - ALLOWED_ORIGINS=http://localhost:3000
+      - FRONTEND_URL=http://localhost:3000
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: ../apps/web
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ../apps/web:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    ports:
+      - "3000:3000"
+
+  postgres:
+    ports:
+      - "5432:5432"
+
+  redis:
+    ports:
+      - "6379:6379"
+
+  caddy:
+    profiles:
+      - caddy-local

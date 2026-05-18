@@ -1,0 +1,2 @@
+# Run backup daily at 02:00 UTC
+0 2 * * * /usr/local/bin/backup.sh >> /proc/1/fd/1 2>&1

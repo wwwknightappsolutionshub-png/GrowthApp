@@ -1,0 +1,109 @@
+{% extends "emails/base.html" %}
+
+{% block header_eyebrow %}
+<p class="eyebrow">Day {{ day | default(3) }} check-in</p>
+{% endblock %}
+
+{% block content %}
+<h1>
+  {% if day == 3 %}
+    How's your first week going, {{ first_name | default('there') }}?
+  {% elif day == 7 %}
+    You're halfway through your trial, {{ first_name | default('there') }}
+  {% else %}
+    One thing to unlock before your trial ends, {{ first_name | default('there') }}
+  {% endif %}
+</h1>
+
+{% if day == 3 %}
+<p>
+  By now, your CustomerFlow AI account is set up and ready to generate its first
+  leads. Here's the one thing that most transforms businesses in week one:
+</p>
+
+<div class="highlight-box">
+  <p>
+    <strong>🏆 Set up your missed-call SMS recovery.</strong><br/>
+    When a customer calls and you're on a job, CustomerFlow AI automatically texts
+    them within 60 seconds: <em>"Sorry I missed your call — I'll be in touch within the hour."</em>
+    This single feature recovers an average of £2,400/month for UK tradespeople.
+  </p>
+</div>
+
+<p style="text-align:center;">
+  <a href="{{ setup_url | default('https://app.customerflow.ai/dashboard/messaging') }}" class="btn">
+    Set up missed-call SMS now →
+  </a>
+</p>
+
+{% elif day == 7 %}
+<p>
+  You're 7 days in. Here's what the fastest-growing CustomerFlow AI businesses
+  do in week two to compound their growth:
+</p>
+
+<table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+  <tr>
+    <td style="padding:12px 0; border-bottom:1px solid #e5e7eb;">
+      <strong>Request your first batch of AI-sourced leads</strong>
+      <p style="font-size:13px; color:#6b7280; margin:4px 0 0;">
+        Your plan includes {{ lead_quota | default(3) }} AI leads this month.
+        Request them now and let our scraper engine fill your pipeline.
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:12px 0; border-bottom:1px solid #e5e7eb;">
+      <strong>Send a review request to your 3 most recent customers</strong>
+      <p style="font-size:13px; color:#6b7280; margin:4px 0 0;">
+        Even one new Google review this week starts the compounding effect.
+        Go to CRM → select customer → Request review.
+      </p>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:12px 0;">
+      <strong>Activate your first automation sequence</strong>
+      <p style="font-size:13px; color:#6b7280; margin:4px 0 0;">
+        A 3-step follow-up for new enquiries takes 10 minutes to set up
+        and runs forever. Go to Automation → New sequence.
+      </p>
+    </td>
+  </tr>
+</table>
+
+<p style="text-align:center;">
+  <a href="{{ dashboard_url | default('https://app.customerflow.ai/dashboard') }}" class="btn">
+    Continue to dashboard →
+  </a>
+</p>
+
+{% else %}
+<p>
+  Your trial is almost up, {{ first_name | default('there') }}. Before it ends,
+  there's one feature we want to make sure you've seen — because it alone
+  typically pays for the subscription every month.
+</p>
+
+<div class="alert-warning">
+  <p>
+    <strong>🔥 AI Lead Scoring</strong> — Every inbound enquiry is automatically
+    scored 0–100 based on quality signals. Your team always works the hottest
+    leads first. Average conversion improvement: <strong>+38%</strong>.
+  </p>
+</div>
+
+<p style="text-align:center;">
+  <a href="{{ upgrade_url | default('https://app.customerflow.ai/dashboard/billing') }}" class="btn">
+    Keep access — choose a plan →
+  </a>
+</p>
+{% endif %}
+
+<div class="divider"></div>
+
+<p style="font-size:14px; color:#6b7280;">
+  Any questions? Reply to this email or WhatsApp us at <strong>+44 7756 183 484</strong>.
+  We're here to help you get the most from CustomerFlow AI.
+</p>
+{% endblock %}
