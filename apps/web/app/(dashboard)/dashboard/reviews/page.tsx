@@ -30,7 +30,7 @@ function googleStarsToNumber(star: string | null | undefined): number {
     FIVE: 5,
   }
   if (!star) return 0
-  return map[star] ?? Number.parseInt(star, 10) || 0
+  return map[star] ?? (Number.parseInt(star, 10) || 0)
 }
 
 type Tab = 'in_app' | 'google'
