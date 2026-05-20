@@ -54,11 +54,11 @@ function HeroOverride({ adaptive }: { adaptive: NonNullable<AdaptiveUIResult> })
         {adaptive.hero.headline}
       </h1>
 
-      <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+      <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground lg:mx-0">
         {adaptive.hero.subheadline}
       </p>
 
-      <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+      <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
         <Link
           href={adaptive.cta.href}
           className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-forest-700 px-6 py-3.5 text-sm font-semibold text-brand-forest-foreground shadow-brand transition-all hover:bg-brand-forest-800"
@@ -74,7 +74,7 @@ function HeroOverride({ adaptive }: { adaptive: NonNullable<AdaptiveUIResult> })
         </a>
       </div>
 
-      <ul className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-3 text-sm text-muted-foreground">
+      <ul className="mt-10 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-sm text-muted-foreground lg:justify-start">
         {adaptive.painPointBlocks.map((painPoint) => (
           <li key={painPoint.id} className="inline-flex items-center gap-2">
             <CheckCircle2 className="h-4 w-4 text-brand-forest-700" />

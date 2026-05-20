@@ -36,7 +36,7 @@ export default function ReviewPage() {
     if (!rating) return
     setSubmitting(true)
     try {
-      const res = await fetch(`${API_URL}/api/v1/public/review/${token}/respond`, {
+      const res = await fetch(`${API_URL}/api/v1/public/review/${token}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rating, feedback: feedback || null }),

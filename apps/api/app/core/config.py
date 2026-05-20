@@ -127,6 +127,12 @@ class Settings(BaseSettings):
     FACEBOOK_APP_ID: str = ""
     FACEBOOK_APP_SECRET: str = ""
 
+    # Google Business Profile (OAuth)
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = ""
+    INTEGRATIONS_TOKEN_ENCRYPTION_KEY: str = ""
+
     # Sentry
     SENTRY_DSN: str = ""
 

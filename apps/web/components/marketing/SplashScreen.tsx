@@ -94,7 +94,7 @@ export function SplashScreen() {
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, scale: 1.04 }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="fixed inset-0 z-[9999] flex flex-col overflow-hidden bg-brand-forest-950"
+          className="fixed inset-0 z-[9999] flex flex-col overflow-y-auto overscroll-contain bg-brand-forest-950"
           role="dialog"
           aria-modal="true"
           aria-label="Welcome to CustomerFlow AI"
@@ -146,7 +146,7 @@ export function SplashScreen() {
           </motion.div>
 
           {/* Top nav bar */}
-          <header className="relative z-10 flex items-center border-b border-white/10 px-6 py-5 sm:px-10">
+          <header className="relative z-10 flex shrink-0 items-center border-b border-white/10 px-6 py-4 sm:px-10 sm:py-5">
             <span className="inline-flex items-center gap-2.5">
               <span className="relative inline-flex h-8 w-8 items-center justify-center rounded-md bg-brand-teal-400 text-brand-teal-foreground shadow-brand">
                 <TrendingUp className="h-4 w-4" strokeWidth={2.5} />
@@ -162,7 +162,7 @@ export function SplashScreen() {
           </header>
 
           {/* Main content */}
-          <main className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 text-center">
+          <main className="relative z-10 flex flex-1 flex-col items-center justify-start px-6 py-8 text-center sm:justify-center sm:py-10">
             <motion.div
               initial={{ opacity: 0, y: 32 }}
               animate={{ opacity: 1, y: 0 }}
@@ -176,7 +176,7 @@ export function SplashScreen() {
                     Average setup · 18 minutes
                   </span>
 
-                  <h1 className="mt-6 font-display text-4xl font-bold leading-tight text-white sm:text-5xl lg:text-6xl xl:text-[72px] xl:leading-[1.03]">
+                  <h1 className="mt-5 font-display text-3xl font-bold leading-tight text-white sm:mt-6 sm:text-5xl lg:text-6xl xl:text-[72px] xl:leading-[1.03]">
                     More leads.
                     <br />
                     More bookings.
@@ -184,12 +184,12 @@ export function SplashScreen() {
                     <span className="text-brand-teal-300">More 5-star reviews.</span>
                   </h1>
 
-                  <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-white/70 sm:text-lg">
+                  <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-white/70 sm:mt-6 sm:text-lg">
                     Join UK businesses already using CustomerFlow AI to grow on
                     autopilot. Your first 14 days are completely free — no credit card required.
                   </p>
 
-                  <div className="mx-auto mt-8 grid max-w-2xl gap-3 sm:grid-cols-3">
+                  <div className="mx-auto mt-6 grid max-w-2xl gap-3 sm:mt-8 sm:grid-cols-3">
                     {[
                       'Choose your niche',
                       'Pick your pains',
@@ -211,7 +211,7 @@ export function SplashScreen() {
                     ))}
                   </div>
 
-                  <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+                  <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:mt-10 sm:flex-row">
                     <motion.button
                       type="button"
                       onClick={() => setMode('demo')}
@@ -233,7 +233,7 @@ export function SplashScreen() {
                   </div>
 
                   {/* Trust strip */}
-                  <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/50">
+                  <div className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/50 sm:mt-10">
                     {[
                       { Icon: Shield, label: 'GDPR Compliant' },
                       { Icon: RefreshCw, label: 'Cancel anytime' },
@@ -355,7 +355,7 @@ export function SplashScreen() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 1.2, duration: 0.5 }}
-            className="relative z-10 flex justify-center pb-8"
+            className="relative z-10 flex shrink-0 justify-center pb-6 sm:pb-8"
           >
             <button
               onClick={dismiss}

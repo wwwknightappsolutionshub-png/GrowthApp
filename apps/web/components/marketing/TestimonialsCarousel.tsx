@@ -41,7 +41,7 @@ function initialsOf(name: string): string {
  * - Falls back to `initialReviews` (passed by the SSR caller) if the public
  *   endpoint is unreachable.
  * - Auto-rotates every `autoRotateMs` (default 6s); pauses on hover.
- * - Includes a prominent "Share your story" CTA which opens the
+ * - Includes a prominent review CTA which opens the
  *   `ShareReviewModal`.
  */
 export function TestimonialsCarousel({
@@ -205,7 +205,7 @@ export function TestimonialsCarousel({
               onClick={() => setShareOpen(true)}
               className="mt-5 inline-flex items-center gap-2 rounded-md bg-brand-teal-400 px-5 py-2.5 text-sm font-semibold text-brand-teal-foreground transition-colors hover:bg-brand-teal-300"
             >
-              Share your story
+              Give us a review of your experience
               <ArrowUpRight className="h-4 w-4" />
             </button>
           </div>
@@ -256,7 +256,7 @@ function EmptyState({ onShareClick }: { onShareClick: () => void }) {
   return (
     <div className="rounded-xl border border-dashed border-border bg-card p-12 text-center">
       <h3 className="font-display text-xl font-bold text-foreground">
-        Be the first to share your story
+        Be the first to review your experience
       </h3>
       <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
         We&rsquo;re onboarding our founding cohort. Tell us how the platform is
@@ -267,7 +267,7 @@ function EmptyState({ onShareClick }: { onShareClick: () => void }) {
         onClick={onShareClick}
         className="mt-5 inline-flex items-center gap-2 rounded-md bg-brand-forest-700 px-5 py-2.5 text-sm font-semibold text-brand-forest-foreground shadow-brand transition-colors hover:bg-brand-forest-800"
       >
-        Share your story
+        Give us a review of your experience
         <ArrowUpRight className="h-4 w-4" />
       </button>
     </div>

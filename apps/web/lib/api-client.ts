@@ -323,6 +323,18 @@ export const reputation = {
   reviews: (params?: object) => apiClient.get('/reputation/reviews', { params }),
 }
 
+export const integrations = {
+  googleStatus: () => apiClient.get('/integrations/google/status'),
+  googleConnectUrl: () => `${API_BASE}/api/v1/integrations/google/connect`,
+  googleDisconnect: () => apiClient.post('/integrations/google/disconnect'),
+  googleSelectLocation: (location_name: string) =>
+    apiClient.post('/integrations/google/select-location', { location_name }),
+  googleSync: () => apiClient.post('/integrations/google/sync'),
+  googleReviews: () => apiClient.get('/integrations/google/reviews'),
+  googleReply: (reviewId: string, comment: string) =>
+    apiClient.post(`/integrations/google/reviews/${reviewId}/reply`, { comment }),
+}
+
 export const social = {
   posts: (params?: object) => apiClient.get('/social/posts', { params }),
   getPost: (id: string) => apiClient.get(`/social/posts/${id}`),

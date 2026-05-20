@@ -36,7 +36,7 @@ const EMPTY: FieldValues = {
 }
 
 /**
- * The visitor-facing "Share your story" modal.
+ * The visitor-facing review modal.
  *
  * Posts to `POST /api/v1/public/marketing/reviews` which sanitises the body
  * server-side (negative-word filter) and auto-publishes 4-5 star reviews.
@@ -123,15 +123,15 @@ export function ShareReviewModal({
             <header className="flex items-start justify-between gap-4 border-b border-border bg-brand-forest-950 px-7 py-6 text-brand-forest-foreground">
               <div>
                 <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.22em] text-brand-teal-300">
-                  Share your story
+                  Give us a review of your experience
                 </p>
                 <h3 className="mt-1.5 font-display text-xl font-bold leading-tight">
                   {source === 'exit_intent'
-                    ? 'Before you go — tell us a story?'
+                    ? 'Before you go — leave us a review?'
                     : 'How has CustomerFlow worked for you?'}
                 </h3>
                 <p className="mt-1 text-sm text-white/65">
-                  We&rsquo;ll feature great stories on this site, with your permission, automatically.
+                  Safe 4–5 star reviews go live automatically and are copied to the superadmin review queue.
                 </p>
               </div>
               <button
@@ -153,9 +153,8 @@ export function ShareReviewModal({
                   Thanks — you&rsquo;re on the wall.
                 </h4>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Your story will appear in the carousel below shortly. We may
-                  reach out about featuring it on Google or Trustpilot, with
-                  your permission.
+                  Your review will appear in the carousel shortly if it passes the safety checks.
+                  A copy has also been sent to the superadmin queue for Google Business Profile follow-up.
                 </p>
                 <button
                   type="button"
@@ -270,7 +269,7 @@ export function ShareReviewModal({
                         <Loader2 className="h-4 w-4 animate-spin" /> Sending…
                       </>
                     ) : (
-                      'Submit story'
+                      'Submit review'
                     )}
                   </button>
                 </div>

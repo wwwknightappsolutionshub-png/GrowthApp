@@ -23,6 +23,7 @@ from app.workers.tasks.ai_scraper import run_ai_scraper_task
 from app.workers.tasks.ai_scraper_scheduler import enqueue_due_scraper_tasks
 from app.services.ai_scraper.task_runner import run_crawler_task
 from app.workers.tasks.ai_social import run_ai_social_scheduler
+from app.workers.tasks.google_integrations import sync_all_google_reviews
 
 
 class WorkerSettings:
@@ -64,6 +65,7 @@ class WorkerSettings:
         cron(backfill_lead_scores_task, minute={0}),
         cron(run_ai_social_scheduler, minute=set(range(60))),
         cron(enqueue_due_scraper_tasks, minute={0, 15, 30, 45}),
+        cron(sync_all_google_reviews, minute={5, 35}),
     ]
     max_jobs = 10
     job_timeout = 300

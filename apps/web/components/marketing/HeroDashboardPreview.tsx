@@ -177,7 +177,7 @@ export function HeroDashboardPreview() {
         initial={{ opacity: 0, scale: 0.92 }}
         animate={inView ? { opacity: 1, scale: 1 } : undefined}
         transition={{ delay: 1.2, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className="absolute -right-4 -top-3 hidden rounded-lg border border-border bg-card p-3 shadow-elevated sm:block"
+        className="absolute right-2 top-2 hidden rounded-lg border border-border bg-card p-3 shadow-elevated sm:block lg:-right-4 lg:-top-3"
       >
         <div className="flex items-center gap-2">
           <div className="flex gap-0.5">

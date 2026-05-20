@@ -182,10 +182,10 @@ function ResultRow({
                 <div className="mt-4">
                   <PayloadBlock
                     title="Marketplace ingest log"
-                    data={
-                      (row.cleaned_payload as { marketplace_ingest: unknown })
-                        .marketplace_ingest
-                    }
+                    data={{
+                      entries: (row.cleaned_payload as { marketplace_ingest: unknown[] })
+                        .marketplace_ingest,
+                    }}
                   />
                 </div>
               )}

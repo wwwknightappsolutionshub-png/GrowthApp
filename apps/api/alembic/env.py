@@ -36,6 +36,7 @@ from app.modules.marketer.models import (  # noqa: F401
 )
 from app.modules.audit.models import AuditLog  # noqa: F401
 from app.modules.gdpr.models import GdprRequest  # noqa: F401
+from app.modules.integrations.models import TenantGoogleConnection, GoogleBusinessReview  # noqa: F401
 
 config = context.config
 

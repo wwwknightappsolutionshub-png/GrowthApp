@@ -486,7 +486,7 @@ export default async function HomePage() {
           className="pointer-events-none absolute inset-x-0 top-0 h-[480px] bg-[radial-gradient(ellipse_50%_40%_at_50%_0%,hsl(var(--brand-teal)/0.10),transparent_70%)]"
         />
 
-        <div className="container relative grid items-center gap-16 py-20 lg:grid-cols-12 lg:py-28">
+        <div className="container relative grid items-center gap-16 py-20 text-center lg:grid-cols-12 lg:py-28 lg:text-left">
           <div className="lg:col-span-7">
             <AdaptiveHeroContent
               fallback={
@@ -499,14 +499,14 @@ export default async function HomePage() {
                     reviews and <span className="text-brand-teal-500">money</span>.
                   </h1>
 
-                  <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+                  <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground lg:mx-0">
                     CustomerFlow AI replaces ten point solutions with a single
                     system of record: AI lead scoring, automated follow-ups, review
                     flows, kanban operations, invoicing and cashflow intelligence —
                     wired together and running quietly in the background.
                   </p>
 
-                  <div className="mt-9 flex flex-col gap-3 sm:flex-row">
+                  <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
                     <Link
                       href="/register"
                       className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-forest-700 px-6 py-3.5 text-sm font-semibold text-brand-forest-foreground shadow-brand transition-all hover:bg-brand-forest-800"
@@ -522,7 +522,7 @@ export default async function HomePage() {
                     </a>
                   </div>
 
-                  <ul className="mt-10 flex flex-wrap items-center gap-x-7 gap-y-3 text-sm text-muted-foreground">
+                  <ul className="mt-10 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-sm text-muted-foreground lg:justify-start">
                     {[
                       'No credit card required',
                       '14-day free trial',
@@ -541,7 +541,7 @@ export default async function HomePage() {
           </div>
 
           {/* Animated hero dashboard preview */}
-          <div className="lg:col-span-5">
+          <div className="mx-auto w-full max-w-xl lg:col-span-5 lg:max-w-none">
             <AdaptiveHeroVisual fallback={<HeroDashboardPreview />} />
           </div>
         </div>

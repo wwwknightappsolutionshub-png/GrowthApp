@@ -1,6 +1,8 @@
 """Business logic for the marketing CMS, public reviews and landing templates."""
 from __future__ import annotations
 
+import html
+import logging
 import uuid
 from datetime import datetime, timezone
 from typing import Iterable
@@ -8,7 +10,11 @@ from typing import Iterable
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.adapters import get_email_adapter
+from app.adapters.email.base import EmailMessage
+from app.core.config import settings
 from app.core.exceptions import NotFoundException
+from app.modules.auth.models import User
 from app.modules.marketing.models import (
     AdaptiveLandingPage,
     LandingPageTemplate,
@@ -16,6 +22,8 @@ from app.modules.marketing.models import (
     MarketingSection,
 )
 from app.modules.marketing.sanitiser import sanitise_review
+
+log = logging.getLogger(__name__)
 
 # ── Marketing sections ──────────────────────────────────────────────────────
 
@@ -252,6 +260,77 @@ def _to_public_dict(review: MarketingReview) -> dict:
     }
 
 
+async def _notify_superadmins_of_review(db: AsyncSession, review: MarketingReview) -> None:
+    """Best-effort email alert so superadmins can approve and push reviews externally."""
+    rows = await db.execute(
+        select(User.email, User.full_name)
+        .where(User.is_superadmin.is_(True), User.deleted_at.is_(None))
+        .order_by(User.created_at.asc())
+    )
+    recipients = [(email, name) for email, name in rows.all() if email]
+    if not recipients:
+        return
+
+    admin_url = f"{settings.FRONTEND_URL.rstrip('/')}/admin/reviews"
+    gmb_status = "ready to queue" if review.status == "approved" else "needs approval first"
+    safe_author = html.escape(review.author_name)
+    safe_quote = html.escape(review.quote)
+    safe_status = html.escape(review.status)
+    safe_company = html.escape(review.author_company or "Not supplied")
+    safe_email = html.escape(review.author_email or "Not supplied")
+
+    html_body = f"""
+    <div style="font-family:Arial,sans-serif;line-height:1.5;color:#0f172a">
+      <h2>New CustomerFlow AI review submitted</h2>
+      <p>A visitor review has been saved to the superadmin review queue.</p>
+      <ul>
+        <li><strong>Author:</strong> {safe_author}</li>
+        <li><strong>Email:</strong> {safe_email}</li>
+        <li><strong>Company:</strong> {safe_company}</li>
+        <li><strong>Rating:</strong> {review.rating}/5</li>
+        <li><strong>Status:</strong> {safe_status}</li>
+        <li><strong>GMB:</strong> {gmb_status}</li>
+      </ul>
+      <blockquote style="border-left:4px solid #0f766e;margin:16px 0;padding:8px 12px;background:#f8fafc">
+        {safe_quote}
+      </blockquote>
+      <p><a href="{admin_url}">Open superadmin reviews</a></p>
+    </div>
+    """
+    text_body = (
+        "New CustomerFlow AI review submitted\n\n"
+        f"Author: {review.author_name}\n"
+        f"Email: {review.author_email or 'Not supplied'}\n"
+        f"Company: {review.author_company or 'Not supplied'}\n"
+        f"Rating: {review.rating}/5\n"
+        f"Status: {review.status}\n"
+        f"GMB: {gmb_status}\n\n"
+        f"{review.quote}\n\n"
+        f"Open: {admin_url}\n"
+    )
+
+    try:
+        adapter = get_email_adapter()
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Failed to initialise email adapter for review %s: %s", review.id, exc)
+        return
+
+    for email, name in recipients:
+        try:
+            await adapter.send(
+                EmailMessage(
+                    to=email,
+                    to_name=name or "",
+                    subject=f"New review submitted: {review.rating}/5 from {review.author_name}",
+                    html_body=html_body,
+                    text_body=text_body,
+                    reply_to=review.author_email,
+                )
+            )
+        except Exception as exc:  # noqa: BLE001
+            log.warning("Failed to notify superadmin %s about review %s: %s", email, review.id, exc)
+
+
 async def submit_public_review(
     db: AsyncSession,
     *,
@@ -295,6 +374,10 @@ async def submit_public_review(
     db.add(review)
     await db.commit()
     await db.refresh(review)
+    try:
+        await _notify_superadmins_of_review(db, review)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Review notification failed for %s: %s", review.id, exc)
     return review
 
 

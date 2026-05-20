@@ -38,6 +38,7 @@ import {
   MessageCircle,
   BellRing,
   Briefcase,
+  Link2,
   type LucideIcon,
 } from 'lucide-react'
 import { logout as doLogout } from '@/lib/auth'
@@ -204,6 +205,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/seo',           label: 'SEO',           description: 'On-page SEO audit and recommendations to rank higher locally',               icon: SearchIcon,   group: 'grow' },
   { href: '/dashboard/automations',   label: 'Automations',   description: 'Trigger-based workflows — follow-ups, reminders, and nurture sequences',     icon: Zap,          group: 'grow' },
   { href: '/dashboard/reviews',       label: 'Reviews',       description: 'Request, monitor, and respond to Google reviews automatically',              icon: Star,         group: 'grow' },
+  { href: '/dashboard/integrations',  label: 'Integrations',  description: 'Connect Google Business Profile and other channels',                       icon: Link2,        group: 'grow' },
   { href: '/dashboard/referrals',     label: 'Referrals',     description: 'Reward customers for referring new business to you',                          icon: TrendingUp,   group: 'grow' },
 
   // ── AI Social ─────────────────────────────────────────────────────────────
