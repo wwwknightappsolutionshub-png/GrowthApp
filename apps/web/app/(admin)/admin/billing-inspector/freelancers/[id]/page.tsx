@@ -53,6 +53,17 @@ export default function FreelancerBillingProfilePage() {
     enabled: Boolean(id),
   })
 
+  const removeFreelancer = useMutation({
+    mutationFn: () => admin.deleteFreelancer(id),
+    onSuccess: async (res) => {
+      toast.success((res.data as { message?: string }).message || 'Freelancer deleted')
+      await qc.invalidateQueries({ queryKey: ['billing-inspector', 'freelancers'] })
+      router.push('/admin/billing-inspector/freelancers')
+    },
+    onError: (e: { response?: { data?: { detail?: string } } }) =>
+      toast.error(e?.response?.data?.detail || 'Failed to delete freelancer'),
+  })
+
   const auditRows: AuditRow[] = (q.data?.usage_records ?? []).map((a) => ({
     id: a.id,
     timestamp: a.created_at,
