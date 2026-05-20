@@ -229,6 +229,10 @@ async def update_task(
         await get_category(db, fields["category_id"])
     for k, v in fields.items():
         setattr(task, k, v)
+    if "frequency" in fields:
+        from app.modules.ai_scraper.scheduling import next_run_from_frequency
+
+        task.next_run = next_run_from_frequency(task.frequency)
     db.add(task)
     await db.commit()
     await db.refresh(task)
