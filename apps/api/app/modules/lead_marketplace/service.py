@@ -341,6 +341,10 @@ async def mark_sold(db: AsyncSession, item_id: uuid.UUID) -> LeadMarketplace:
 # ── Auto-ingest pipeline ──────────────────────────────────────────────────────
 
 async def _find_category_by_hint(db: AsyncSession, hint: str | None) -> uuid.UUID | None:
+    from app.modules.lead_marketplace.geo import business_type_to_category_name
+
+    if hint:
+        hint = business_type_to_category_name(hint)
     """Match a category by name hint (case-insensitive prefix)."""
     if not hint:
         return None

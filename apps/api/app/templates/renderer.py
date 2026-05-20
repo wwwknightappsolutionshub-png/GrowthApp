@@ -352,6 +352,31 @@ def render_invoice_overdue(
     )
 
 
+def render_trial_auto_leads_ending(
+    *,
+    full_name: str,
+    business_name: str,
+    days_left: int = 1,
+    leads_per_day: int = 2,
+    trial_days: int = 7,
+    upgrade_url: str,
+    leads_url: str,
+) -> str:
+    return render_email(
+        "emails/trial_auto_leads_ending.html",
+        {
+            "subject": "Your free daily leads end tomorrow",
+            "full_name": full_name,
+            "business_name": business_name,
+            "days_left": days_left,
+            "leads_per_day": leads_per_day,
+            "trial_days": trial_days,
+            "upgrade_url": upgrade_url,
+            "leads_url": leads_url,
+        },
+    )
+
+
 def render_trial_expiry(
     *,
     full_name: str,

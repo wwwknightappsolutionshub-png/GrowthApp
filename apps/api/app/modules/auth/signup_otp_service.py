@@ -181,6 +181,24 @@ async def verify_and_complete(
     await _send_welcome_messages(user=user, payload=payload, pending_phone=pending.phone)
 
     tokens = await _issue_tokens(db, user)
+
+    if pending.user_type == "tenant":
+        try:
+            from app.modules.tenants.models import Tenant, TenantMember
+            from app.modules.lead_marketplace.trial_assignment import assign_trial_leads_for_tenant
+
+            tenant_row = (
+                await db.execute(
+                    select(Tenant)
+                    .join(TenantMember, TenantMember.tenant_id == Tenant.id)
+                    .where(TenantMember.user_id == user.id, TenantMember.role == "owner")
+                )
+            ).scalar_one_or_none()
+            if tenant_row:
+                await assign_trial_leads_for_tenant(db, tenant_row)
+        except Exception:  # noqa: BLE001
+            log.exception("Post-signup trial lead assignment failed for user %s", user.id)
+
     return user, tokens
 
 

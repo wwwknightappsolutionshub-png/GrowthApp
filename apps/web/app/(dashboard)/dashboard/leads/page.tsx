@@ -2,7 +2,13 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { leads, type LeadQuota, type LeadRequestItem } from '@/lib/api-client'
+import {
+  leads,
+  type LeadQuota,
+  type LeadRequestItem,
+  type TrialLeadStatus,
+  type LeadSourceCatalog,
+} from '@/lib/api-client'
 import { formatDate } from '@/lib/utils'
 import { toast } from 'sonner'
 import {
@@ -256,6 +262,57 @@ function RequestHistory({ requests }: { requests: LeadRequestItem[] }) {
   )
 }
 
+function TrialLeadsBanner({ trial }: { trial: TrialLeadStatus }) {
+  if (!trial.in_trial) return null
+  return (
+    <div className="rounded-xl border border-brand-teal-400/30 bg-brand-teal-400/10 p-4">
+      <p className="text-sm font-semibold text-white">
+        Free lead trial — day {trial.trial_day} of {trial.trial_days_total}
+      </p>
+      <p className="mt-1 text-xs text-brand-teal-100/80">
+        We auto-assign up to {trial.leads_per_day} leads per day matched to your trade and postcode.
+        Today: {trial.delivered_today}/{trial.leads_per_day} delivered ({trial.remaining_today} remaining).
+        Ends {new Date(trial.trial_ends_at).toLocaleDateString('en-GB')}.
+      </p>
+      {trial.trial_day >= 6 && (
+        <p className="mt-2 text-xs text-amber-200">
+          Auto-assignment ends soon. Upgrade to keep daily matched leads — check your email for details.
+        </p>
+      )}
+    </div>
+  )
+}
+
+function LeadSourcesCatalog({ catalog }: { catalog: LeadSourceCatalog }) {
+  if (!catalog.sources?.length) return null
+  return (
+    <details className="rounded-xl border border-brand-forest-800 bg-brand-forest-950">
+      <summary className="cursor-pointer px-5 py-3 text-sm font-semibold text-white">
+        Lead sources for {catalog.trade_label} ({catalog.sources.length} platforms)
+      </summary>
+      <div className="divide-y divide-brand-forest-800 border-t border-brand-forest-800 max-h-64 overflow-y-auto">
+        {catalog.sources.map((s, i) => (
+          <div key={s.id || i} className="px-5 py-3 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-medium text-brand-teal-100">{s.name}</span>
+              <span className="rounded bg-brand-forest-800 px-1.5 py-0.5 text-brand-teal-100/70">
+                {s.source_platform}
+              </span>
+              {s.is_catalog_default && (
+                <span className="text-brand-teal-100/50">default</span>
+              )}
+            </div>
+            <p className="mt-1 break-all text-brand-teal-100/60">{s.url_pattern}</p>
+            {s.postcode_prefix && (
+              <p className="mt-0.5 text-brand-teal-100/50">Geo: {s.postcode_prefix}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </details>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function LeadsPage() {
   const [page, setPage] = useState(1)
@@ -276,6 +333,18 @@ export default function LeadsPage() {
   const { data: requests } = useQuery({
     queryKey: ['leads', 'requests'],
     queryFn: () => leads.listRequests().then((r) => r.data),
+    retry: false,
+  })
+
+  const { data: trial } = useQuery({
+    queryKey: ['leads', 'trial-status'],
+    queryFn: () => leads.trialStatus().then((r) => r.data),
+    retry: false,
+  })
+
+  const { data: catalog } = useQuery({
+    queryKey: ['leads', 'source-catalog'],
+    queryFn: () => leads.sourceCatalog().then((r) => r.data),
     retry: false,
   })
 
@@ -301,6 +370,9 @@ export default function LeadsPage() {
         </div>
         <span className="text-sm text-muted-foreground">{data?.total ?? 0} total</span>
       </div>
+
+      {trial && <TrialLeadsBanner trial={trial} />}
+      {catalog && <LeadSourcesCatalog catalog={catalog} />}
 
       {/* Quota banner */}
       {quota && (

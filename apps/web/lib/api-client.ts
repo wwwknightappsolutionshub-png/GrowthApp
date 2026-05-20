@@ -266,6 +266,37 @@ export const leads = {
   submitRequest: (data: { requested_count: number; tenant_notes?: string | null }) =>
     apiClient.post<LeadRequestItem>('/leads/request', data),
   listRequests: () => apiClient.get<LeadRequestItem[]>('/leads/requests'),
+  trialStatus: () => apiClient.get<TrialLeadStatus>('/leads/trial-status'),
+  sourceCatalog: () => apiClient.get<LeadSourceCatalog>('/leads/source-catalog'),
+}
+
+export interface TrialLeadStatus {
+  in_trial: boolean
+  trial_days_total: number
+  trial_day: number
+  trial_ends_at: string
+  leads_per_day: number
+  delivered_today: number
+  remaining_today: number
+  total_delivered: number
+  reminder_sent: boolean
+}
+
+export interface LeadSourceCatalog {
+  business_type: string
+  trade_label: string
+  postcode: string
+  sources: {
+    id: string | null
+    name: string
+    url_pattern: string
+    scraping_type: string
+    source_platform: string
+    postcode_prefix?: string | null
+    region_label?: string | null
+    is_catalog_default: boolean
+    notes?: string | null
+  }[]
 }
 
 export const crm = {
@@ -698,13 +729,25 @@ export interface AiScraperCategory {
   updated_at: string
 }
 
+export type SourcePlatform =
+  | 'directory'
+  | 'search_engine'
+  | 'social'
+  | 'review_site'
+  | 'marketplace'
+  | 'other'
+
 export interface AiScraperSource {
   id: string
   name: string
   url_pattern: string
   scraping_type: ScraperType
+  source_platform?: SourcePlatform
   category_id: string
   active: boolean
+  postcode_prefix?: string | null
+  region_label?: string | null
+  is_catalog_default?: boolean
   notes: string | null
   created_at: string
   updated_at: string
@@ -800,6 +843,10 @@ export const aiScraper = {
     thread_count: number
     global_aggression_mode: AggressionLevel
   }) => aiScraperClient.put<AiScraperSettings>('/settings', body),
+  seedCatalog: (force = false) =>
+    aiScraperClient.post<{ ok: boolean; stats: Record<string, number> }>('/seed-catalog', null, {
+      params: { force },
+    }),
 }
 
 // ── Referrals (/api/referrals) --------------------------------------------

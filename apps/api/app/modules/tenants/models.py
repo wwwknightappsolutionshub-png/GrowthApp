@@ -45,6 +45,9 @@ class Tenant(Base):
     # freelancer User who owns it. Regular tenants leave this NULL.
     owner_user_id: Mapped[uuid.UUID | None] = mapped_column(UUIDType, ForeignKey("users.id"), nullable=True, index=True)
     is_managed_client: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0", nullable=False)
+    trial_reminder_sent_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     # Social media handles per managed client (used by the freelancer dashboard).
     social_handles: Mapped[dict] = mapped_column(JSONBType, default=dict, nullable=False, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

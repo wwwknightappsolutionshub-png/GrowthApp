@@ -216,5 +216,20 @@ async def put_settings(
     return await svc.update_settings(db, body)
 
 
+@router.post("/seed-catalog")
+async def seed_catalog(
+    _: SuperAdminDep,
+    db: AsyncSession = Depends(get_db),
+    force: bool = Query(default=False),
+):
+    """Seed default trade sources, territories, marketplace categories, overnight tasks."""
+    from app.modules.ai_scraper.seed_catalog import seed_lead_factory_catalog
+    from app.modules.lead_marketplace.pool import get_marketplace_pool_tenant_id
+
+    await get_marketplace_pool_tenant_id(db)
+    stats = await seed_lead_factory_catalog(db, force=force)
+    return {"ok": True, "stats": stats}
+
+
 __all__ = ["router"]
 

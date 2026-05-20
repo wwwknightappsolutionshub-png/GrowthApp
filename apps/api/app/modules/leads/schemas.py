@@ -88,6 +88,37 @@ class LeadRequestResponse(BaseModel):
     updated_at: datetime | None = None
 
 
+class TrialLeadStatusResponse(BaseModel):
+    in_trial: bool
+    trial_days_total: int
+    trial_day: int
+    trial_ends_at: str
+    leads_per_day: int
+    delivered_today: int
+    remaining_today: int
+    total_delivered: int
+    reminder_sent: bool
+
+
+class LeadSourceCatalogItem(BaseModel):
+    id: str | None = None
+    name: str
+    url_pattern: str
+    scraping_type: str
+    source_platform: str
+    postcode_prefix: str | None = None
+    region_label: str | None = None
+    is_catalog_default: bool = True
+    notes: str | None = None
+
+
+class LeadSourceCatalogResponse(BaseModel):
+    business_type: str
+    trade_label: str
+    postcode: str
+    sources: list[LeadSourceCatalogItem]
+
+
 class LeadQuotaResponse(BaseModel):
     month_year: str
     plan_quota: int

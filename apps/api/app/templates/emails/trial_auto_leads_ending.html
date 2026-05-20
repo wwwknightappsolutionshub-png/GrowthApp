@@ -1,0 +1,41 @@
+{% extends "emails/base.html" %}
+
+{% block header_eyebrow %}
+<p class="eyebrow">Your free lead allocation</p>
+{% endblock %}
+
+{% block content %}
+<h1>Hi {{ first_name | default('there') }}, your free daily leads end soon</h1>
+
+<p>
+  For your first {{ trial_days | default(7) }} days on CustomerFlow AI,
+  we've been automatically sending <strong>{{ leads_per_day | default(2) }} matched leads per day</strong>
+  to <strong>{{ business_name | default('your business') }}</strong> based on your trade and postcode.
+</p>
+
+<div class="alert-warning">
+  <p>
+    <strong>In {{ days_left | default(1) }} day, this free auto-assignment stops.</strong>
+    After that, you'll need an upgraded plan to keep receiving scraped leads matched to your area,
+    or you can request leads manually from your dashboard.
+  </p>
+</div>
+
+<p><strong>What you can do now:</strong></p>
+<ul>
+  <li>Review today's leads in your CRM — act quickly while they're fresh.</li>
+  <li>Upgrade to keep daily matched leads flowing without interruption.</li>
+  <li>Connect Google Business Profile and reputation tools to convert more enquiries.</li>
+</ul>
+
+<p style="text-align:center;">
+  <a href="{{ upgrade_url }}" class="btn btn-accent">View plans &amp; upgrade →</a>
+</p>
+<p style="text-align:center;">
+  <a href="{{ leads_url }}" class="btn" style="margin-top:8px;">Open my leads →</a>
+</p>
+
+<p style="font-size:13px;color:#64748b;">
+  Questions? Reply to this email or contact connect@customerflow.tech
+</p>
+{% endblock %}

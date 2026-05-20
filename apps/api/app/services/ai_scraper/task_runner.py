@@ -50,28 +50,10 @@ async def store_result(
 
 
 async def _resolve_tenant(db: AsyncSession) -> uuid.UUID | None:
-    """Resolve a tenant id for newly inserted leads."""
-    env_tid = os.getenv("CRAWLER_DEFAULT_TENANT_ID") or os.getenv("AI_SCRAPER_DEFAULT_TENANT_ID")
-    if env_tid:
-        try:
-            tid = uuid.UUID(env_tid)
-            exists = (
-                await db.execute(select(Tenant.id).where(Tenant.id == tid))
-            ).scalar_one_or_none()
-            if exists:
-                return tid
-        except Exception:  # noqa: BLE001
-            pass
+    """Lead factory: all scraped leads go to the marketplace pool tenant."""
+    from app.modules.lead_marketplace.pool import get_marketplace_pool_tenant_id
 
-    row = (
-        await db.execute(
-            select(Tenant.id)
-            .where(Tenant.is_active == True)  # noqa: E712
-            .order_by(Tenant.created_at.asc())
-            .limit(1)
-        )
-    ).scalar_one_or_none()
-    return row
+    return await get_marketplace_pool_tenant_id(db)
 
 
 async def insert_lead(
@@ -81,6 +63,7 @@ async def insert_lead(
     source_name: str = "crawler",
     category_hint: str | None = None,
     extraction_method: str | None = None,
+    territory_hint: str | None = None,
 ) -> InsertLeadResult:
     """Create a leads row and attempt marketplace ingest. Returns structured outcome."""
     try:
@@ -174,7 +157,7 @@ async def insert_lead(
             lead_id=lead.id,
             ai_score=lead_obj.quality_score,
             category_hint=category_hint or lead_obj.category,
-            territory_hint=lead_obj.location,
+            territory_hint=territory_hint or lead_obj.location,
             has_phone=bool(lead_obj.phone),
             has_email=bool(lead_obj.email),
             lead_age_days=0,

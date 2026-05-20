@@ -17,7 +17,30 @@ def _has_placeholder(url_pattern: str, name: str) -> bool:
     return f"{{{name}}}" in url_pattern
 
 
-def generate_initial_urls(url_pattern: str, depth: int) -> list[str]:
+def apply_url_placeholders(
+    url_pattern: str,
+    *,
+    page: int | None = None,
+    query: str = "",
+    category: str = "",
+    postcode: str = "",
+) -> str:
+    url = url_pattern
+    if page is not None:
+        url = url.replace("{page}", str(page))
+    url = url.replace("{query}", query)
+    url = url.replace("{category}", category)
+    url = url.replace("{postcode}", postcode)
+    return _PLACEHOLDER_RE.sub("", url).strip()
+
+
+def generate_initial_urls(
+    url_pattern: str,
+    depth: int,
+    *,
+    postcode: str = "",
+    category: str = "",
+) -> list[str]:
     """Generate the initial list of target URLs from url_pattern.
 
     Supports named placeholders (Rule 1):
@@ -48,26 +71,18 @@ def generate_initial_urls(url_pattern: str, depth: int) -> list[str]:
         urls: list[str] = []
         seen: set[str] = set()
         for page in range(1, depth + 1):
-            url = url_pattern
-            # Substitute {page}
-            url = url.replace("{page}", str(page))
-            # Substitute remaining known patterns with defaults
-            url = url.replace("{query}", "")
-            url = url.replace("{category}", "")
-            # Substitute any remaining unknown placeholders with empty string
-            url = _PLACEHOLDER_RE.sub("", url)
-            url = url.strip()
+            url = apply_url_placeholders(
+                url_pattern,
+                page=page,
+                postcode=postcode,
+                category=category,
+            )
             if url and url not in seen:
                 seen.add(url)
                 urls.append(url)
         return urls
 
-    # No {page} placeholder — return pattern as-is after substituting others
-    url = url_pattern
-    url = url.replace("{query}", "")
-    url = url.replace("{category}", "")
-    url = _PLACEHOLDER_RE.sub("", url)
-    url = url.strip()
+    url = apply_url_placeholders(url_pattern, postcode=postcode, category=category)
     return [url] if url else []
 
 

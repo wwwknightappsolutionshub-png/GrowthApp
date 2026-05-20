@@ -145,7 +145,13 @@ async def crawl_task(task_id: str) -> None:
         page_cap: int = PAGE_CAP_MAP.get(level, 2)
 
         # ── Step 4: Generate initial target URLs ──────────────────────────
-        initial_urls = generate_initial_urls(source.url_pattern, depth)
+        geo_pc = (source.postcode_prefix or "").strip()
+        initial_urls = generate_initial_urls(
+            source.url_pattern,
+            depth,
+            postcode=geo_pc,
+            category=category_hint or "",
+        )
         if not initial_urls:
             logger.warning(
                 "crawl_task: no initial URLs generated for source %s", source.id
@@ -259,6 +265,7 @@ async def crawl_task(task_id: str) -> None:
                         source_name=source.name,
                         category_hint=category_hint,
                         extraction_method=extraction_method,
+                        territory_hint=geo_pc or lead_dict.get("location"),
                     )
                     marketplace_ingest_log.append(outcome.to_log_dict())
                     if outcome.inserted:

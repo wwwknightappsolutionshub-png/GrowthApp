@@ -10,6 +10,7 @@ import {
   type AiScraperCategory,
   type AiScraperSource,
   type ScraperType,
+  type SourcePlatform,
 } from '@/lib/api-client'
 import {
   buttonDangerClass,
@@ -30,13 +31,25 @@ const SCRAPING_TYPES: { value: ScraperType; label: string }[] = [
   { value: 'custom', label: 'Custom adapter' },
 ]
 
+const PLATFORM_TYPES: { value: SourcePlatform; label: string }[] = [
+  { value: 'directory', label: 'Directory' },
+  { value: 'search_engine', label: 'Search engine' },
+  { value: 'social', label: 'Social' },
+  { value: 'review_site', label: 'Review site' },
+  { value: 'marketplace', label: 'Lead marketplace' },
+  { value: 'other', label: 'Other' },
+]
+
 interface FormState {
   id: string | null
   name: string
   url_pattern: string
   scraping_type: ScraperType
+  source_platform: SourcePlatform
   category_id: string
   active: boolean
+  postcode_prefix: string
+  region_label: string
   notes: string
 }
 
@@ -45,8 +58,11 @@ const EMPTY: FormState = {
   name: '',
   url_pattern: '',
   scraping_type: 'html',
+  source_platform: 'directory',
   category_id: '',
   active: true,
+  postcode_prefix: '',
+  region_label: '',
   notes: '',
 }
 
@@ -93,8 +109,11 @@ export function SourcesPanel() {
         name: form.name.trim(),
         url_pattern: form.url_pattern.trim(),
         scraping_type: form.scraping_type,
+        source_platform: form.source_platform,
         category_id: form.category_id,
         active: form.active,
+        postcode_prefix: form.postcode_prefix.trim() || null,
+        region_label: form.region_label.trim() || null,
         notes: form.notes.trim() || null,
       }),
     onSuccess: () => {
@@ -113,8 +132,11 @@ export function SourcesPanel() {
         name: form.name.trim(),
         url_pattern: form.url_pattern.trim(),
         scraping_type: form.scraping_type,
+        source_platform: form.source_platform,
         category_id: form.category_id,
         active: form.active,
+        postcode_prefix: form.postcode_prefix.trim() || null,
+        region_label: form.region_label.trim() || null,
         notes: form.notes.trim() || null,
       }),
     onSuccess: () => {
@@ -161,8 +183,11 @@ export function SourcesPanel() {
       name: src.name,
       url_pattern: src.url_pattern,
       scraping_type: src.scraping_type,
+      source_platform: src.source_platform ?? 'directory',
       category_id: src.category_id,
       active: src.active,
+      postcode_prefix: src.postcode_prefix ?? '',
+      region_label: src.region_label ?? '',
       notes: src.notes ?? '',
     })
     setShowForm(true)
@@ -314,6 +339,58 @@ export function SourcesPanel() {
                 ))}
               </select>
             </div>
+            <div>
+              <label className={labelClass} htmlFor="src-platform">
+                Platform
+              </label>
+              <select
+                id="src-platform"
+                className={inputClass}
+                value={form.source_platform}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    source_platform: e.target.value as SourcePlatform,
+                  })
+                }
+              >
+                {PLATFORM_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass} htmlFor="src-postcode">
+                Postcode prefix
+              </label>
+              <input
+                id="src-postcode"
+                className={inputClass}
+                value={form.postcode_prefix}
+                maxLength={16}
+                onChange={(e) =>
+                  setForm({ ...form, postcode_prefix: e.target.value })
+                }
+                placeholder="e.g. SW1 (optional; use {postcode} in URL)"
+              />
+            </div>
+            <div>
+              <label className={labelClass} htmlFor="src-region">
+                Region label
+              </label>
+              <input
+                id="src-region"
+                className={inputClass}
+                value={form.region_label}
+                maxLength={128}
+                onChange={(e) =>
+                  setForm({ ...form, region_label: e.target.value })
+                }
+                placeholder="e.g. Greater London (optional)"
+              />
+            </div>
             <div className="flex items-end">
               <label className="flex items-center gap-2 text-sm text-gray-300">
                 <input
@@ -375,6 +452,8 @@ export function SourcesPanel() {
             <tr>
               <th className="px-4 py-3 text-left font-semibold">Source</th>
               <th className="px-4 py-3 text-left font-semibold">Type</th>
+              <th className="px-4 py-3 text-left font-semibold">Platform</th>
+              <th className="px-4 py-3 text-left font-semibold">Geo</th>
               <th className="px-4 py-3 text-left font-semibold">Category</th>
               <th className="px-4 py-3 text-left font-semibold">Active</th>
               <th className="px-4 py-3 text-left font-semibold">Updated</th>
@@ -385,13 +464,13 @@ export function SourcesPanel() {
             {isLoading &&
               [0, 1, 2].map((i) => (
                 <tr key={i}>
-                  <td colSpan={6} className="px-4 py-4">
+                  <td colSpan={8} className="px-4 py-4">
                     <div className="h-5 animate-pulse rounded bg-gray-800" />
                   </td>
                 </tr>
               ))}
             {!isLoading && data && data.length === 0 && (
-              <EmptyRow colSpan={6} message="No sources match the current filters." />
+              <EmptyRow colSpan={8} message="No sources match the current filters." />
             )}
             {data?.map((src) => (
               <tr key={src.id} className="hover:bg-gray-800/40">
@@ -403,6 +482,14 @@ export function SourcesPanel() {
                 </td>
                 <td className="px-4 py-3 text-xs uppercase tracking-wider text-gray-400">
                   {src.scraping_type}
+                </td>
+                <td className="px-4 py-3 text-xs text-gray-400">
+                  {src.source_platform?.replace('_', ' ') ?? '—'}
+                </td>
+                <td className="px-4 py-3 text-xs text-gray-500">
+                  {src.postcode_prefix || src.region_label
+                    ? [src.postcode_prefix, src.region_label].filter(Boolean).join(' · ')
+                    : '—'}
                 </td>
                 <td className="px-4 py-3 text-gray-300">
                   {categoryById.get(src.category_id)?.name || (

@@ -32,6 +32,7 @@ from app.core.db_types import JSONBType, UUIDType
 
 
 SCRAPING_TYPES = ("html", "api", "directory", "social", "custom")
+SOURCE_PLATFORMS = ("directory", "search_engine", "social", "review_site", "marketplace", "other")
 AGGRESSION_LEVELS = ("low", "medium", "high", "extreme")
 TASK_STATUSES = ("pending", "running", "paused", "completed", "error")
 
@@ -64,6 +65,10 @@ class AiScraperSource(Base):
         index=True,
     )
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    source_platform: Mapped[str] = mapped_column(String(40), nullable=False, default="directory")
+    postcode_prefix: Mapped[str | None] = mapped_column(String(12), nullable=True)
+    region_label: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    is_catalog_default: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False

@@ -7,7 +7,9 @@ from app.modules.leads import service
 from app.modules.leads.schemas import (
     LeadCreate, LeadUpdate, LeadResponse, LeadListResponse,
     LeadRequestCreate, LeadRequestResponse, LeadQuotaResponse,
+    TrialLeadStatusResponse, LeadSourceCatalogResponse,
 )
+from app.modules.leads import trial_catalog
 from app.modules.auth.schemas import MessageResponse
 
 router = APIRouter(prefix="/leads", tags=["Leads"])
@@ -39,6 +41,18 @@ async def create_lead(data: LeadCreate, ctx: CurrentTenantContext, db: AsyncSess
 async def get_quota(ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
     _, tenant, _ = ctx
     return await service.get_lead_quota(db, tenant.id)
+
+
+@router.get("/trial-status", response_model=TrialLeadStatusResponse)
+async def trial_status(ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+    _, tenant, _ = ctx
+    return await trial_catalog.get_trial_lead_status(db, tenant)
+
+
+@router.get("/source-catalog", response_model=LeadSourceCatalogResponse)
+async def source_catalog(ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+    _, tenant, _ = ctx
+    return await trial_catalog.get_source_catalog_for_tenant(db, tenant)
 
 
 @router.post("/request", response_model=LeadRequestResponse, status_code=201)

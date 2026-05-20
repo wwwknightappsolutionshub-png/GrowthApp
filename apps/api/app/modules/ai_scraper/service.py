@@ -129,8 +129,12 @@ async def create_source(db: AsyncSession, data: SourceCreate) -> AiScraperSource
         name=data.name,
         url_pattern=data.url_pattern,
         scraping_type=data.scraping_type,
+        source_platform=data.source_platform,
         category_id=data.category_id,
         active=data.active,
+        postcode_prefix=data.postcode_prefix,
+        region_label=data.region_label,
+        is_catalog_default=data.is_catalog_default,
         notes=data.notes,
     )
     db.add(src)

@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.modules.ai_scraper.models import (
     AGGRESSION_LEVELS,
     SCRAPING_TYPES,
+    SOURCE_PLATFORMS,
     TASK_STATUSES,
 )
 
@@ -62,8 +63,12 @@ class SourceCreate(BaseModel):
     name: str = Field(min_length=1, max_length=255)
     url_pattern: str = Field(min_length=1)
     scraping_type: ScrapingType = "html"
+    source_platform: SourcePlatform = "directory"
     category_id: uuid.UUID
     active: bool = True
+    postcode_prefix: str | None = Field(default=None, max_length=12)
+    region_label: str | None = Field(default=None, max_length=120)
+    is_catalog_default: bool = False
     notes: str | None = None
 
     @field_validator("scraping_type")
@@ -73,13 +78,23 @@ class SourceCreate(BaseModel):
             raise ValueError("invalid scraping_type")
         return v
 
+    @field_validator("source_platform")
+    @classmethod
+    def _check_platform(cls, v: str) -> str:
+        if v not in SOURCE_PLATFORMS:
+            raise ValueError("invalid source_platform")
+        return v
+
 
 class SourceUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
     url_pattern: str | None = None
     scraping_type: ScrapingType | None = None
+    source_platform: SourcePlatform | None = None
     category_id: uuid.UUID | None = None
     active: bool | None = None
+    postcode_prefix: str | None = Field(default=None, max_length=12)
+    region_label: str | None = Field(default=None, max_length=120)
     notes: str | None = None
 
 
@@ -90,8 +105,12 @@ class SourceResponse(BaseModel):
     name: str
     url_pattern: str
     scraping_type: str
+    source_platform: str
     category_id: uuid.UUID
     active: bool
+    postcode_prefix: str | None
+    region_label: str | None
+    is_catalog_default: bool
     notes: str | None
     created_at: datetime
     updated_at: datetime

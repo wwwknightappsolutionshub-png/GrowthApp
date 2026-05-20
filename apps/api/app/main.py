@@ -19,6 +19,7 @@ from app.modules.messaging.router import router as messaging_router
 from app.modules.reputation.router import router as reputation_router
 from app.modules.integrations.router import router as integrations_router
 from app.modules.integrations import models as _integrations_models  # noqa: F401
+from app.modules.lead_marketplace import trial_models as _trial_lead_models  # noqa: F401
 from app.modules.social.router import router as social_router
 from app.modules.social.ai_router import ai_router as social_ai_router
 from app.modules.marketer.router import router as marketer_router
