@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Building2, Search, ShieldOff, ShieldCheck, AlertCircle } from 'lucide-react'
+import { Building2, Search, ShieldOff, ShieldCheck, AlertCircle, Trash2 } from 'lucide-react'
 import { admin } from '@/lib/api-client'
 
 interface TenantSummary {
@@ -68,6 +68,17 @@ export default function AdminTenantsPage() {
       qc.invalidateQueries({ queryKey: ['admin', 'stats'] })
     },
     onError: () => toast.error('Failed to reactivate tenant'),
+  })
+
+  const remove = useMutation({
+    mutationFn: (id: string) => admin.deleteTenant(id),
+    onSuccess: (res) => {
+      toast.success((res.data as { message?: string }).message || 'Tenant deleted')
+      qc.invalidateQueries({ queryKey: ['admin', 'tenants'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'stats'] })
+    },
+    onError: (e: { response?: { data?: { detail?: string } } }) =>
+      toast.error(e?.response?.data?.detail || 'Failed to delete tenant'),
   })
 
   return (
@@ -148,25 +159,43 @@ export default function AdminTenantsPage() {
                 <td className="px-5 py-3 text-right tabular-nums">{t.deal_count}</td>
                 <td className="px-5 py-3 text-right tabular-nums text-emerald-400">{gbp(t.invoice_total_pence)}</td>
                 <td className="px-5 py-3 text-right">
-                  {t.is_active ? (
+                  <div className="inline-flex flex-wrap items-center justify-end gap-1.5">
+                    {t.is_active ? (
+                      <button
+                        onClick={() => suspend.mutate(t.id)}
+                        disabled={suspend.isPending}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300 text-xs font-semibold border border-red-500/30 disabled:opacity-50"
+                      >
+                        <ShieldOff className="w-3.5 h-3.5" />
+                        Suspend
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => reactivate.mutate(t.id)}
+                        disabled={reactivate.isPending}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-semibold border border-emerald-500/30 disabled:opacity-50"
+                      >
+                        <ShieldCheck className="w-3.5 h-3.5" />
+                        Reactivate
+                      </button>
+                    )}
                     <button
-                      onClick={() => suspend.mutate(t.id)}
-                      disabled={suspend.isPending}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-300 text-xs font-semibold border border-red-500/30 disabled:opacity-50"
+                      onClick={() => {
+                        if (
+                          !confirm(
+                            `Delete "${t.name}" permanently? Members will lose access. This cannot be undone.`,
+                          )
+                        )
+                          return
+                        remove.mutate(t.id)
+                      }}
+                      disabled={remove.isPending}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/40 hover:bg-red-950/60 text-red-400 text-xs font-semibold border border-red-900/50 disabled:opacity-50"
                     >
-                      <ShieldOff className="w-3.5 h-3.5" />
-                      Suspend
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Delete
                     </button>
-                  ) : (
-                    <button
-                      onClick={() => reactivate.mutate(t.id)}
-                      disabled={reactivate.isPending}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-semibold border border-emerald-500/30 disabled:opacity-50"
-                    >
-                      <ShieldCheck className="w-3.5 h-3.5" />
-                      Reactivate
-                    </button>
-                  )}
+                  </div>
                 </td>
               </tr>
             ))}

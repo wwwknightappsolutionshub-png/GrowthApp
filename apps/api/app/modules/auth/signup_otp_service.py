@@ -89,9 +89,6 @@ async def initiate(db: AsyncSession, data: SignupInitiateRequest) -> dict:
     return {
         "pending_id": pending.id,
         "email": email,
-        "requires_phone_otp": False,
-        "phone_masked": _mask_phone(data.phone or "") if data.phone else None,
-        "phone_channel": None,
         "expires_in_seconds": OTP_TTL_MINUTES * 60,
     }
 
@@ -271,12 +268,8 @@ async def resend_code(db: AsyncSession, *, pending_id: uuid.UUID, channel: str) 
     if pending is None:
         raise NotFoundException("Signup session not found")
 
-    if channel == "email":
-        await issue_email_otp(db, email=pending.email, full_name=(pending.payload or {}).get("full_name"))
-        used = "email"
-    elif channel == "phone":
-        raise UnauthorizedException("Phone verification is not required for signup")
-    else:
-        raise UnauthorizedException("Invalid channel")
+    if channel != "email":
+        raise UnauthorizedException("Only email verification is used for signup")
+    await issue_email_otp(db, email=pending.email, full_name=(pending.payload or {}).get("full_name"))
     await db.commit()
-    return {"channel": used, "destination_masked": _mask_phone(pending.phone) if channel == "phone" else pending.email}
+    return {"channel": "email", "destination_masked": pending.email}

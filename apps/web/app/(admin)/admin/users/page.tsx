@@ -18,7 +18,7 @@ import {
   MoreHorizontal,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { adminApi as adminPanel } from '@/lib/api-client'
+import { admin, adminApi as adminPanel } from '@/lib/api-client'
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -26,6 +26,7 @@ interface AdminUser {
   id: string
   email: string
   full_name: string
+  user_type?: string
   is_superadmin: boolean
   email_verified_at: string | null
   created_at: string
@@ -205,7 +206,7 @@ function EditUserModal({ user, onClose }: { user: AdminUser; onClose: () => void
 function DeleteUserModal({ user, onClose }: { user: AdminUser; onClose: () => void }) {
   const qc = useQueryClient()
   const del = useMutation({
-    mutationFn: () => adminPanel.deleteAdminUser(user.id),
+    mutationFn: () => admin.deleteUser(user.id),
     onSuccess: () => {
       toast.success('User deleted (soft)')
       qc.invalidateQueries({ queryKey: ['admin', 'users'] })
@@ -219,8 +220,9 @@ function DeleteUserModal({ user, onClose }: { user: AdminUser; onClose: () => vo
       <div className="space-y-4">
         <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
           <p className="text-sm text-red-300">
-            Are you sure you want to delete <strong>{user.email}</strong>?
-            This is a soft delete — their data is retained but they cannot log in.
+            Are you sure you want to delete <strong>{user.email}</strong>
+            {user.user_type === 'freelancer' ? ' (freelancer)' : ''}?
+            They will be unable to sign in; owned workspaces are archived.
           </p>
         </div>
         <div className="flex justify-end gap-3">
@@ -348,7 +350,7 @@ function UsersTab() {
 
   const { data, isLoading, error } = useQuery<AdminUser[]>({
     queryKey: ['admin', 'users', search],
-    queryFn: () => adminPanel.listAdminUsers({ q: search || undefined }).then((r) => r.data),
+    queryFn: () => admin.listUsers({ q: search || undefined }).then((r) => r.data),
   })
 
   return (
@@ -403,7 +405,7 @@ function UsersTab() {
                 </span>
               ) : (
                 <span className="shrink-0 rounded border border-gray-700 px-2 py-0.5 text-[10px] uppercase text-gray-500">
-                  User
+                  {u.user_type === 'freelancer' ? 'Freelancer' : 'Tenant'}
                 </span>
               )}
             </div>
@@ -428,7 +430,8 @@ function UsersTab() {
               </button>
               <button
                 onClick={() => setDeleteUser(u)}
-                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-900 px-3 py-2 text-xs text-red-400 hover:bg-red-950/40"
+                disabled={u.is_superadmin}
+                className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-red-900 px-3 py-2 text-xs text-red-400 hover:bg-red-950/40 disabled:opacity-40"
               >
                 <Trash2 className="h-3.5 w-3.5" /> Delete
               </button>
@@ -469,7 +472,9 @@ function UsersTab() {
                       <ShieldCheck className="h-3 w-3" /> Super Admin
                     </span>
                   ) : (
-                    <span className="text-xs text-gray-500">User</span>
+                    <span className="text-xs capitalize text-gray-500">
+                      {u.user_type === 'freelancer' ? 'Freelancer' : 'Tenant'}
+                    </span>
                   )}
                 </td>
                 <td className="px-5 py-3 text-xs text-gray-400">
@@ -493,7 +498,8 @@ function UsersTab() {
                     </button>
                     <button
                       onClick={() => setDeleteUser(u)}
-                      className="rounded p-1.5 text-gray-400 hover:bg-red-500/10 hover:text-red-400"
+                      disabled={u.is_superadmin}
+                      className="rounded p-1.5 text-gray-400 hover:bg-red-500/10 hover:text-red-400 disabled:opacity-40"
                       title="Delete"
                     >
                       <Trash2 className="h-3.5 w-3.5" />

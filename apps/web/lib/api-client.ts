@@ -168,8 +168,8 @@ export const auth = {
   signupInitiate: (data: object) => apiClient.post('/auth/signup/initiate', data),
   signupVerify: (data: object, ref?: string | null) =>
     apiClient.post('/auth/signup/verify', data, { params: ref ? { ref } : {} }),
-  signupResend: (pending_id: string, channel: 'email' | 'phone') =>
-    apiClient.post('/auth/signup/resend-code', { pending_id, channel }),
+  signupResend: (pending_id: string) =>
+    apiClient.post('/auth/signup/resend-code', { pending_id, channel: 'email' }),
   completeOnboarding: () => apiClient.post('/auth/onboarding/complete'),
   login: (data: object) => apiClient.post('/auth/login', data),
   logout: () => apiClient.post('/auth/logout'),
@@ -625,8 +625,10 @@ export const admin = {
   getTenant: (id: string) => apiClient.get(`/admin/tenants/${id}`),
   suspendTenant: (id: string) => apiClient.post(`/admin/tenants/${id}/suspend`),
   reactivateTenant: (id: string) => apiClient.post(`/admin/tenants/${id}/reactivate`),
+  deleteTenant: (id: string) => apiClient.delete(`/admin/tenants/${id}`),
   listUsers: (params?: { q?: string; limit?: number; offset?: number }) =>
     apiClient.get('/admin/users', { params }),
+  deleteUser: (id: string) => apiClient.delete(`/admin/users/${id}`),
   listTenantHealth: () => apiClient.get('/admin/tenant-health'),
   remindTenant: (tenantId: string, params?: { note?: string }) =>
     apiClient.post(`/admin/tenant-health/${tenantId}/remind`, null, { params }),

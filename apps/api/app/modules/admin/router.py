@@ -14,8 +14,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.dependencies import SuperAdmin
+from app.modules.admin.deletion import delete_platform_user, delete_tenant
 from app.modules.admin.schemas import (
     AdminUserSummary,
+    DeleteResponse,
     PlatformStats,
     RemindTenantResponse,
     TenantHealthMetricsOut,
@@ -250,6 +252,17 @@ async def reactivate_tenant(
     return TenantToggleResponse(id=tenant.id, is_active=True, message=f"{tenant.name} reactivated")
 
 
+@router.delete("/tenants/{tenant_id}", response_model=DeleteResponse)
+async def remove_tenant(
+    tenant_id: uuid.UUID,
+    admin: SuperAdmin,
+    db: AsyncSession = Depends(get_db),
+):
+    """Permanently archive a tenant workspace (soft delete)."""
+    out = await delete_tenant(db, tenant_id)
+    return DeleteResponse(id=uuid.UUID(out["id"]), message=out["message"])
+
+
 @router.get("/users", response_model=list[AdminUserSummary])
 async def list_users(
     admin: SuperAdmin,
@@ -281,6 +294,7 @@ async def list_users(
             id=u.id,
             email=u.email,
             full_name=u.full_name,
+            user_type=u.user_type or "tenant",
             is_superadmin=u.is_superadmin,
             totp_enabled=u.totp_enabled,
             email_verified_at=u.email_verified_at,
@@ -289,6 +303,17 @@ async def list_users(
         )
         for u in users
     ]
+
+
+@router.delete("/users/{user_id}", response_model=DeleteResponse)
+async def remove_user(
+    user_id: uuid.UUID,
+    admin: SuperAdmin,
+    db: AsyncSession = Depends(get_db),
+):
+    """Soft-delete a freelancer or tenant owner account."""
+    out = await delete_platform_user(db, user_id)
+    return DeleteResponse(id=uuid.UUID(out["id"]), message=out["message"])
 
 
 @router.get("/tenant-health", response_model=list[TenantHealthRow])

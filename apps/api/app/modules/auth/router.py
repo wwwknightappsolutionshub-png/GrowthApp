@@ -112,7 +112,7 @@ async def signup_initiate(
     data: SignupInitiateRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    """Step 1 of OTP signup — validate form, send email + phone OTPs."""
+    """Step 1 of OTP signup — validate form and send email OTP."""
     result = await signup_otp_service.initiate(db, data)
     return SignupInitiateResponse(**result)
 
@@ -126,7 +126,7 @@ async def signup_verify(
     db: AsyncSession = Depends(get_db),
     ref: str | None = Query(default=None, max_length=64),
 ):
-    """Step 2 of OTP signup — validate both codes, create the account, issue tokens."""
+    """Step 2 of OTP signup — validate email code, create account, issue tokens."""
     user, tokens = await signup_otp_service.verify_and_complete(db, data)
     if ref:
         from app.modules.referrals.service import on_user_signup_with_ref

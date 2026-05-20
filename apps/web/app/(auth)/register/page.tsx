@@ -67,7 +67,7 @@ const schema = z
     user_type: z.enum(['tenant', 'freelancer']),
     full_name: z.string().min(2, 'Enter your full name'),
     email: z.string().email('Enter a valid email address'),
-    phone: z.string().min(7, 'Enter a valid phone number'),
+    phone: z.string().optional(),
     password: z
       .string()
       .min(8, 'At least 8 characters required')
@@ -124,9 +124,6 @@ type FormData = z.infer<typeof schema>
 interface PendingSignup {
   pending_id: string
   email: string
-  requires_phone_otp?: boolean
-  phone_masked?: string | null
-  phone_channel?: 'whatsapp' | 'sms' | null
 }
 
 function Field({
@@ -201,7 +198,7 @@ export default function RegisterPage() {
               email: rest.email,
               password: rest.password,
               full_name: rest.full_name,
-              phone: rest.phone,
+              phone: rest.phone?.trim() || undefined,
               estimated_client_count: Number(rest.estimated_client_count),
             }
           : {
@@ -209,7 +206,7 @@ export default function RegisterPage() {
               email: rest.email,
               password: rest.password,
               full_name: rest.full_name,
-              phone: rest.phone,
+              phone: rest.phone?.trim() || undefined,
               business_name: rest.business_name,
               business_type: rest.business_type,
               postcode: rest.postcode,
@@ -316,7 +313,7 @@ export default function RegisterPage() {
               />
             </div>
           </Field>
-          <Field label="Phone" required error={errors.phone?.message}>
+          <Field label="Phone (optional)" error={errors.phone?.message}>
             <div className="relative">
               <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
@@ -655,7 +652,7 @@ function VerifyOtpStep({
   const resend = async () => {
     setResending(true)
     try {
-      await auth.signupResend(pending.pending_id, 'email')
+      await auth.signupResend(pending.pending_id)
       toast.success('Code re-sent to your email')
     } catch {
       toast.error('Could not resend code')

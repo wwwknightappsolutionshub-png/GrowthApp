@@ -43,8 +43,6 @@ class RegisterRequest(BaseModel):
         elif self.user_type == "freelancer":
             if self.estimated_client_count is None:
                 raise ValueError("estimated_client_count is required for freelancer signup")
-            if not self.phone or not self.phone.strip():
-                raise ValueError("phone is required for freelancer signup")
         return self
 
 
@@ -58,21 +56,17 @@ class SignupInitiateRequest(RegisterRequest):
 class SignupInitiateResponse(BaseModel):
     pending_id: UUID
     email: str
-    requires_phone_otp: bool = False
-    phone_masked: str | None = None
-    phone_channel: Literal["whatsapp", "sms"] | None = None
     expires_in_seconds: int
 
 
 class SignupVerifyRequest(BaseModel):
     pending_id: UUID
     email_code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
-    phone_code: str | None = Field(default=None, max_length=6)
 
 
 class ResendOtpRequest(BaseModel):
     pending_id: UUID
-    channel: Literal["email", "phone"]
+    channel: Literal["email"] = "email"
 
 
 class LoginRequest(BaseModel):

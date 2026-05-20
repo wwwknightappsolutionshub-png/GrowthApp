@@ -47,6 +47,7 @@ class AdminUserSummary(BaseModel):
     id: uuid.UUID
     email: str
     full_name: str
+    user_type: str = "tenant"
     is_superadmin: bool
     totp_enabled: bool
     email_verified_at: datetime | None = None
@@ -54,6 +55,11 @@ class AdminUserSummary(BaseModel):
     tenant_count: int = 0
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class DeleteResponse(BaseModel):
+    id: uuid.UUID
+    message: str
 
 
 class TenantToggleResponse(BaseModel):
