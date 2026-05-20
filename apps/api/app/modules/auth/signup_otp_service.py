@@ -27,6 +27,7 @@ from app.core.exceptions import ConflictException, NotFoundException, Unauthoriz
 from app.core.security import hash_password
 from app.modules.auth.models import User
 from app.modules.auth.otp_models import OtpCode, PendingSignup
+from app.modules.tenants import models as _tenant_models  # noqa: F401 — register TenantMember for User ORM
 from app.modules.auth.otp_service import (
     OTP_TTL_MINUTES,
     _normalize_phone,

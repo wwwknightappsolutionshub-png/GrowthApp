@@ -66,7 +66,7 @@ class TenantMember(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     tenant: Mapped["Tenant"] = relationship("Tenant", back_populates="members")
-    user: Mapped[User] = relationship("User", back_populates="tenant_memberships")
+    user: Mapped["User"] = relationship("User", back_populates="tenant_memberships")
 
 
 class Location(Base):

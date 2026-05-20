@@ -57,7 +57,9 @@ from app.modules.landing_pages import models as _landing_pages_models  # noqa: F
 from app.modules.marketing import models as _marketing_models  # noqa: F401
 from app.modules.referrals import models as _referrals_models  # noqa: F401
 from app.modules.marketer import models as _marketer_models  # noqa: F401
+from app.modules.auth import models as _auth_models  # noqa: F401
 from app.modules.auth import otp_models as _auth_otp_models  # noqa: F401
+from app.modules.tenants import models as _tenant_models  # noqa: F401
 from app.modules.referrals.router import router as referrals_router
 from app.modules.ai_scraper import models as _ai_scraper_models  # noqa: F401
 from app.modules.ai_scraper.router import router as ai_scraper_router
