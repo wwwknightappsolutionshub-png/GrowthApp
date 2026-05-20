@@ -72,9 +72,9 @@ export default function AdminTenantsPage() {
 
   const remove = useMutation({
     mutationFn: (id: string) => admin.deleteTenant(id),
-    onSuccess: (res) => {
+    onSuccess: async (res) => {
       toast.success((res.data as { message?: string }).message || 'Tenant deleted')
-      qc.invalidateQueries({ queryKey: ['admin', 'tenants'] })
+      await qc.refetchQueries({ queryKey: ['admin', 'tenants'] })
       qc.invalidateQueries({ queryKey: ['admin', 'stats'] })
     },
     onError: (e: { response?: { data?: { detail?: string } } }) =>

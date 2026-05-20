@@ -12,6 +12,18 @@ from app.core.exceptions import BadRequestException, NotFoundException
 from app.modules.auth.models import RefreshToken, User
 from app.modules.tenants.models import Tenant, TenantMember
 
+ARCHIVED_SLUG_MARKER = "-deleted-"
+
+
+def active_users_filter():
+    """SQLAlchemy criterion: user has not been soft-deleted."""
+    return User.deleted_at.is_(None)
+
+
+def active_tenants_filter():
+    """Exclude tenants archived by super-admin delete."""
+    return ~Tenant.slug.contains(ARCHIVED_SLUG_MARKER)
+
 
 async def _revoke_user_sessions(db: AsyncSession, user_id: uuid.UUID) -> None:
     now = datetime.now(timezone.utc)

@@ -14,7 +14,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.dependencies import SuperAdmin
-from app.modules.admin.deletion import delete_platform_user, delete_tenant
+from app.modules.admin.deletion import (
+    active_tenants_filter,
+    active_users_filter,
+    delete_platform_user,
+    delete_tenant,
+)
 from app.modules.admin.schemas import (
     AdminUserSummary,
     DeleteResponse,
@@ -69,12 +74,17 @@ async def platform_stats(admin: SuperAdmin, db: AsyncSession = Depends(get_db)):
     """Aggregate metrics across every tenant."""
     thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
 
-    total_tenants = _i((await db.execute(select(func.count(Tenant.id)))).scalar_one())
+    total_tenants = _i((await db.execute(
+        select(func.count(Tenant.id)).where(active_tenants_filter())
+    )).scalar_one())
     active_tenants = _i((await db.execute(
-        select(func.count(Tenant.id)).where(Tenant.is_active == True)
+        select(func.count(Tenant.id)).where(Tenant.is_active == True, active_tenants_filter())
     )).scalar_one())
     new_tenants_30d = _i((await db.execute(
-        select(func.count(Tenant.id)).where(Tenant.created_at >= thirty_days_ago)
+        select(func.count(Tenant.id)).where(
+            Tenant.created_at >= thirty_days_ago,
+            active_tenants_filter(),
+        )
     )).scalar_one())
     total_users = _i((await db.execute(
         select(func.count(User.id)).where(User.deleted_at.is_(None))
@@ -123,8 +133,14 @@ async def list_tenants(
     limit: int = 100,
     offset: int = 0,
 ):
-    """List every tenant with rolled-up counts. Supports a simple ?q= filter."""
-    stmt = select(Tenant).order_by(Tenant.created_at.desc()).limit(limit).offset(offset)
+    """List active tenants with rolled-up counts. Archived (deleted) workspaces are excluded."""
+    stmt = (
+        select(Tenant)
+        .where(active_tenants_filter())
+        .order_by(Tenant.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
     if q:
         like = f"%{q.lower()}%"
         stmt = stmt.where(
@@ -271,7 +287,13 @@ async def list_users(
     limit: int = 100,
     offset: int = 0,
 ):
-    stmt = select(User).where(User.deleted_at.is_(None)).order_by(User.created_at.desc()).limit(limit).offset(offset)
+    stmt = (
+        select(User)
+        .where(active_users_filter())
+        .order_by(User.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
     if q:
         like = f"%{q.lower()}%"
         stmt = stmt.where(

@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import log_action
 from app.core.exceptions import NotFoundException
+from app.modules.admin.deletion import active_tenants_filter
 from app.modules.auth.models import User
 from app.modules.booking.models import Booking
 from app.modules.leads.models import Lead
@@ -82,7 +83,11 @@ async def snapshot_tenant_health(
     today: date = now.date()
 
     tenants = (
-        await db.execute(select(Tenant).where(Tenant.is_active.is_(True)).order_by(Tenant.name))
+        await db.execute(
+            select(Tenant)
+            .where(Tenant.is_active.is_(True), active_tenants_filter())
+            .order_by(Tenant.name)
+        )
     ).scalars().all()
     if not tenants:
         return []

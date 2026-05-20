@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.dependencies import SuperAdmin
+from app.modules.admin.deletion import active_tenants_filter, delete_tenant
 from app.modules.tenants.models import Tenant
 
 router = APIRouter(prefix="/api/admin/tenants", tags=["Admin — Tenants"])
@@ -50,10 +51,13 @@ async def list_tenants(
     db: AsyncSession = Depends(get_db),
     search: Optional[str] = Query(None),
     active: Optional[bool] = Query(None),
+    include_archived: bool = Query(False),
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
     q = select(Tenant).order_by(Tenant.created_at.desc())
+    if not include_archived:
+        q = q.where(active_tenants_filter())
     if search:
         q = q.where(Tenant.name.ilike(f"%{search}%") | Tenant.slug.ilike(f"%{search}%"))
     if active is not None:
@@ -105,13 +109,10 @@ async def update_tenant(tenant_id: uuid.UUID, body: TenantUpdate, _: SuperAdmin,
     return {"id": str(t.id), "name": t.name, "is_active": t.is_active}
 
 
-@router.delete("/{tenant_id}", status_code=204)
-async def delete_tenant(tenant_id: uuid.UUID, _: SuperAdmin, db: AsyncSession = Depends(get_db)):
-    t = (await db.execute(select(Tenant).where(Tenant.id == tenant_id))).scalar_one_or_none()
-    if not t:
-        raise HTTPException(404, "Tenant not found")
-    t.is_active = False
-    await db.commit()
+@router.delete("/{tenant_id}")
+async def delete_tenant_route(tenant_id: uuid.UUID, _: SuperAdmin, db: AsyncSession = Depends(get_db)):
+    out = await delete_tenant(db, tenant_id)
+    return {"ok": True, "message": out["message"]}
 
 
 @router.post("/{tenant_id}/impersonate")

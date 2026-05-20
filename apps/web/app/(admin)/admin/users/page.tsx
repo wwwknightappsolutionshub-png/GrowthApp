@@ -207,9 +207,10 @@ function DeleteUserModal({ user, onClose }: { user: AdminUser; onClose: () => vo
   const qc = useQueryClient()
   const del = useMutation({
     mutationFn: () => admin.deleteUser(user.id),
-    onSuccess: () => {
-      toast.success('User deleted (soft)')
-      qc.invalidateQueries({ queryKey: ['admin', 'users'] })
+    onSuccess: async () => {
+      toast.success('User deleted')
+      await qc.refetchQueries({ queryKey: ['admin', 'users'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'stats'] })
       onClose()
     },
     onError: (e: any) => toast.error(e?.response?.data?.detail || 'Delete failed'),

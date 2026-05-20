@@ -28,6 +28,7 @@ from app.modules.admin.tool_config import (
     FREELANCER_TOOL_HREFS,
     TOOL_LABELS,
 )
+from app.modules.admin.deletion import active_users_filter
 from app.modules.auth.models import User
 from app.modules.billing.models import FreelancerBilling
 
@@ -170,7 +171,7 @@ async def list_billings(
     result = await db.execute(
         select(FreelancerBilling, User)
         .join(User, User.id == FreelancerBilling.user_id)
-        .where(User.user_type == "freelancer")
+        .where(User.user_type == "freelancer", active_users_filter())
         .order_by(FreelancerBilling.created_at.desc())
     )
     return [_row(b, u) for (b, u) in result.all()]

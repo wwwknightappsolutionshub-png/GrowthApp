@@ -30,6 +30,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.dependencies import SuperAdmin
 from app.modules.audit.models import AuditLog
+from app.modules.admin.deletion import active_tenants_filter, active_users_filter
 from app.modules.auth.models import User
 from app.modules.billing.models import (
     BillingInvoice,
@@ -194,7 +195,9 @@ async def overview(
     # Global overage alerts — distinct alert types observed across all tenants.
     overage_alerts: list[dict[str, Any]] = []
     seen_alerts: set[str] = set()
-    tenants = (await db.execute(select(Tenant).where(Tenant.is_active == True))).scalars().all()  # noqa: E712
+    tenants = (
+        await db.execute(select(Tenant).where(Tenant.is_active == True, active_tenants_filter()))  # noqa: E712
+    ).scalars().all()
     for t in tenants:
         plan = None
         if t.plan_id:
@@ -238,7 +241,7 @@ async def list_tenants(
     overage_state: Optional[str] = Query(None, pattern="^(any|none)$"),
     invoice_status: Optional[str] = Query(None),
 ) -> dict[str, Any]:
-    q = select(Tenant).where(Tenant.is_active == True)  # noqa: E712
+    q = select(Tenant).where(Tenant.is_active == True, active_tenants_filter())  # noqa: E712
     total = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar_one() or 0
 
     rows = (
@@ -324,7 +327,7 @@ async def list_freelancers(
     base = (
         select(User, FreelancerBilling)
         .join(FreelancerBilling, FreelancerBilling.user_id == User.id, isouter=True)
-        .where(User.user_type == "freelancer")
+        .where(User.user_type == "freelancer", active_users_filter())
     )
     total = (await db.execute(select(func.count()).select_from(base.subquery()))).scalar_one() or 0
     rows = (

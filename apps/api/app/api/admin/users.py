@@ -27,6 +27,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.dependencies import SuperAdmin
+from app.modules.admin.deletion import active_users_filter, delete_platform_user
 from app.modules.auth.models import User
 from app.core.rbac import AdminRole, AdminActivityLog
 
@@ -61,7 +62,7 @@ async def list_users(
     limit: int = Query(100, ge=1, le=500),
     offset: int = Query(0, ge=0),
 ):
-    q = select(User).order_by(User.created_at.desc())
+    q = select(User).where(active_users_filter()).order_by(User.created_at.desc())
     if search:
         q = q.where(User.email.ilike(f"%{search}%") | User.full_name.ilike(f"%{search}%"))
     rows = (await db.execute(q.limit(limit).offset(offset))).scalars().all()
@@ -160,10 +161,7 @@ async def update_user(user_id: uuid.UUID, body: UserUpdate, _: SuperAdmin, db: A
     return {"id": str(u.id), "email": u.email, "is_superadmin": u.is_superadmin}
 
 
-@router.delete("/{user_id}", status_code=204)
+@router.delete("/{user_id}")
 async def delete_user(user_id: uuid.UUID, _: SuperAdmin, db: AsyncSession = Depends(get_db)):
-    u = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
-    if not u:
-        raise HTTPException(404, "User not found")
-    u.deleted_at = __import__("datetime").datetime.utcnow()  # type: ignore[attr-defined]
-    await db.commit()
+    out = await delete_platform_user(db, user_id)
+    return {"ok": True, "message": out["message"]}
