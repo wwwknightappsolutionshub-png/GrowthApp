@@ -1,12 +1,11 @@
-"""Pre-registration OTP signup flow.
+"""Pre-registration OTP signup flow (email OTP only).
 
 Two endpoints back this:
-  * POST /auth/signup/initiate  -> create a PendingSignup row + issue 2 OTPs
-  * POST /auth/signup/verify    -> validate both codes, then commit the user/tenant
-                                   and dispatch welcome email + SMS/WhatsApp.
+  * POST /auth/signup/initiate  -> create a PendingSignup row + email OTP
+  * POST /auth/signup/verify    -> validate email code, then commit user/tenant
 
-The existing /auth/register endpoint remains as a non-OTP fallback for
-backwards compatibility.
+Phone is stored on the account when provided but is not OTP-verified.
+The /auth/register endpoint remains as a non-OTP fallback.
 """
 from __future__ import annotations
 
@@ -32,7 +31,6 @@ from app.modules.auth.otp_service import (
     OTP_TTL_MINUTES,
     _normalize_phone,
     issue_email_otp,
-    issue_phone_otp,
     is_likely_whatsapp,
     verify_otp,
 )
@@ -54,7 +52,7 @@ def _mask_phone(phone: str) -> str:
 # ── Initiate ────────────────────────────────────────────────────────────────
 
 async def initiate(db: AsyncSession, data: SignupInitiateRequest) -> dict:
-    """Create the pending signup record and dispatch both OTPs."""
+    """Create the pending signup record and dispatch the email OTP."""
     email = data.email.lower()
     existing = (
         await db.execute(select(User).where(User.email == email))
@@ -86,15 +84,14 @@ async def initiate(db: AsyncSession, data: SignupInitiateRequest) -> dict:
     await db.flush()
 
     await issue_email_otp(db, email=email, full_name=data.full_name)
-    channel = await issue_phone_otp(db, phone=data.phone or "", full_name=data.full_name)
-    pending.phone_channel_attempted = channel
     await db.commit()
 
     return {
         "pending_id": pending.id,
         "email": email,
-        "phone_masked": _mask_phone(data.phone or ""),
-        "phone_channel": channel,
+        "requires_phone_otp": False,
+        "phone_masked": _mask_phone(data.phone or "") if data.phone else None,
+        "phone_channel": None,
         "expires_in_seconds": OTP_TTL_MINUTES * 60,
     }
 
@@ -104,7 +101,7 @@ async def initiate(db: AsyncSession, data: SignupInitiateRequest) -> dict:
 async def verify_and_complete(
     db: AsyncSession, data: SignupVerifyRequest
 ) -> tuple[User, dict]:
-    """Verify both OTP codes; on success commit the registration and return tokens."""
+    """Verify the email OTP; on success commit the registration and return tokens."""
     pending = (
         await db.execute(select(PendingSignup).where(PendingSignup.id == data.pending_id))
     ).scalar_one_or_none()
@@ -118,15 +115,9 @@ async def verify_and_complete(
     email_ok = await verify_otp(
         db, purpose="signup_email", destination=pending.email, code=data.email_code
     )
-    phone_ok = await verify_otp(
-        db, purpose="signup_phone", destination=pending.phone, code=data.phone_code
-    )
-    if not (email_ok and phone_ok):
+    if not email_ok:
         await db.commit()
-        raise UnauthorizedException(
-            "Verification failed — check the codes and try again. "
-            f"({'email ✗ ' if not email_ok else ''}{'phone ✗' if not phone_ok else ''})".strip()
-        )
+        raise UnauthorizedException("Verification failed — check your email code and try again.")
 
     payload = pending.payload or {}
     now = datetime.now(timezone.utc)
@@ -138,7 +129,7 @@ async def verify_and_complete(
         phone=pending.phone,
         user_type=pending.user_type,
         email_verified_at=now,
-        phone_verified_at=now,
+        phone_verified_at=None,
         estimated_client_count=(
             payload.get("estimated_client_count") if pending.user_type == "freelancer" else None
         ),
@@ -266,10 +257,7 @@ async def resend_code(db: AsyncSession, *, pending_id: uuid.UUID, channel: str) 
         await issue_email_otp(db, email=pending.email, full_name=(pending.payload or {}).get("full_name"))
         used = "email"
     elif channel == "phone":
-        used = await issue_phone_otp(
-            db, phone=pending.phone, full_name=(pending.payload or {}).get("full_name")
-        )
-        pending.phone_channel_attempted = used
+        raise UnauthorizedException("Phone verification is not required for signup")
     else:
         raise UnauthorizedException("Invalid channel")
     await db.commit()

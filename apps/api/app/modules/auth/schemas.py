@@ -52,31 +52,22 @@ class RegisterRequest(BaseModel):
 
 
 class SignupInitiateRequest(RegisterRequest):
-    """Same payload as RegisterRequest, but used to start the OTP flow.
-
-    Inherits all validation; phone is enforced as required at the field level
-    below since the OTP flow always needs a phone to verify.
-    """
-
-    @model_validator(mode="after")
-    def _phone_required_for_otp(self) -> "SignupInitiateRequest":
-        if not self.phone or not self.phone.strip():
-            raise ValueError("phone is required for OTP-verified signup")
-        return self
+    """Same payload as RegisterRequest; used to start email OTP signup."""
 
 
 class SignupInitiateResponse(BaseModel):
     pending_id: UUID
     email: str
-    phone_masked: str
-    phone_channel: Literal["whatsapp", "sms"]
+    requires_phone_otp: bool = False
+    phone_masked: str | None = None
+    phone_channel: Literal["whatsapp", "sms"] | None = None
     expires_in_seconds: int
 
 
 class SignupVerifyRequest(BaseModel):
     pending_id: UUID
     email_code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
-    phone_code: str = Field(min_length=6, max_length=6, pattern=r"^\d{6}$")
+    phone_code: str | None = Field(default=None, max_length=6)
 
 
 class ResendOtpRequest(BaseModel):

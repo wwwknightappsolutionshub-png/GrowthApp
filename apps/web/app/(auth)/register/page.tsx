@@ -124,8 +124,9 @@ type FormData = z.infer<typeof schema>
 interface PendingSignup {
   pending_id: string
   email: string
-  phone_masked: string
-  phone_channel: 'whatsapp' | 'sms'
+  requires_phone_otp?: boolean
+  phone_masked?: string | null
+  phone_channel?: 'whatsapp' | 'sms' | null
 }
 
 function Field({
@@ -216,7 +217,7 @@ export default function RegisterPage() {
 
       const res = await auth.signupInitiate(payload)
       setPending(res.data as PendingSignup)
-      toast.success('Codes sent! Check your email and phone to verify.')
+      toast.success('Verification code sent! Check your email.')
     } catch (err: any) {
       const msg = err.response?.data?.detail || 'Could not create your account. Please try again.'
       toast.error(msg)
@@ -620,15 +621,12 @@ function VerifyOtpStep({
   onComplete: () => void
 }) {
   const [emailCode, setEmailCode] = useState('')
-  const [phoneCode, setPhoneCode] = useState('')
   const [submitting, setSubmitting] = useState(false)
-  const [resending, setResending] = useState<'email' | 'phone' | null>(null)
-
-  const channelLabel = pending.phone_channel === 'whatsapp' ? 'WhatsApp' : 'SMS'
+  const [resending, setResending] = useState(false)
 
   const submit = async () => {
-    if (emailCode.length !== 6 || phoneCode.length !== 6) {
-      toast.error('Enter both 6-digit codes')
+    if (emailCode.length !== 6) {
+      toast.error('Enter the 6-digit code from your email')
       return
     }
     setSubmitting(true)
@@ -641,7 +639,6 @@ function VerifyOtpStep({
         {
           pending_id: pending.pending_id,
           email_code: emailCode,
-          phone_code: phoneCode,
         },
         ref || undefined,
       )
@@ -655,15 +652,15 @@ function VerifyOtpStep({
     }
   }
 
-  const resend = async (which: 'email' | 'phone') => {
-    setResending(which)
+  const resend = async () => {
+    setResending(true)
     try {
-      await auth.signupResend(pending.pending_id, which)
-      toast.success(`Code re-sent via ${which === 'email' ? 'email' : channelLabel}`)
+      await auth.signupResend(pending.pending_id, 'email')
+      toast.success('Code re-sent to your email')
     } catch {
       toast.error('Could not resend code')
     } finally {
-      setResending(null)
+      setResending(false)
     }
   }
 
@@ -675,12 +672,11 @@ function VerifyOtpStep({
           Step 2 of 2 · Verify your identity
         </span>
         <h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-foreground">
-          Verify your contacts.
+          Verify your email.
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          We sent two 6-digit codes &mdash; one to <strong>{pending.email}</strong> and one to{' '}
-          <strong>{pending.phone_masked}</strong> via <strong>{channelLabel}</strong>. Enter both to
-          finish creating your account.
+          We sent a 6-digit code to <strong>{pending.email}</strong>. Enter it below to finish
+          creating your account.
         </p>
       </div>
 
@@ -700,34 +696,11 @@ function VerifyOtpStep({
           </div>
           <button
             type="button"
-            onClick={() => resend('email')}
-            disabled={resending === 'email'}
+            onClick={resend}
+            disabled={resending}
             className="mt-1.5 text-xs text-brand-teal-700 hover:underline disabled:opacity-50"
           >
-            {resending === 'email' ? 'Sending…' : 'Resend email code'}
-          </button>
-        </Field>
-
-        <Field label={`${channelLabel} code`} required>
-          <div className="relative">
-            <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input
-              value={phoneCode}
-              onChange={(e) => setPhoneCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              placeholder="123456"
-              className={cn(inputCls(false), 'font-mono tracking-[0.4em] text-center')}
-            />
-          </div>
-          <button
-            type="button"
-            onClick={() => resend('phone')}
-            disabled={resending === 'phone'}
-            className="mt-1.5 text-xs text-brand-teal-700 hover:underline disabled:opacity-50"
-          >
-            {resending === 'phone' ? 'Sending…' : `Resend ${channelLabel} code`}
+            {resending ? 'Sending…' : 'Resend email code'}
           </button>
         </Field>
 
