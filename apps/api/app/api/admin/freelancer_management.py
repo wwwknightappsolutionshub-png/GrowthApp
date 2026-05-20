@@ -28,7 +28,7 @@ from app.modules.admin.tool_config import (
     FREELANCER_TOOL_HREFS,
     TOOL_LABELS,
 )
-from app.modules.admin.deletion import active_users_filter
+from app.modules.admin.deletion import active_users_filter, delete_freelancer
 from app.modules.auth.models import User
 from app.modules.billing.models import FreelancerBilling
 
@@ -160,6 +160,17 @@ async def reset_freelancer_module_visibility(
         await db.delete(row)
         await db.commit()
     return _serialize_visibility(None)
+
+
+@router.delete("/freelancers/{user_id}")
+async def delete_freelancer_route(
+    user_id: UUID,
+    _: SuperAdmin,
+    db: AsyncSession = Depends(get_db),
+):
+    """Soft-delete a freelancer and archive managed client workspaces."""
+    out = await delete_freelancer(db, user_id)
+    return {"ok": True, "message": out["message"]}
 
 
 @router.get("/billings", response_model=list[FreelancerBillingRow])

@@ -1,10 +1,11 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
-import { ArrowLeft, Briefcase, RefreshCw } from 'lucide-react'
-import { billingInspectorApi } from '@/lib/api-client'
+import { useParams, useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { ArrowLeft, Briefcase, RefreshCw, Trash2 } from 'lucide-react'
+import { admin, billingInspectorApi } from '@/lib/api-client'
 import { AuditLogTable, type AuditRow } from '../../components/AuditLogTable'
 
 interface FreelancerProfile {
@@ -44,6 +45,8 @@ interface FreelancerProfile {
 
 export default function FreelancerBillingProfilePage() {
   const { id } = useParams<{ id: string }>()
+  const router = useRouter()
+  const qc = useQueryClient()
   const q = useQuery({
     queryKey: ['billing-inspector', 'freelancer', id],
     queryFn: () => billingInspectorApi.freelancerProfile(id).then((r) => r.data as FreelancerProfile),
@@ -93,12 +96,32 @@ export default function FreelancerBillingProfilePage() {
             </p>
           ) : null}
         </div>
-        <button
-          onClick={() => q.refetch()}
-          className="inline-flex items-center gap-1.5 rounded-md border border-gray-700 bg-gray-900 px-3 py-1.5 text-xs text-gray-300 hover:bg-gray-800"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 ${q.isFetching ? 'animate-spin' : ''}`} /> Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => q.refetch()}
+            className="inline-flex items-center gap-1.5 rounded-md border border-gray-700 bg-gray-900 px-3 py-1.5 text-xs text-gray-300 hover:bg-gray-800"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 ${q.isFetching ? 'animate-spin' : ''}`} /> Refresh
+          </button>
+          {q.data ? (
+            <button
+              type="button"
+              disabled={removeFreelancer.isPending}
+              onClick={() => {
+                if (
+                  !confirm(
+                    `Delete freelancer "${q.data!.freelancer.full_name}"? They will lose sign-in access and managed clients will be archived.`,
+                  )
+                )
+                  return
+                removeFreelancer.mutate()
+              }}
+              className="inline-flex items-center gap-1.5 rounded-md border border-red-900/50 bg-red-950/40 px-3 py-1.5 text-xs text-red-400 hover:bg-red-950/60 disabled:opacity-50"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Delete
+            </button>
+          ) : null}
+        </div>
       </div>
 
       {q.isLoading ? (

@@ -68,6 +68,20 @@ async def delete_tenant(db: AsyncSession, tenant_id: uuid.UUID) -> dict:
     }
 
 
+async def delete_freelancer(db: AsyncSession, user_id: uuid.UUID) -> dict:
+    """Soft-delete a freelancer account and archive managed client workspaces."""
+    user = (
+        await db.execute(
+            select(User).where(User.id == user_id, User.deleted_at.is_(None))
+        )
+    ).scalar_one_or_none()
+    if not user:
+        raise NotFoundException("Freelancer")
+    if user.user_type != "freelancer":
+        raise BadRequestException("Account is not a freelancer")
+    return await delete_platform_user(db, user_id)
+
+
 async def delete_platform_user(db: AsyncSession, user_id: uuid.UUID) -> dict:
     """Soft-delete a tenant or freelancer account."""
     user = (

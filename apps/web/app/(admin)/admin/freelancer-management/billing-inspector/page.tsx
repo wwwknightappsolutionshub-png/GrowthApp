@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Briefcase, Check, Pencil, RefreshCw, X } from 'lucide-react'
-import { adminApi } from '@/lib/api-client'
+import { Briefcase, Check, Pencil, RefreshCw, Trash2, X } from 'lucide-react'
+import { admin, adminApi } from '@/lib/api-client'
 
 interface BillingRow {
   id: string
@@ -58,6 +58,18 @@ export default function BillingInspectorPage() {
       const msg = err?.response?.data?.detail || 'Could not update override'
       toast.error(String(msg))
     },
+  })
+
+  const removeFreelancer = useMutation({
+    mutationFn: (userId: string) => admin.deleteFreelancer(userId),
+    onSuccess: async (res) => {
+      toast.success((res.data as { message?: string }).message || 'Freelancer deleted')
+      await qc.refetchQueries({ queryKey: ['admin', 'freelancer-management', 'billings'] })
+      qc.invalidateQueries({ queryKey: ['billing-inspector', 'freelancers'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'stats'] })
+    },
+    onError: (err: { response?: { data?: { detail?: string } } }) =>
+      toast.error(err?.response?.data?.detail || 'Failed to delete freelancer'),
   })
 
   const rows = billings.data ?? []
@@ -218,18 +230,36 @@ export default function BillingInspectorPage() {
                           </button>
                         </div>
                       ) : (
-                        <button
-                          onClick={() => {
-                            setEditingId(row.id)
-                            setDraftValue(
-                              row.override_price === null ? '' : String(row.override_price),
-                            )
-                          }}
-                          className="inline-flex items-center gap-1 rounded border border-gray-700 px-2 py-1 text-xs text-gray-300 hover:bg-gray-800"
-                        >
-                          <Pencil className="h-3 w-3" />{' '}
-                          {row.override_price === null ? 'Override' : 'Edit'}
-                        </button>
+                        <div className="inline-flex flex-col items-end gap-1">
+                          <button
+                            onClick={() => {
+                              setEditingId(row.id)
+                              setDraftValue(
+                                row.override_price === null ? '' : String(row.override_price),
+                              )
+                            }}
+                            className="inline-flex items-center gap-1 rounded border border-gray-700 px-2 py-1 text-xs text-gray-300 hover:bg-gray-800"
+                          >
+                            <Pencil className="h-3 w-3" />{' '}
+                            {row.override_price === null ? 'Override' : 'Edit'}
+                          </button>
+                          <button
+                            type="button"
+                            disabled={removeFreelancer.isPending}
+                            onClick={() => {
+                              if (
+                                !confirm(
+                                  `Delete freelancer "${row.user_full_name}"? They will lose sign-in access and managed clients will be archived.`,
+                                )
+                              )
+                                return
+                              removeFreelancer.mutate(row.user_id)
+                            }}
+                            className="inline-flex items-center gap-1 rounded border border-red-900/50 bg-red-950/40 px-2 py-1 text-xs text-red-400 hover:bg-red-950/60 disabled:opacity-50"
+                          >
+                            <Trash2 className="h-3 w-3" /> Delete
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>

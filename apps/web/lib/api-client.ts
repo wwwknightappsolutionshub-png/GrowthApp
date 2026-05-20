@@ -626,6 +626,7 @@ export const admin = {
   suspendTenant: (id: string) => apiClient.post(`/admin/tenants/${id}/suspend`),
   reactivateTenant: (id: string) => apiClient.post(`/admin/tenants/${id}/reactivate`),
   deleteTenant: (id: string) => apiClient.delete(`/admin/tenants/${id}`),
+  deleteFreelancer: (id: string) => apiClient.delete(`/admin/freelancers/${id}`),
   listUsers: (params?: { q?: string; limit?: number; offset?: number }) =>
     apiClient.get('/admin/users', { params }),
   deleteUser: (id: string) => apiClient.delete(`/admin/users/${id}`),
@@ -1173,6 +1174,8 @@ export const adminApi = {
   // Freelancer Management → Billing Inspector
   freelancerBillings: () =>
     adminApiClient.get('/freelancer-management/billings'),
+  deleteFreelancer: (userId: string) =>
+    adminApiClient.delete(`/freelancer-management/freelancers/${userId}`),
   setFreelancerBillingOverride: (billingId: string, override_price: number | null) =>
     adminApiClient.patch(`/freelancer-management/billings/${billingId}`, {
       override_price,

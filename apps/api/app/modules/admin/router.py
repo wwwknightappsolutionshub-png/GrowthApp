@@ -17,6 +17,7 @@ from app.core.dependencies import SuperAdmin
 from app.modules.admin.deletion import (
     active_tenants_filter,
     active_users_filter,
+    delete_freelancer,
     delete_platform_user,
     delete_tenant,
 )
@@ -335,6 +336,17 @@ async def remove_user(
 ):
     """Soft-delete a freelancer or tenant owner account."""
     out = await delete_platform_user(db, user_id)
+    return DeleteResponse(id=uuid.UUID(out["id"]), message=out["message"])
+
+
+@router.delete("/freelancers/{user_id}", response_model=DeleteResponse)
+async def remove_freelancer(
+    user_id: uuid.UUID,
+    admin: SuperAdmin,
+    db: AsyncSession = Depends(get_db),
+):
+    """Soft-delete a freelancer account and archive their managed clients."""
+    out = await delete_freelancer(db, user_id)
     return DeleteResponse(id=uuid.UUID(out["id"]), message=out["message"])
 
 

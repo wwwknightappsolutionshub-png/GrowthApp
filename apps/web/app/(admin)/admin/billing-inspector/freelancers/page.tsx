@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
-import { Briefcase, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
-import { billingInspectorApi } from '@/lib/api-client'
+import { toast } from 'sonner'
+import { Briefcase, ChevronLeft, ChevronRight, RefreshCw, Trash2 } from 'lucide-react'
+import { admin, billingInspectorApi } from '@/lib/api-client'
 import { BillingTable, type BillingTableColumn } from '../components/BillingTable'
 
 interface FreelancerRow {
@@ -30,6 +31,7 @@ interface FreelancerListResponse {
 }
 
 export default function BillingInspectorFreelancersPage() {
+  const qc = useQueryClient()
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
   const [plan, setPlan] = useState<'' | '1-50' | '51-100' | '>100'>('')
@@ -48,6 +50,18 @@ export default function BillingInspectorFreelancersPage() {
           invoice_status: invoiceStatus || undefined,
         })
         .then((r) => r.data as FreelancerListResponse),
+  })
+
+  const removeFreelancer = useMutation({
+    mutationFn: (userId: string) => admin.deleteFreelancer(userId),
+    onSuccess: async (res) => {
+      toast.success((res.data as { message?: string }).message || 'Freelancer deleted')
+      await qc.refetchQueries({ queryKey: ['billing-inspector', 'freelancers'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'freelancer-management', 'billings'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'stats'] })
+    },
+    onError: (e: { response?: { data?: { detail?: string } } }) =>
+      toast.error(e?.response?.data?.detail || 'Failed to delete freelancer'),
   })
 
   const rows = list.data?.items ?? []
@@ -143,12 +157,31 @@ export default function BillingInspectorFreelancersPage() {
       header: 'Actions',
       align: 'right',
       render: (r) => (
-        <Link
-          href={`/admin/billing-inspector/freelancers/${r.user_id}`}
-          className="inline-flex items-center rounded-md border border-gray-700 bg-gray-900 px-2.5 py-1 text-xs text-gray-200 hover:bg-gray-800"
-        >
-          Inspect
-        </Link>
+        <div className="inline-flex items-center justify-end gap-1.5">
+          <Link
+            href={`/admin/billing-inspector/freelancers/${r.user_id}`}
+            className="inline-flex items-center rounded-md border border-gray-700 bg-gray-900 px-2.5 py-1 text-xs text-gray-200 hover:bg-gray-800"
+          >
+            Inspect
+          </Link>
+          <button
+            type="button"
+            disabled={removeFreelancer.isPending}
+            onClick={() => {
+              if (
+                !confirm(
+                  `Delete freelancer "${r.freelancer_name}"? They will lose sign-in access and managed clients will be archived.`,
+                )
+              )
+                return
+              removeFreelancer.mutate(r.user_id)
+            }}
+            className="inline-flex items-center gap-1 rounded-md border border-red-900/50 bg-red-950/40 px-2.5 py-1 text-xs text-red-400 hover:bg-red-950/60 disabled:opacity-50"
+          >
+            <Trash2 className="h-3 w-3" />
+            Delete
+          </button>
+        </div>
       ),
     },
   ]
