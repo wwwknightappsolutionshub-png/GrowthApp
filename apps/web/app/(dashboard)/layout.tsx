@@ -76,7 +76,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               className="absolute inset-0 bg-black/60"
               onClick={() => setMobileNavOpen(false)}
             />
-            <div className="relative h-full w-[min(18rem,88vw)] shadow-2xl">
+            <div className="relative flex h-dvh max-h-dvh w-[min(18rem,88vw)] flex-col overflow-hidden shadow-2xl">
               <button
                 type="button"
                 onClick={() => setMobileNavOpen(false)}

@@ -326,7 +326,7 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
   return (
     <aside
       className={cn(
-        'flex h-screen flex-col border-r border-brand-forest-800/30 bg-brand-forest-950 text-brand-forest-foreground/85 transition-all duration-200',
+        'flex h-full min-h-0 flex-col border-r border-brand-forest-800/30 bg-brand-forest-950 text-brand-forest-foreground/85 transition-all duration-200',
         collapsed ? 'w-[68px]' : 'w-64',
       )}
     >
@@ -379,7 +379,7 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
       )}
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-2 py-4">
+      <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-4">
         {groups.map((group, gi) => (
           <div key={group.key} className={cn(gi > 0 && 'mt-5')}>
             {!collapsed && (
@@ -444,7 +444,7 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-white/[0.06] p-2">
+      <div className="shrink-0 border-t border-white/[0.06] p-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {collapsed && onToggle && (
           <button
             onClick={onToggle}

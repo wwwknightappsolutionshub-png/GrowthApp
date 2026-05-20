@@ -625,11 +625,14 @@ export const admin = {
   getTenant: (id: string) => apiClient.get(`/admin/tenants/${id}`),
   suspendTenant: (id: string) => apiClient.post(`/admin/tenants/${id}/suspend`),
   reactivateTenant: (id: string) => apiClient.post(`/admin/tenants/${id}/reactivate`),
-  deleteTenant: (id: string) => apiClient.delete(`/admin/tenants/${id}`),
-  deleteFreelancer: (id: string) => apiClient.delete(`/admin/freelancers/${id}`),
+  deleteTenant: (id: string, permanent = true) =>
+    apiClient.delete(`/admin/tenants/${id}`, { params: { permanent } }),
+  deleteFreelancer: (id: string, permanent = true) =>
+    apiClient.delete(`/admin/freelancers/${id}`, { params: { permanent } }),
   listUsers: (params?: { q?: string; limit?: number; offset?: number }) =>
     apiClient.get('/admin/users', { params }),
-  deleteUser: (id: string) => apiClient.delete(`/admin/users/${id}`),
+  deleteUser: (id: string, permanent = true) =>
+    apiClient.delete(`/admin/users/${id}`, { params: { permanent } }),
   listTenantHealth: () => apiClient.get('/admin/tenant-health'),
   remindTenant: (tenantId: string, params?: { note?: string }) =>
     apiClient.post(`/admin/tenant-health/${tenantId}/remind`, null, { params }),

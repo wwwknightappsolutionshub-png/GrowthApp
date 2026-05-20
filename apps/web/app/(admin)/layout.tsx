@@ -154,8 +154,8 @@ interface AdminSidebarProps {
 
 function AdminSidebar({ pathname, me, onNavigate }: AdminSidebarProps) {
   return (
-    <aside className="flex h-full w-64 flex-col border-r border-gray-800 bg-gray-900">
-      <div className="h-16 flex items-center gap-3 px-5 border-b border-gray-800">
+    <aside className="flex h-full min-h-0 w-full max-w-full flex-col border-r border-gray-800 bg-gray-900 lg:w-64">
+      <div className="flex h-16 shrink-0 items-center gap-3 border-b border-gray-800 px-5">
         <div className="w-8 h-8 rounded-lg bg-amber-500/20 flex items-center justify-center">
           <ShieldCheck className="w-4 h-4 text-amber-400" />
         </div>
@@ -167,7 +167,7 @@ function AdminSidebar({ pathname, me, onNavigate }: AdminSidebarProps) {
         </div>
       </div>
 
-      <nav className="flex-1 py-4 px-2 space-y-4 overflow-y-auto">
+      <nav className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain py-4 px-2">
         {NAV_GROUPS.map((group) => (
           <div key={group.label}>
             <p className="px-3 mb-1 text-[10px] uppercase tracking-widest text-gray-600 font-semibold">{group.label}</p>
@@ -198,7 +198,7 @@ function AdminSidebar({ pathname, me, onNavigate }: AdminSidebarProps) {
         ))}
       </nav>
 
-      <div className="px-3 py-3 border-t border-gray-800">
+      <div className="shrink-0 border-t border-gray-800 px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {me && (
           <div className="mb-3 px-2">
             <div className="text-sm font-medium truncate">{me.full_name}</div>
@@ -287,7 +287,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             className="absolute inset-0 bg-black/60"
             onClick={() => setMobileNavOpen(false)}
           />
-          <div className="relative h-full w-[min(18rem,88vw)] shadow-2xl">
+          <div className="relative flex h-dvh max-h-dvh w-[min(18rem,88vw)] flex-col overflow-hidden shadow-2xl">
             <button
               type="button"
               onClick={() => setMobileNavOpen(false)}
@@ -302,21 +302,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       )}
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 items-center gap-3 border-b border-gray-800 bg-gray-950/85 px-3 backdrop-blur sm:px-6 lg:hidden">
+        <header className="flex h-16 shrink-0 items-center gap-3 border-b border-gray-800 bg-gray-950/85 px-3 backdrop-blur sm:px-6 lg:hidden">
           <button
             type="button"
             onClick={() => setMobileNavOpen(true)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-gray-800 bg-gray-900 text-gray-300 hover:bg-gray-800 hover:text-white"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-gray-800 bg-gray-900 text-gray-300 hover:bg-gray-800 hover:text-white"
             aria-label="Open navigation"
           >
             <Menu className="h-4 w-4" />
           </button>
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="text-sm font-bold tracking-tight">CustomerFlow AI</div>
             <div className="text-[10px] uppercase tracking-widest text-amber-400 font-semibold">
               Super Admin
             </div>
           </div>
+          <button
+            type="button"
+            onClick={() => doLogout()}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-md border border-gray-800 px-2.5 py-1.5 text-xs text-gray-300 hover:bg-gray-800 hover:text-white"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Sign out
+          </button>
         </header>
 
         <main className="flex-1 overflow-y-auto overflow-x-hidden">

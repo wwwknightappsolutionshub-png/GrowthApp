@@ -8,7 +8,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -333,9 +333,10 @@ async def remove_user(
     user_id: uuid.UUID,
     admin: SuperAdmin,
     db: AsyncSession = Depends(get_db),
+    permanent: bool = Query(False, description="Hard-delete user and owned workspaces"),
 ):
-    """Soft-delete a freelancer or tenant owner account."""
-    out = await delete_platform_user(db, user_id)
+    """Archive (default) or permanently delete a freelancer or tenant owner account."""
+    out = await delete_platform_user(db, user_id, permanent=permanent)
     return DeleteResponse(id=uuid.UUID(out["id"]), message=out["message"])
 
 
@@ -344,9 +345,10 @@ async def remove_freelancer(
     user_id: uuid.UUID,
     admin: SuperAdmin,
     db: AsyncSession = Depends(get_db),
+    permanent: bool = Query(False, description="Hard-delete freelancer and managed clients"),
 ):
-    """Soft-delete a freelancer account and archive their managed clients."""
-    out = await delete_freelancer(db, user_id)
+    """Archive (default) or permanently delete a freelancer account."""
+    out = await delete_freelancer(db, user_id, permanent=permanent)
     return DeleteResponse(id=uuid.UUID(out["id"]), message=out["message"])
 
 

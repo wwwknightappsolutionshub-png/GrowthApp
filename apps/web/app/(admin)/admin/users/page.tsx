@@ -221,9 +221,9 @@ function DeleteUserModal({ user, onClose }: { user: AdminUser; onClose: () => vo
       <div className="space-y-4">
         <div className="rounded-xl border border-red-500/20 bg-red-500/5 p-4">
           <p className="text-sm text-red-300">
-            Are you sure you want to delete <strong>{user.email}</strong>
+            Permanently delete <strong>{user.email}</strong>
             {user.user_type === 'freelancer' ? ' (freelancer)' : ''}?
-            They will be unable to sign in; owned workspaces are archived.
+            This removes the account, revokes access, and deletes owned workspace data. This cannot be undone.
           </p>
         </div>
         <div className="flex justify-end gap-3">
@@ -489,7 +489,7 @@ function UsersTab() {
                 </td>
                 <td className="px-5 py-3 text-right text-xs text-gray-400">{fmt(u.created_at)}</td>
                 <td className="px-5 py-3 text-right">
-                  <div className="flex items-center justify-end gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                  <div className="flex items-center justify-end gap-1">
                     <button
                       onClick={() => setEditUser(u)}
                       className="rounded p-1.5 text-gray-400 hover:bg-gray-700 hover:text-white"

@@ -16,7 +16,7 @@ from decimal import Decimal
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -167,9 +167,10 @@ async def delete_freelancer_route(
     user_id: UUID,
     _: SuperAdmin,
     db: AsyncSession = Depends(get_db),
+    permanent: bool = Query(False),
 ):
-    """Soft-delete a freelancer and archive managed client workspaces."""
-    out = await delete_freelancer(db, user_id)
+    """Archive or permanently delete a freelancer and their managed clients."""
+    out = await delete_freelancer(db, user_id, permanent=permanent)
     return {"ok": True, "message": out["message"]}
 
 

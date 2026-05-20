@@ -162,6 +162,11 @@ async def update_user(user_id: uuid.UUID, body: UserUpdate, _: SuperAdmin, db: A
 
 
 @router.delete("/{user_id}")
-async def delete_user(user_id: uuid.UUID, _: SuperAdmin, db: AsyncSession = Depends(get_db)):
-    out = await delete_platform_user(db, user_id)
+async def delete_user(
+    user_id: uuid.UUID,
+    _: SuperAdmin,
+    db: AsyncSession = Depends(get_db),
+    permanent: bool = Query(False),
+):
+    out = await delete_platform_user(db, user_id, permanent=permanent)
     return {"ok": True, "message": out["message"]}

@@ -512,14 +512,40 @@ export default function OnboardingPage() {
   })).filter((g) => g.modules.length > 0)
 
   return (
-    <div>
+    <div className="pb-4">
+      {/* Sticky actions — always reachable on tablet / short viewports */}
+      <div className="sticky top-0 z-30 -mx-4 mb-6 border-b border-border/80 bg-background/95 px-4 py-3 backdrop-blur sm:-mx-0 sm:rounded-xl sm:border sm:px-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground">
+            Finish the tour or jump straight into your workspace.
+          </p>
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+            <Link
+              href="/dashboard"
+              className="inline-flex flex-1 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm text-foreground hover:bg-muted sm:flex-none"
+            >
+              Skip for now
+            </Link>
+            <button
+              type="button"
+              onClick={() => complete.mutate()}
+              disabled={complete.isPending}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-brand-forest-700 px-4 py-2 text-sm font-semibold text-brand-forest-foreground shadow-brand hover:bg-brand-forest-800 disabled:opacity-60 sm:flex-none"
+            >
+              {complete.isPending ? 'Saving…' : 'Go to dashboard'}
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
-      <div className="mb-10 text-center">
+      <div className="mb-8 text-center md:mb-10">
         <span className="inline-flex items-center gap-2 rounded-full border border-brand-teal-400/30 bg-brand-teal-400/10 px-3 py-1 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-brand-teal-700">
           <Sparkles className="h-3 w-3" />
           Welcome to CustomerFlow AI
         </span>
-        <h1 className="mt-4 font-display text-4xl font-bold tracking-tight text-foreground">
+        <h1 className="mt-4 font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl md:text-4xl">
           Hi {firstName} — let&apos;s give you the tour.
         </h1>
         <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground">
@@ -567,7 +593,8 @@ export default function OnboardingPage() {
       ))}
 
       {/* Footer CTA */}
-      <div className="sticky bottom-6 mt-10 rounded-xl border border-border bg-card/95 backdrop-blur shadow-lg p-5 flex flex-wrap items-center justify-between gap-4">
+      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-border bg-card/95 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_30px_rgba(0,0,0,0.08)] backdrop-blur sm:sticky sm:bottom-6 sm:mt-10 sm:rounded-xl sm:border sm:shadow-lg">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-4">
         <div>
           <h3 className="font-display text-lg font-semibold text-foreground">
             Ready to start?
@@ -591,6 +618,7 @@ export default function OnboardingPage() {
             {complete.isPending ? 'Saving…' : 'Take me to my dashboard'}
             <ArrowRight className="h-4 w-4" />
           </button>
+        </div>
         </div>
       </div>
     </div>

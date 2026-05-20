@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
-import { Building2, ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
-import { billingInspectorApi } from '@/lib/api-client'
+import { toast } from 'sonner'
+import { Building2, ChevronLeft, ChevronRight, RefreshCw, Trash2 } from 'lucide-react'
+import { admin, billingInspectorApi } from '@/lib/api-client'
 import { BillingTable, type BillingTableColumn } from '../components/BillingTable'
 
 interface TenantRow {
@@ -46,6 +47,17 @@ export default function BillingInspectorTenantsPage() {
           invoice_status: invoiceStatus || undefined,
         })
         .then((r) => r.data as TenantListResponse),
+  })
+
+  const removeTenant = useMutation({
+    mutationFn: (tenantId: string) => admin.deleteTenant(tenantId, true),
+    onSuccess: async (res) => {
+      toast.success((res.data as { message?: string }).message || 'Tenant deleted')
+      await qc.refetchQueries({ queryKey: ['billing-inspector', 'tenants'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'tenants'] })
+    },
+    onError: (e: { response?: { data?: { detail?: string } } }) =>
+      toast.error(e?.response?.data?.detail || 'Failed to delete tenant'),
   })
 
   const rows = list.data?.items ?? []
@@ -121,12 +133,30 @@ export default function BillingInspectorTenantsPage() {
       header: 'Actions',
       align: 'right',
       render: (r) => (
-        <Link
-          href={`/admin/billing-inspector/tenants/${r.tenant_id}`}
-          className="inline-flex items-center rounded-md border border-gray-700 bg-gray-900 px-2.5 py-1 text-xs text-gray-200 hover:bg-gray-800"
-        >
-          Inspect
-        </Link>
+        <div className="inline-flex items-center justify-end gap-1.5">
+          <Link
+            href={`/admin/billing-inspector/tenants/${r.tenant_id}`}
+            className="inline-flex items-center rounded-md border border-gray-700 bg-gray-900 px-2.5 py-1 text-xs text-gray-200 hover:bg-gray-800"
+          >
+            Inspect
+          </Link>
+          <button
+            type="button"
+            disabled={removeTenant.isPending}
+            onClick={() => {
+              if (
+                !confirm(
+                  `PERMANENTLY delete "${r.tenant_name}" and all workspace data? This cannot be undone.`,
+                )
+              )
+                return
+              removeTenant.mutate(r.tenant_id)
+            }}
+            className="inline-flex items-center gap-1 rounded-md border border-red-900/50 bg-red-950/40 px-2.5 py-1 text-xs text-red-400 hover:bg-red-950/60 disabled:opacity-50"
+          >
+            <Trash2 className="h-3 w-3" /> Delete
+          </button>
+        </div>
       ),
     },
   ]

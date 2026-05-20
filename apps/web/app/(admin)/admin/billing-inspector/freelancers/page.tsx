@@ -170,7 +170,7 @@ export default function BillingInspectorFreelancersPage() {
             onClick={() => {
               if (
                 !confirm(
-                  `Delete freelancer "${r.freelancer_name}"? They will lose sign-in access and managed clients will be archived.`,
+                  `PERMANENTLY delete freelancer "${r.freelancer_name}"? This removes their account and all managed client workspaces.`,
                 )
               )
                 return

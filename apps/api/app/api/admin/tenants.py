@@ -110,8 +110,13 @@ async def update_tenant(tenant_id: uuid.UUID, body: TenantUpdate, _: SuperAdmin,
 
 
 @router.delete("/{tenant_id}")
-async def delete_tenant_route(tenant_id: uuid.UUID, _: SuperAdmin, db: AsyncSession = Depends(get_db)):
-    out = await delete_tenant(db, tenant_id)
+async def delete_tenant_route(
+    tenant_id: uuid.UUID,
+    _: SuperAdmin,
+    db: AsyncSession = Depends(get_db),
+    permanent: bool = Query(False),
+):
+    out = await delete_tenant(db, tenant_id, permanent=permanent)
     return {"ok": True, "message": out["message"]}
 
 
