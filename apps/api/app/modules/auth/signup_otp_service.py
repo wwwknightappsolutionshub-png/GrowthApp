@@ -84,6 +84,7 @@ async def initiate(db: AsyncSession, data: SignupInitiateRequest) -> dict:
     await db.flush()
 
     await issue_email_otp(db, email=email, full_name=data.full_name)
+    # Signup never issues phone/SMS OTP — phone is optional contact info only.
     await db.commit()
 
     return {

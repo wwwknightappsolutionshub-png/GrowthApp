@@ -213,7 +213,8 @@ export default function RegisterPage() {
             }
 
       const res = await auth.signupInitiate(payload)
-      setPending(res.data as PendingSignup)
+      const body = res.data as { pending_id: string; email: string }
+      setPending({ pending_id: body.pending_id, email: body.email })
       toast.success('Verification code sent! Check your email.')
     } catch (err: any) {
       const msg = err.response?.data?.detail || 'Could not create your account. Please try again.'
@@ -673,7 +674,7 @@ function VerifyOtpStep({
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
           We sent a 6-digit code to <strong>{pending.email}</strong>. Enter it below to finish
-          creating your account.
+          creating your account. Phone verification is not required.
         </p>
       </div>
 
