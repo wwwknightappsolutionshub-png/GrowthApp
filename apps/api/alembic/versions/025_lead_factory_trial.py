@@ -32,7 +32,7 @@ def upgrade() -> None:
     )
     op.add_column(
         "ai_scraper_sources",
-        sa.Column("is_catalog_default", sa.Boolean(), nullable=False, server_default=sa.text("0")),
+        sa.Column("is_catalog_default", sa.Boolean(), nullable=False, server_default=sa.false()),
     )
 
     op.add_column(
