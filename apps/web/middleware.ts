@@ -41,10 +41,11 @@ export function middleware(request: NextRequest) {
     pathname === '/offline.html' ||
     pathname.startsWith('/icons/') ||
     pathname.startsWith('/static') ||
-    // Public tenant pages, e.g. "/acme-plumbing" or "/acme-plumbing/review/abc"
+    // Public tenant pages, e.g. "/acme-plumbing" — exclude reserved app routes
     (/^\/[a-z0-9][a-z0-9-]*(\/.*)?$/.test(pathname)
       && !pathname.startsWith(DASHBOARD_PREFIX)
-      && !pathname.startsWith(ADMIN_PREFIX))
+      && !pathname.startsWith(ADMIN_PREFIX)
+      && !PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`)))
   ) {
     return NextResponse.next()
   }

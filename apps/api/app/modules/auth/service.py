@@ -438,8 +438,7 @@ async def forgot_password(db: AsyncSession, email: str) -> None:
 
     reset_token = create_short_lived_token("password_reset", str(user.id), expire_hours=2)
 
-    import os
-    frontend_url = os.getenv("FRONTEND_URL", "https://app.yourdomain.com")
+    frontend_url = settings.FRONTEND_URL.rstrip("/")
     reset_url = f"{frontend_url}/reset-password?token={reset_token}"
 
     from app.adapters.email import get_email_adapter
