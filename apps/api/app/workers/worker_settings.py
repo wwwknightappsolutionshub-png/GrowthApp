@@ -20,6 +20,7 @@ from app.workers.tasks.tasks import send_task_reminder, sweep_overdue_task_remin
 from app.workers.tasks.ai import backfill_lead_scores_task, score_lead_task
 from app.workers.tasks.outreach import process_outreach_dispatch
 from app.workers.tasks.ai_scraper import run_ai_scraper_task
+from app.workers.tasks.ai_scraper_scheduler import enqueue_due_scraper_tasks
 from app.services.ai_scraper.task_runner import run_crawler_task
 from app.workers.tasks.ai_social import run_ai_social_scheduler
 
@@ -49,6 +50,7 @@ class WorkerSettings:
         process_outreach_dispatch,
         run_ai_scraper_task,
         run_crawler_task,
+        enqueue_due_scraper_tasks,
         run_ai_social_scheduler,
     ]
     # Cron jobs:
@@ -61,6 +63,7 @@ class WorkerSettings:
         cron(process_outreach_dispatch, minute={2, 7, 12, 17, 22, 27, 32, 37, 42, 47, 52, 57}),
         cron(backfill_lead_scores_task, minute={0}),
         cron(run_ai_social_scheduler, minute=set(range(60))),
+        cron(enqueue_due_scraper_tasks, minute={0, 15, 30, 45}),
     ]
     max_jobs = 10
     job_timeout = 300

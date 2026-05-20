@@ -420,7 +420,7 @@ async def _passes_quality_rules(
     return True
 
 
-async def ingest_lead(
+async def ingest_lead_detailed(
     db: AsyncSession,
     lead_id: uuid.UUID,
     ai_score: int,
@@ -429,34 +429,51 @@ async def ingest_lead(
     has_phone: bool = False,
     has_email: bool = False,
     lead_age_days: int = 0,
-) -> LeadMarketplace | None:
+) -> "MarketplaceIngestResult":
     """
     Auto-ingest pipeline called by the AI scraper worker.
 
-    1. Resolve category from hint.
-    2. Resolve territory from hint.
-    3. Apply quality rules — skip if rules fail.
-    4. Calculate price.
-    5. Insert into lead_marketplace as "available".
-
-    Returns the created LeadMarketplace row, or None if quality check fails
-    or no category/territory can be resolved.
+    Returns a structured result so scraper runs can log why ingest was skipped.
     """
-    # Skip if already in marketplace
-    existing = (await db.execute(
-        select(LeadMarketplace).where(LeadMarketplace.lead_id == lead_id)
-    )).scalar_one_or_none()
+    from app.modules.lead_marketplace.ingest_types import MarketplaceIngestResult
+
+    existing = (
+        await db.execute(select(LeadMarketplace).where(LeadMarketplace.lead_id == lead_id))
+    ).scalar_one_or_none()
     if existing:
-        return existing
+        return MarketplaceIngestResult(
+            marketplace=existing,
+            status="already_listed",
+            detail="Lead already has a marketplace row",
+        )
 
     category_id = await _find_category_by_hint(db, category_hint)
+    if not category_id:
+        return MarketplaceIngestResult(
+            marketplace=None,
+            status="no_category",
+            detail=f"No marketplace category matched hint={category_hint!r}",
+        )
+
     territory_id = await _find_territory_by_hint(db, territory_hint)
+    if not territory_id:
+        return MarketplaceIngestResult(
+            marketplace=None,
+            status="no_territory",
+            detail=f"No marketplace territory matched hint={territory_hint!r}",
+        )
 
-    if not category_id or not territory_id:
-        return None
-
-    if not await _passes_quality_rules(db, category_id, ai_score, has_phone, has_email, lead_age_days):
-        return None
+    if not await _passes_quality_rules(
+        db, category_id, ai_score, has_phone, has_email, lead_age_days
+    ):
+        return MarketplaceIngestResult(
+            marketplace=None,
+            status="quality_failed",
+            detail=(
+                f"Lead failed quality rules (score={ai_score}, "
+                f"phone={has_phone}, email={has_email})"
+            ),
+        )
 
     exclusivity: str = "shared"
     price = await _calculate_price(db, category_id, ai_score, exclusivity)
@@ -474,7 +491,35 @@ async def ingest_lead(
     db.add(row)
     await db.commit()
     await db.refresh(row)
-    return row
+    return MarketplaceIngestResult(
+        marketplace=row,
+        status="ingested",
+        detail=None,
+    )
+
+
+async def ingest_lead(
+    db: AsyncSession,
+    lead_id: uuid.UUID,
+    ai_score: int,
+    category_hint: str | None,
+    territory_hint: str | None,
+    has_phone: bool = False,
+    has_email: bool = False,
+    lead_age_days: int = 0,
+) -> LeadMarketplace | None:
+    """Backward-compatible wrapper — returns the marketplace row or None."""
+    result = await ingest_lead_detailed(
+        db,
+        lead_id=lead_id,
+        ai_score=ai_score,
+        category_hint=category_hint,
+        territory_hint=territory_hint,
+        has_phone=has_phone,
+        has_email=has_email,
+        lead_age_days=lead_age_days,
+    )
+    return result.marketplace
 
 
 # ── Distribution Engine ───────────────────────────────────────────────────────

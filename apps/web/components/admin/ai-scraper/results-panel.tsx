@@ -174,6 +174,21 @@ function ResultRow({
               <PayloadBlock title="AI extracted data" data={row.ai_extracted_data} />
               <PayloadBlock title="Cleaned payload" data={row.cleaned_payload} />
             </div>
+            {Array.isArray(
+              (row.cleaned_payload as { marketplace_ingest?: unknown })?.marketplace_ingest,
+            ) &&
+              (row.cleaned_payload as { marketplace_ingest: unknown[] }).marketplace_ingest
+                .length > 0 && (
+                <div className="mt-4">
+                  <PayloadBlock
+                    title="Marketplace ingest log"
+                    data={
+                      (row.cleaned_payload as { marketplace_ingest: unknown })
+                        .marketplace_ingest
+                    }
+                  />
+                </div>
+              )}
             {row.raw_payload && (
               <details className="mt-4 rounded border border-gray-800 bg-gray-950 p-3">
                 <summary className="cursor-pointer text-xs font-semibold uppercase tracking-wider text-gray-400">

@@ -287,21 +287,7 @@ async def _run_one(db: AsyncSession, task_id: uuid.UUID) -> None:
 
 
 async def run_ai_scraper_task(ctx: dict, *, task_id: str) -> None:
-    """ARQ entry point."""
-    tid = uuid.UUID(task_id)
-    async with get_db_context() as db:
-        try:
-            await _run_one(db, tid)
-        except Exception as exc:  # noqa: BLE001
-            logger.error("run_ai_scraper_task failed for %s: %s", task_id, exc, exc_info=True)
-            try:
-                t = (
-                    await db.execute(select(AiScraperTask).where(AiScraperTask.id == tid))
-                ).scalar_one_or_none()
-                if t is not None:
-                    t.status = "error"
-                    db.add(t)
-                    await db.commit()
-            except Exception:  # noqa: BLE001
-                pass
-            raise
+    """Legacy ARQ entry point — delegates to the enterprise crawler."""
+    from app.services.ai_scraper.task_runner import run_crawler_task
+
+    await run_crawler_task(ctx, task_id=task_id)

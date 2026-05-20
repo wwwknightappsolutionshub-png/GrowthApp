@@ -1,25 +1,4 @@
-"""Task Runner — persistence layer for the CustomerFlow Crawler.
-
-Mandatory methods:
-    store_result(task_id, payload, extracted, score)
-    insert_lead(extracted_json)
-
-Also exposes the ARQ worker entry point: run_crawler_task(ctx, *, task_id)
-which delegates to crawler.crawl_task(task_id).
-
-RULE 9 (mandatory):
-    store_result inserts into ai_scraper_results with:
-        - raw_payload (text)
-        - cleaned_payload (json)
-        - ai_extracted_data (json)
-        - ai_score
-        - new_leads_created
-
-RULE 8 (mandatory):
-    insert_lead creates:
-        - leads table entry
-        - lead_marketplace entry (status = "available")
-"""
+"""Task Runner — persistence layer for the CustomerFlow Crawler."""
 from __future__ import annotations
 
 import logging
@@ -30,15 +9,15 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.modules.ai_scraper.dedup import is_duplicate_scraper_lead, normalize_email, normalize_phone
 from app.modules.ai_scraper.extractor import ExtractedLead
+from app.modules.ai_scraper.insert_types import InsertLeadResult
 from app.modules.ai_scraper.models import AiScraperResult
 from app.modules.leads.models import Lead
 from app.modules.tenants.models import Tenant
 
 logger = logging.getLogger(__name__)
 
-
-# ── store_result ──────────────────────────────────────────────────────────────
 
 async def store_result(
     task_id: uuid.UUID,
@@ -49,23 +28,18 @@ async def store_result(
     *,
     new_leads_created: int = 0,
     cleaned_payload: dict[str, Any] | None = None,
+    marketplace_ingest: list[dict[str, Any]] | None = None,
 ) -> AiScraperResult:
-    """Insert a record into ai_scraper_results (Rule 9).
+    """Insert a record into ai_scraper_results (Rule 9)."""
+    cleaned = dict(cleaned_payload or {})
+    if marketplace_ingest is not None:
+        cleaned["marketplace_ingest"] = marketplace_ingest
 
-    Args:
-        task_id:          The ai_scraper_tasks.id this result belongs to.
-        payload:          Raw concatenated HTML/text (raw_payload column).
-        extracted:        List of AI-extracted lead dicts (ai_extracted_data column).
-        score:            Average AI quality score for this run.
-        db:               Active async DB session.
-        new_leads_created: Count of leads inserted during this run.
-        cleaned_payload:  Cleaned page content snapshots (cleaned_payload column).
-    """
     result = AiScraperResult(
         id=uuid.uuid4(),
         task_id=task_id,
         raw_payload=payload[:2_000_000] if payload else None,
-        cleaned_payload=cleaned_payload or {},
+        cleaned_payload=cleaned,
         ai_extracted_data={"leads": extracted},
         ai_score=max(0, min(100, score)),
         new_leads_created=new_leads_created,
@@ -75,15 +49,8 @@ async def store_result(
     return result
 
 
-# ── insert_lead ───────────────────────────────────────────────────────────────
-
 async def _resolve_tenant(db: AsyncSession) -> uuid.UUID | None:
-    """Resolve a tenant id for newly inserted leads.
-
-    Priority:
-        1. CRAWLER_DEFAULT_TENANT_ID env var.
-        2. First active tenant (deterministic by created_at).
-    """
+    """Resolve a tenant id for newly inserted leads."""
     env_tid = os.getenv("CRAWLER_DEFAULT_TENANT_ID") or os.getenv("AI_SCRAPER_DEFAULT_TENANT_ID")
     if env_tid:
         try:
@@ -113,19 +80,9 @@ async def insert_lead(
     *,
     source_name: str = "crawler",
     category_hint: str | None = None,
-) -> bool:
-    """Create a leads table entry and a lead_marketplace entry (Rule 8).
-
-    Args:
-        extracted_json: Dict matching the ExtractedLead schema fields.
-        db:             Active async DB session.
-        source_name:    Human-readable source identifier (default "crawler").
-        category_hint:  Optional category string passed through to tags.
-
-    Returns:
-        True if a lead was inserted, False if skipped.
-    """
-    # Re-validate against ExtractedLead to guarantee schema correctness
+    extraction_method: str | None = None,
+) -> InsertLeadResult:
+    """Create a leads row and attempt marketplace ingest. Returns structured outcome."""
     try:
         lead_obj = ExtractedLead(**{
             k: extracted_json.get(k)
@@ -140,16 +97,25 @@ async def insert_lead(
         )
     except Exception as exc:  # noqa: BLE001
         logger.warning("insert_lead: schema validation failed: %s", exc)
-        return False
+        return InsertLeadResult(inserted=False, skip_reason="validation_failed")
 
     has_signal = bool(lead_obj.name or lead_obj.email or lead_obj.phone)
     if not has_signal and lead_obj.quality_score < 40:
-        return False
+        return InsertLeadResult(inserted=False, skip_reason="low_signal")
 
     tenant_id = await _resolve_tenant(db)
     if not tenant_id:
         logger.warning("insert_lead: no tenant resolved — skipping lead")
-        return False
+        return InsertLeadResult(inserted=False, skip_reason="no_tenant")
+
+    if await is_duplicate_scraper_lead(
+        db, tenant_id, email=lead_obj.email, phone=lead_obj.phone
+    ):
+        return InsertLeadResult(
+            inserted=False,
+            skip_reason="duplicate",
+            extraction_method=extraction_method,
+        )
 
     first_name = lead_obj.name or lead_obj.business or "Unknown"
     last_name: str | None = None
@@ -164,6 +130,9 @@ async def insert_lead(
         tags.append(f"urgency:{lead_obj.urgency}")
     if lead_obj.intent_level:
         tags.append(f"intent:{lead_obj.intent_level}")
+
+    norm_email = normalize_email(lead_obj.email)
+    norm_phone = normalize_phone(lead_obj.phone)
 
     lead = Lead(
         id=uuid.uuid4(),
@@ -186,16 +155,21 @@ async def insert_lead(
             "intent_level": lead_obj.intent_level,
             "urgency": lead_obj.urgency,
             "quality_score": lead_obj.quality_score,
+            "scraper_email_normalized": norm_email,
+            "scraper_phone_normalized": norm_phone,
+            "extraction_method": extraction_method,
         },
         score=lead_obj.quality_score,
     )
     db.add(lead)
     await db.flush()
 
-    # Create lead_marketplace entry with status = "available" (Rule 8)
+    marketplace_status: str | None = None
+    marketplace_detail: str | None = None
     try:
-        from app.modules.lead_marketplace.service import ingest_lead as _ingest
-        await _ingest(
+        from app.modules.lead_marketplace.service import ingest_lead_detailed
+
+        ingest = await ingest_lead_detailed(
             db,
             lead_id=lead.id,
             ai_score=lead_obj.quality_score,
@@ -205,19 +179,31 @@ async def insert_lead(
             has_email=bool(lead_obj.email),
             lead_age_days=0,
         )
+        marketplace_status = ingest.status
+        marketplace_detail = ingest.detail
+        if ingest.status != "ingested":
+            logger.info(
+                "insert_lead: marketplace skip lead=%s status=%s detail=%s",
+                lead.id,
+                ingest.status,
+                ingest.detail,
+            )
     except Exception as exc:  # noqa: BLE001
-        logger.debug("insert_lead: marketplace ingest skipped: %s", exc)
+        marketplace_status = "error"
+        marketplace_detail = str(exc)[:300]
+        logger.warning("insert_lead: marketplace ingest error for %s: %s", lead.id, exc)
 
-    return True
+    return InsertLeadResult(
+        inserted=True,
+        lead_id=lead.id,
+        extraction_method=extraction_method,
+        marketplace_status=marketplace_status,
+        marketplace_detail=marketplace_detail,
+    )
 
-
-# ── ARQ entry point ───────────────────────────────────────────────────────────
 
 async def run_crawler_task(ctx: dict, *, task_id: str) -> None:
-    """ARQ worker entry point for the CustomerFlow Crawler.
-
-    Delegates to crawler.crawl_task(task_id).
-    """
+    """ARQ worker entry point for the CustomerFlow Crawler."""
     from app.services.ai_scraper.crawler import crawl_task
 
     logger.info("run_crawler_task: starting task_id=%s", task_id)

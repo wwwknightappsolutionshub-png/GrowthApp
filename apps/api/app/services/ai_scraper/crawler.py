@@ -65,21 +65,9 @@ _LINK_EXTRACT_LEVELS: frozenset[str] = frozenset({"medium", "high", "extreme"})
 
 def _next_run_from_frequency(frequency: str) -> datetime | None:
     """Parse a simple cron-like or plain-English frequency into next_run."""
-    now = datetime.now(timezone.utc)
-    f = (frequency or "").strip().lower()
+    from app.modules.ai_scraper.scheduling import next_run_from_frequency
 
-    # Handle plain-English periods
-    if "hour" in f:
-        return now + timedelta(hours=1)
-    if "day" in f or "daily" in f:
-        return now + timedelta(days=1)
-    if "week" in f or "weekly" in f:
-        return now + timedelta(weeks=1)
-    if "month" in f or "monthly" in f:
-        return now + timedelta(days=30)
-
-    # Default: 24 hours
-    return now + timedelta(hours=24)
+    return next_run_from_frequency(frequency)
 
 
 async def crawl_task(task_id: str) -> None:
@@ -240,13 +228,15 @@ async def crawl_task(task_id: str) -> None:
 
         # ── Step 7: Process each batch ────────────────────────────────────
         all_extracted: list[dict[str, Any]] = []
+        marketplace_ingest_log: list[dict[str, Any]] = []
         total_leads = 0
         score_total = 0
 
         for batch in batches:
-            # Step 7a: Send to AI extraction / validate JSON output
             try:
-                leads_in_batch = await process_batch(batch)
+                leads_in_batch = await process_batch(
+                    batch, category_hint=category_hint
+                )
             except Exception as exc:  # noqa: BLE001
                 logger.error(
                     "crawl_task: process_batch failed for task %s: %s",
@@ -254,26 +244,35 @@ async def crawl_task(task_id: str) -> None:
                 )
                 continue
 
-            for lead_obj in leads_in_batch:
+            for lead_obj, extraction_method in leads_in_batch:
                 lead_dict = lead_obj.model_dump()
-                all_extracted.append(lead_dict)
+                all_extracted.append({
+                    **lead_dict,
+                    "extraction_method": extraction_method,
+                })
                 score_total += lead_obj.quality_score
 
-                # Steps 7c/7d: Insert lead + marketplace entry
                 try:
-                    inserted = await insert_lead(
+                    outcome = await insert_lead(
                         lead_dict,
                         db,
                         source_name=source.name,
                         category_hint=category_hint,
+                        extraction_method=extraction_method,
                     )
-                    if inserted:
+                    marketplace_ingest_log.append(outcome.to_log_dict())
+                    if outcome.inserted:
                         total_leads += 1
                 except Exception as exc:  # noqa: BLE001
                     logger.error(
                         "crawl_task: insert_lead failed for task %s: %s",
                         task_id, exc,
                     )
+                    marketplace_ingest_log.append({
+                        "inserted": False,
+                        "skip_reason": "error",
+                        "marketplace_detail": str(exc)[:300],
+                    })
 
         avg_score = int(score_total / len(all_extracted)) if all_extracted else 0
         raw_payload = "\n\n".join(html for _url, html in raw_pages)
@@ -288,6 +287,7 @@ async def crawl_task(task_id: str) -> None:
                 db=db,
                 new_leads_created=total_leads,
                 cleaned_payload={"pages": cleaned_log},
+                marketplace_ingest=marketplace_ingest_log,
             )
         except Exception as exc:  # noqa: BLE001
             logger.error(

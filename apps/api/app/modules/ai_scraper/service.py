@@ -197,6 +197,8 @@ async def get_task(db: AsyncSession, task_id: uuid.UUID) -> AiScraperTask:
 async def create_task(db: AsyncSession, data: TaskCreate) -> AiScraperTask:
     await get_source(db, data.source_id)
     await get_category(db, data.category_id)
+    from app.modules.ai_scraper.scheduling import next_run_from_frequency
+
     task = AiScraperTask(
         id=uuid.uuid4(),
         source_id=data.source_id,
@@ -204,6 +206,7 @@ async def create_task(db: AsyncSession, data: TaskCreate) -> AiScraperTask:
         aggression_level=data.aggression_level,
         frequency=data.frequency,
         status=data.status,
+        next_run=next_run_from_frequency(data.frequency),
     )
     db.add(task)
     await db.commit()
@@ -257,7 +260,7 @@ async def trigger_task_run(db: AsyncSession, task_id: uuid.UUID) -> tuple[AiScra
     try:
         from app.workers.queue import enqueue
 
-        await enqueue("run_ai_scraper_task", task_id=str(task.id))
+        await enqueue("run_crawler_task", task_id=str(task.id))
         enqueued = True
     except Exception as exc:  # noqa: BLE001
         logger.error("Could not enqueue scraper task %s: %s", task.id, exc)
