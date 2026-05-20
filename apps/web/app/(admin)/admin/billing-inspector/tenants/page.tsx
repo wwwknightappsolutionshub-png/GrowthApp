@@ -29,6 +29,7 @@ interface TenantListResponse {
 }
 
 export default function BillingInspectorTenantsPage() {
+  const qc = useQueryClient()
   const [page, setPage] = useState(1)
   const [pageSize] = useState(20)
   const [plan, setPlan] = useState<string>('')
