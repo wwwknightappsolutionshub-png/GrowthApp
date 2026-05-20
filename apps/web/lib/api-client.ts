@@ -802,8 +802,12 @@ export const aiScraper = {
     name: string
     url_pattern: string
     scraping_type: ScraperType
+    source_platform?: SourcePlatform
     category_id: string
     active?: boolean
+    postcode_prefix?: string | null
+    region_label?: string | null
+    is_catalog_default?: boolean
     notes?: string | null
   }) => aiScraperClient.post<AiScraperSource>('/sources', body),
   updateSource: (
