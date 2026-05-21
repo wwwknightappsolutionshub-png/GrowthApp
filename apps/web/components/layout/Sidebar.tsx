@@ -269,7 +269,7 @@ function saveCollapsedGroups(collapsed: Set<NavGroup>) {
   try {
     window.localStorage.setItem(
       SIDEBAR_GROUPS_STORAGE_KEY,
-      JSON.stringify([...collapsed]),
+      JSON.stringify(Array.from(collapsed)),
     )
   } catch {
     /* ignore quota */
@@ -347,16 +347,19 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
     .filter((item) => enabledSet.has(item.href))
     .filter((item) => (item.href === '/dashboard/clients' ? isFreelancer : true))
 
-  // Group items
-  const groups: Array<{ key: NavGroup; items: NavItem[] }> = []
-  for (const item of visibleItems) {
-    const last = groups[groups.length - 1]
-    if (last?.key === item.group) {
-      last.items.push(item)
-    } else {
-      groups.push({ key: item.group, items: [item] })
+  // Group items (memoised — stable reference for activeGroup)
+  const groups = useMemo(() => {
+    const out: Array<{ key: NavGroup; items: NavItem[] }> = []
+    for (const item of visibleItems) {
+      const last = out[out.length - 1]
+      if (last?.key === item.group) {
+        last.items.push(item)
+      } else {
+        out.push({ key: item.group, items: [item] })
+      }
     }
-  }
+    return out
+  }, [visibleItems])
 
   const activeGroup = useMemo(() => {
     for (const g of groups) {
