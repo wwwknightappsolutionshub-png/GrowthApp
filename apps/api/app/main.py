@@ -12,6 +12,7 @@ from app.modules.auth.router import router as auth_router
 from app.modules.tenants.router import router as tenants_router
 from app.modules.leads.router import router as leads_router
 from app.modules.crm.router import router as crm_router
+from app.modules.crm.enterprise_router import router as crm_enterprise_router
 from app.modules.booking.router import router as booking_router
 from app.modules.booking import models as _booking_models  # noqa: F401
 from app.modules.booking import enterprise_models as _booking_enterprise_models  # noqa: F401
@@ -133,6 +134,7 @@ def create_app() -> FastAPI:
     app.include_router(tenants_router, prefix=API_PREFIX)
     app.include_router(leads_router, prefix=API_PREFIX)
     app.include_router(crm_router, prefix=API_PREFIX)
+    app.include_router(crm_enterprise_router, prefix=API_PREFIX)
     app.include_router(booking_router, prefix=API_PREFIX)
     app.include_router(quotes_router, prefix=API_PREFIX)
     app.include_router(automation_router, prefix=API_PREFIX)

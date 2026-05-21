@@ -4,11 +4,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.dependencies import CurrentTenantContext
 from app.modules.crm import service
+from app.modules.crm import pipeline_service
 from app.modules.crm.schemas import (
     CustomerCreate, CustomerUpdate, CustomerResponse,
     DealCreate, DealUpdate, DealResponse, PipelineResponse, MoveDealRequest,
     DealActivityResponse,
 )
+from app.modules.crm.enterprise_schemas import MoveDealRequestV2
 from app.modules.auth.schemas import MessageResponse
 from pydantic import BaseModel
 
@@ -17,6 +19,7 @@ router = APIRouter(prefix="/crm", tags=["CRM"])
 
 @router.get("/pipeline", response_model=PipelineResponse)
 async def get_pipeline(ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+    """Legacy pipeline view (deals only). Prefer GET /crm/board for leads+deals."""
     _, tenant, _ = ctx
     return await service.get_pipeline(db, tenant.id)
 
@@ -71,9 +74,33 @@ async def update_deal(deal_id: UUID, data: DealUpdate, ctx: CurrentTenantContext
 
 
 @router.post("/deals/{deal_id}/move", response_model=DealResponse)
-async def move_deal(deal_id: UUID, data: MoveDealRequest, ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+async def move_deal(
+    deal_id: UUID,
+    data: MoveDealRequest,
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+):
     user, tenant, _ = ctx
     return await service.move_deal(db, tenant.id, deal_id, data.stage, data.stage_order, user.id)
+
+
+@router.post("/deals/{deal_id}/move-stage", response_model=DealResponse)
+async def move_deal_by_stage_id(
+    deal_id: UUID,
+    data: MoveDealRequestV2,
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+):
+    user, tenant, _ = ctx
+    return await pipeline_service.move_deal_by_stage(
+        db,
+        tenant.id,
+        deal_id,
+        stage_id=data.stage_id,
+        stage_name=data.stage,
+        stage_order=data.stage_order,
+        user_id=user.id,
+    )
 
 
 class NoteRequest(BaseModel):

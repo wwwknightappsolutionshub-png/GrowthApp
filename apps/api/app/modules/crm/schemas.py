@@ -58,6 +58,8 @@ class DealCreate(BaseModel):
     customer_id: UUID
     title: str
     stage: str = "New"
+    pipeline_id: UUID | None = None
+    stage_id: UUID | None = None
     service_type: str | None = None
     description: str | None = None
     value_pence: int = 0
@@ -68,6 +70,8 @@ class DealCreate(BaseModel):
 class DealUpdate(BaseModel):
     title: str | None = None
     stage: str | None = None
+    stage_id: UUID | None = None
+    pipeline_id: UUID | None = None
     stage_order: int | None = None
     service_type: str | None = None
     description: str | None = None
@@ -93,6 +97,8 @@ class DealResponse(BaseModel):
     customer_id: UUID
     title: str
     stage: str
+    pipeline_id: UUID | None = None
+    stage_id: UUID | None = None
     stage_order: int
     service_type: str | None
     description: str | None

@@ -18,9 +18,15 @@ if TYPE_CHECKING:
 
 
 async def create_lead_public(db: AsyncSession, tenant: Tenant, data: LeadCreate, ip_address: str | None = None) -> Lead:
+    from app.modules.crm.pipeline_service import ensure_default_pipeline
+
+    pipeline = await ensure_default_pipeline(db, tenant.id)
+    first_stage = sorted(pipeline.stages, key=lambda s: s.position)[0]
     lead = Lead(
         id=uuid.uuid4(),
         tenant_id=tenant.id,
+        pipeline_id=pipeline.id,
+        stage_id=first_stage.id,
         location_id=data.location_id,
         first_name=data.first_name,
         last_name=data.last_name,

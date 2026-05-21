@@ -111,7 +111,19 @@ async def get_pipeline(db: AsyncSession, tenant_id: uuid.UUID) -> dict:
 
 
 async def create_deal(db: AsyncSession, tenant_id: uuid.UUID, data: DealCreate, user_id: uuid.UUID | None = None) -> Deal:
-    deal = Deal(id=uuid.uuid4(), tenant_id=tenant_id, **data.model_dump())
+    from app.modules.crm.pipeline_service import ensure_default_pipeline
+
+    payload = data.model_dump()
+    if not payload.get("pipeline_id") or not payload.get("stage_id"):
+        pipeline = await ensure_default_pipeline(db, tenant_id)
+        stage = next((s for s in pipeline.stages if s.name == payload.get("stage", "New")), None)
+        if not stage and pipeline.stages:
+            stage = sorted(pipeline.stages, key=lambda s: s.position)[0]
+        if stage:
+            payload["pipeline_id"] = pipeline.id
+            payload["stage_id"] = stage.id
+            payload["stage"] = stage.name
+    deal = Deal(id=uuid.uuid4(), tenant_id=tenant_id, **payload)
     db.add(deal)
     await db.flush()
     activity = DealActivity(id=uuid.uuid4(), tenant_id=tenant_id, deal_id=deal.id, user_id=user_id, type="created", body="Deal created")

@@ -41,6 +41,7 @@ BUILT_IN_ROLES = ("owner", "manager", "staff", "customer_support", "viewer")
 PERMISSION_CATALOGUE = [
     # CRM
     "crm.read", "crm.write", "crm.delete",
+    "crm.import", "crm.export", "crm.merge", "crm.bulk", "crm.settings", "crm.assign",
     # Leads
     "leads.read", "leads.write", "leads.delete", "leads.score",
     # Tasks
@@ -125,7 +126,7 @@ DEFAULT_TEMPLATES: dict[str, list[str]] = {
     "owner": list(PERMISSION_CATALOGUE),  # everything
     "manager": [p for p in PERMISSION_CATALOGUE if not p.startswith(("billing.write", "team.remove", "gdpr.erase"))],
     "staff": [
-        "crm.read", "crm.write",
+        "crm.read", "crm.write", "crm.bulk", "crm.assign",
         "leads.read", "leads.write",
         "tasks.read", "tasks.write", "tasks.assign",
         "quotes.read", "quotes.write", "quotes.send",
