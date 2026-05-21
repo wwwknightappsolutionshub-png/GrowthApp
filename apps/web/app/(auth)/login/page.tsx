@@ -74,7 +74,11 @@ export default function LoginPage() {
 
       toast.success('Welcome back!')
       const me = await fetchMe()
-      router.push(me?.is_superadmin ? '/admin' : '/dashboard')
+      if (!me) {
+        toast.error('Signed in but session did not stick. Clear site data and try again, or check API cookies.')
+        return
+      }
+      router.push(me.is_superadmin ? '/admin' : '/dashboard')
     } catch (err: any) {
       const msg = err.response?.data?.detail || 'Invalid email or password'
       toast.error(msg)

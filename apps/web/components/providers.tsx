@@ -1,10 +1,15 @@
 'use client'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import dynamic from 'next/dynamic'
 import { ThemeProvider } from 'next-themes'
 import { useState } from 'react'
 import { PWAInstallManager } from '@/components/pwa/PWAInstallManager'
+
+const ReactQueryDevtools = dynamic(
+  () => import('@tanstack/react-query-devtools').then((m) => m.ReactQueryDevtools),
+  { ssr: false },
+)
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
@@ -24,7 +29,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         {children}
         <PWAInstallManager />
-        <ReactQueryDevtools initialIsOpen={false} />
+        {process.env.NODE_ENV === 'development' && (
+          <ReactQueryDevtools initialIsOpen={false} />
+        )}
       </QueryClientProvider>
     </ThemeProvider>
   )

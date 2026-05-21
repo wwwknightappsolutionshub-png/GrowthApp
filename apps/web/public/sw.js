@@ -1,4 +1,5 @@
-const CACHE_VERSION = 'customerflow-pwa-v1'
+// Bump when deploy changes static assets so old caches are cleared on activate.
+const CACHE_VERSION = 'customerflow-pwa-v2'
 const STATIC_CACHE = `${CACHE_VERSION}:static`
 const OFFLINE_URL = '/offline.html'
 
@@ -42,15 +43,15 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  if (
-    url.pathname.startsWith('/_next/static/') ||
-    url.pathname.startsWith('/icons/') ||
-    url.pathname === '/manifest.webmanifest'
-  ) {
+  // Never cache Next.js build chunks — hashes change every deploy; caching breaks the app.
+  if (url.pathname.startsWith('/_next/')) return
+
+  if (url.pathname.startsWith('/icons/') || url.pathname === '/manifest.webmanifest') {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached
         return fetch(request).then((response) => {
+          if (!response.ok) return response
           const copy = response.clone()
           caches.open(STATIC_CACHE).then((cache) => cache.put(request, copy))
           return response
