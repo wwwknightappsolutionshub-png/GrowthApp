@@ -37,6 +37,7 @@ from app.modules.crm.enterprise_schemas import (
     TagAssignRequest,
     TagCreate,
     TagResponse,
+    TimelineItemResponse,
 )
 from app.modules.crm.pipeline_models import CrmImportJob
 router = APIRouter(prefix="/crm", tags=["CRM Enterprise"])
@@ -179,6 +180,18 @@ async def create_activity(
 ):
     user, tenant, _ = ctx
     return await enterprise_service.create_activity(db, tenant.id, data, user.id)
+
+
+@router.get("/timeline", response_model=list[TimelineItemResponse])
+async def unified_timeline(
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+    entity_type: str = Query(...),
+    entity_id: UUID = Query(...),
+    _: None = Depends(require_permission("crm.read")),
+):
+    _, tenant, _ = ctx
+    return await enterprise_service.get_unified_timeline(db, tenant.id, entity_type, entity_id)
 
 
 # ── Tags ──────────────────────────────────────────────────────────────────────
@@ -442,6 +455,28 @@ async def customer_bookings(
 ):
     _, tenant, _ = ctx
     return await enterprise_service.list_customer_bookings(db, tenant.id, customer_id)
+
+
+@router.get("/deals/{deal_id}/bookings")
+async def deal_bookings(
+    deal_id: UUID,
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_permission("crm.read")),
+):
+    _, tenant, _ = ctx
+    return await enterprise_service.list_deal_bookings(db, tenant.id, deal_id)
+
+
+@router.get("/leads/{lead_id}/bookings")
+async def lead_bookings(
+    lead_id: UUID,
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+    _: None = Depends(require_permission("crm.read")),
+):
+    _, tenant, _ = ctx
+    return await enterprise_service.list_lead_bookings(db, tenant.id, lead_id)
 
 
 # ── Import / export ───────────────────────────────────────────────────────────

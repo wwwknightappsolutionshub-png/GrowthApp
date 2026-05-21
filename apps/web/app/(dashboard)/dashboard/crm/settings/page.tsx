@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Plus } from 'lucide-react'
+import Link from 'next/link'
+import { Plus, Zap } from 'lucide-react'
 import { crm } from '@/lib/api-client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -93,6 +94,40 @@ export default function CrmSettingsPage() {
               <Plus className="h-4 w-4" /> Add
             </button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Zap className="h-4 w-4" /> Integrations
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            <strong className="text-foreground">Automations</strong> — Moving cards on the pipeline
+            board triggers <code className="text-xs">lead_stage_changed</code> and{' '}
+            <code className="text-xs">deal_stage_changed</code>. New leads still fire{' '}
+            <code className="text-xs">lead_created</code>.
+          </p>
+          <p>
+            <strong className="text-foreground">Messaging</strong> — Emails and SMS logged in
+            Conversations appear on customer, lead, and deal timelines when the address matches.
+          </p>
+          <p>
+            <strong className="text-foreground">Bookings</strong> — Appointments linked to a
+            customer show read-only on profiles and board card panels (via customer email for leads).
+          </p>
+          <p>
+            <strong className="text-foreground">AI</strong> — Use <em>AI enrich</em> on a lead card
+            from the pipeline board to summarize and log enrichment on the timeline.
+          </p>
+          <Link
+            href="/dashboard/automations"
+            className="inline-block font-medium text-brand-teal-600 hover:underline"
+          >
+            Open automations →
+          </Link>
         </CardContent>
       </Card>
 

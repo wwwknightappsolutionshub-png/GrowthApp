@@ -155,6 +155,20 @@ class ActivityResponse(BaseModel):
     created_at: datetime
 
 
+class TimelineItemResponse(BaseModel):
+    """Unified CRM timeline entry (activity, message, or automation run)."""
+
+    id: str
+    source: str
+    activity_type: str
+    title: str | None = None
+    body: str | None = None
+    channel: str | None = None
+    direction: str | None = None
+    metadata: dict = Field(default_factory=dict)
+    created_at: datetime
+
+
 # ── Tags ──────────────────────────────────────────────────────────────────────
 
 class TagCreate(BaseModel):

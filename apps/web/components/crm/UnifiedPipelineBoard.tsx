@@ -15,6 +15,7 @@ import { toast } from 'sonner'
 import { crm } from '@/lib/api-client'
 import { formatCurrency } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
+import { CrmBoardCardPanel } from '@/components/crm/CrmBoardCardPanel'
 
 type BoardCard = {
   card_type: 'lead' | 'deal'
@@ -35,7 +36,13 @@ function cardKey(c: BoardCard) {
   return `${c.card_type}:${c.id}`
 }
 
-function BoardCardItem({ card }: { card: BoardCard }) {
+function BoardCardItem({
+  card,
+  onOpen,
+}: {
+  card: BoardCard
+  onOpen: (card: BoardCard) => void
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: cardKey(card),
   })
@@ -47,6 +54,12 @@ function BoardCardItem({ card }: { card: BoardCard }) {
       style={{ transform: CSS.Transform.toString(transform), transition }}
       {...attributes}
       {...listeners}
+      role="button"
+      tabIndex={0}
+      onClick={() => onOpen(card)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') onOpen(card)
+      }}
       className={`cursor-grab rounded-lg border bg-card p-3 shadow-sm active:cursor-grabbing hover:shadow-md ${
         isDragging ? 'opacity-50' : ''
       } ${isLead ? 'border-blue-200/80 dark:border-blue-800' : 'border-border'}`}
@@ -84,6 +97,7 @@ function BoardCardItem({ card }: { card: BoardCard }) {
 export function UnifiedPipelineBoard() {
   const qc = useQueryClient()
   const [pipelineId, setPipelineId] = useState<string | undefined>(undefined)
+  const [selectedCard, setSelectedCard] = useState<BoardCard | null>(null)
 
   const { data: pipelines } = useQuery({
     queryKey: ['crm', 'pipelines'],
@@ -214,7 +228,7 @@ export function UnifiedPipelineBoard() {
                     >
                       <div className="min-h-[5rem] space-y-2">
                         {cards.map((c) => (
-                          <BoardCardItem key={cardKey(c)} card={c} />
+                          <BoardCardItem key={cardKey(c)} card={c} onOpen={setSelectedCard} />
                         ))}
                       </div>
                     </SortableContext>
@@ -224,6 +238,18 @@ export function UnifiedPipelineBoard() {
             )}
           </div>
         </DndContext>
+      )}
+
+      {selectedCard && (
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 z-40 bg-black/30"
+            aria-label="Close panel"
+            onClick={() => setSelectedCard(null)}
+          />
+          <CrmBoardCardPanel card={selectedCard} onClose={() => setSelectedCard(null)} />
+        </>
       )}
     </div>
   )

@@ -8,6 +8,8 @@ import { formatDate } from '@/lib/utils'
 
 const EVENT_LABELS: Record<string, string> = {
   lead_created: 'New lead created',
+  lead_stage_changed: 'Lead moved on CRM pipeline',
+  deal_stage_changed: 'Deal moved on CRM pipeline',
   booking_confirmed: 'Booking confirmed',
   job_completed: 'Job completed',
   quote_sent: 'Quote sent',

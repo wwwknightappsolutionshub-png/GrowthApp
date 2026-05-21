@@ -13,6 +13,7 @@ from app.modules.tenants.router import router as tenants_router
 from app.modules.leads.router import router as leads_router
 from app.modules.crm.router import router as crm_router
 from app.modules.crm.enterprise_router import router as crm_enterprise_router
+from app.modules.crm import pipeline_models as _crm_pipeline_models  # noqa: F401
 from app.modules.booking.router import router as booking_router
 from app.modules.booking import models as _booking_models  # noqa: F401
 from app.modules.booking import enterprise_models as _booking_enterprise_models  # noqa: F401

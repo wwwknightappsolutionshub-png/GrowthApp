@@ -12,9 +12,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.audit import log_action
 from app.core.exceptions import NotFoundException, ValidationException
 from app.modules.booking.models import Booking
+from app.modules.automation.models import Automation, AutomationRun
+from app.modules.messaging.models import Conversation, Message
 from app.modules.crm.enterprise_schemas import (
     ActivityCreate,
     ActivityResponse,
+    TimelineItemResponse,
     AssignmentCreate,
     AttachmentCreate,
     AttachmentResponse,
@@ -70,6 +73,126 @@ async def list_activities(
         )
     ).scalars().all()
     return [ActivityResponse.model_validate(r) for r in rows]
+
+
+async def _conversation_ids_for_entity(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    entity_type: str,
+    entity_id: uuid.UUID,
+) -> list[uuid.UUID]:
+    q = select(Conversation.id).where(Conversation.tenant_id == tenant_id)
+    if entity_type == "customer":
+        q = q.where(Conversation.customer_id == entity_id)
+    elif entity_type == "deal":
+        from sqlalchemy import or_
+
+        deal = (
+            await db.execute(select(Deal).where(Deal.id == entity_id, Deal.tenant_id == tenant_id))
+        ).scalar_one_or_none()
+        if not deal:
+            return []
+        clauses = [Conversation.deal_id == entity_id]
+        if deal.customer_id:
+            clauses.append(Conversation.customer_id == deal.customer_id)
+        q = q.where(or_(*clauses))
+    elif entity_type == "lead":
+        lead = (
+            await db.execute(select(Lead).where(Lead.id == entity_id, Lead.tenant_id == tenant_id))
+        ).scalar_one_or_none()
+        if not lead:
+            return []
+        clauses = []
+        if lead.email:
+            clauses.append(Conversation.customer_email == lead.email)
+        if lead.phone:
+            clauses.append(Conversation.customer_phone == lead.phone)
+        if not clauses:
+            return []
+        from sqlalchemy import or_
+
+        q = q.where(or_(*clauses))
+    else:
+        return []
+    return list((await db.execute(q)).scalars().all())
+
+
+async def get_unified_timeline(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    entity_type: str,
+    entity_id: uuid.UUID,
+    limit: int = 80,
+) -> list[TimelineItemResponse]:
+    items: list[TimelineItemResponse] = []
+
+    for act in await list_activities(db, tenant_id, entity_type, entity_id, limit=limit):
+        items.append(
+            TimelineItemResponse(
+                id=f"activity:{act.id}",
+                source="activity",
+                activity_type=act.activity_type,
+                title=act.title,
+                body=act.body,
+                metadata=act.metadata,
+                created_at=act.created_at,
+            )
+        )
+
+    conv_ids = await _conversation_ids_for_entity(db, tenant_id, entity_type, entity_id)
+    if conv_ids:
+        msgs = (
+            await db.execute(
+                select(Message)
+                .where(Message.tenant_id == tenant_id, Message.conversation_id.in_(conv_ids))
+                .order_by(Message.created_at.desc())
+                .limit(limit)
+            )
+        ).scalars().all()
+        for m in msgs:
+            preview = (m.body or "")[:500]
+            items.append(
+                TimelineItemResponse(
+                    id=f"message:{m.id}",
+                    source="message",
+                    activity_type="email" if m.channel == "email" else m.channel,
+                    title=m.subject,
+                    body=preview,
+                    channel=m.channel,
+                    direction=m.direction,
+                    metadata={"status": m.status},
+                    created_at=m.sent_at or m.created_at,
+                )
+            )
+
+    run_rows = (
+        await db.execute(
+            select(AutomationRun, Automation.name)
+            .join(Automation, Automation.id == AutomationRun.automation_id)
+            .where(
+                AutomationRun.tenant_id == tenant_id,
+                AutomationRun.entity_type == entity_type,
+                AutomationRun.entity_id == entity_id,
+            )
+            .order_by(AutomationRun.created_at.desc())
+            .limit(limit)
+        )
+    ).all()
+    for run, auto_name in run_rows:
+        items.append(
+            TimelineItemResponse(
+                id=f"automation:{run.id}",
+                source="automation",
+                activity_type="automation_run",
+                title=auto_name,
+                body=f"Status: {run.status}",
+                metadata={"status": run.status, "current_step": run.current_step},
+                created_at=run.created_at,
+            )
+        )
+
+    items.sort(key=lambda x: x.created_at, reverse=True)
+    return items[:limit]
 
 
 async def create_activity(
@@ -578,6 +701,48 @@ async def create_assignment(db: AsyncSession, tenant_id: uuid.UUID, data: Assign
 
 # ── Customer profile (bookings read-only) ───────────────────────────────────
 
+async def _booking_payloads(rows: list) -> list[dict]:
+    return [
+        {
+            "id": str(b.id),
+            "booking_date": b.booking_date.isoformat() if b.booking_date else None,
+            "status": b.status,
+            "service_type": getattr(b, "service_description", None) or getattr(b, "service_type", None),
+            "value_pence": getattr(b, "total_pence", None) or getattr(b, "prepaid_pence", 0),
+        }
+        for b in rows
+    ]
+
+
+async def list_deal_bookings(db: AsyncSession, tenant_id: uuid.UUID, deal_id: uuid.UUID, limit: int = 20):
+    deal = (
+        await db.execute(select(Deal).where(Deal.id == deal_id, Deal.tenant_id == tenant_id))
+    ).scalar_one_or_none()
+    if not deal or not deal.customer_id:
+        return []
+    return await list_customer_bookings(db, tenant_id, deal.customer_id, limit)
+
+
+async def list_lead_bookings(db: AsyncSession, tenant_id: uuid.UUID, lead_id: uuid.UUID, limit: int = 20):
+    lead = (
+        await db.execute(select(Lead).where(Lead.id == lead_id, Lead.tenant_id == tenant_id))
+    ).scalar_one_or_none()
+    if not lead or not lead.email:
+        return []
+    cust = (
+        await db.execute(
+            select(Customer).where(
+                Customer.tenant_id == tenant_id,
+                Customer.email.isnot(None),
+                func.lower(Customer.email) == lead.email.lower(),
+            )
+        )
+    ).scalar_one_or_none()
+    if not cust:
+        return []
+    return await list_customer_bookings(db, tenant_id, cust.id, limit)
+
+
 async def list_customer_bookings(db: AsyncSession, tenant_id: uuid.UUID, customer_id: uuid.UUID, limit: int = 20):
     rows = (
         await db.execute(
@@ -587,16 +752,7 @@ async def list_customer_bookings(db: AsyncSession, tenant_id: uuid.UUID, custome
             .limit(limit)
         )
     ).scalars().all()
-    return [
-        {
-            "id": str(b.id),
-            "booking_date": b.booking_date.isoformat() if b.booking_date else None,
-            "status": b.status,
-            "service_type": b.service_type,
-            "value_pence": getattr(b, "total_pence", None) or getattr(b, "prepaid_pence", 0),
-        }
-        for b in rows
-    ]
+    return await _booking_payloads(list(rows))
 
 
 # ── CSV export / import ─────────────────────────────────────────────────────

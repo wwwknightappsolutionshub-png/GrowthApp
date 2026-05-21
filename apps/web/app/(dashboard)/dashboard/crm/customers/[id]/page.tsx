@@ -5,10 +5,11 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { ArrowLeft, Calendar } from 'lucide-react'
+import { ArrowLeft, Calendar, ExternalLink, Zap } from 'lucide-react'
 import { crm } from '@/lib/api-client'
 import { formatDate } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { CrmEntityTimeline } from '@/components/crm/CrmEntityTimeline'
 
 export default function CustomerProfilePage() {
   const { id } = useParams<{ id: string }>()
@@ -18,11 +19,6 @@ export default function CustomerProfilePage() {
   const { data: customer, isLoading } = useQuery({
     queryKey: ['crm', 'customer', id],
     queryFn: () => crm.getCustomer(id).then((r) => r.data),
-  })
-
-  const { data: activities } = useQuery({
-    queryKey: ['crm', 'activities', 'customer', id],
-    queryFn: () => crm.listActivities('customer', id).then((r) => r.data),
   })
 
   const { data: bookings } = useQuery({
@@ -41,7 +37,7 @@ export default function CustomerProfilePage() {
     onSuccess: () => {
       toast.success('Note added')
       setNote('')
-      qc.invalidateQueries({ queryKey: ['crm', 'activities', 'customer', id] })
+      qc.invalidateQueries({ queryKey: ['crm', 'timeline', 'customer', id] })
     },
   })
 
@@ -75,6 +71,9 @@ export default function CustomerProfilePage() {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Activity timeline</CardTitle>
+            <p className="text-xs text-muted-foreground">
+              Notes, emails/SMS from messaging, and automation runs
+            </p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-2">
@@ -93,43 +92,64 @@ export default function CustomerProfilePage() {
                 Add
               </button>
             </div>
-            <ul className="max-h-80 space-y-3 overflow-y-auto">
-              {(activities ?? []).map((a: { id: string; activity_type: string; body?: string; created_at: string }) => (
-                <li key={a.id} className="rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm">
-                  <span className="text-xs font-semibold uppercase text-muted-foreground">{a.activity_type}</span>
-                  <p className="mt-1 text-foreground">{a.body || '—'}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{formatDate(a.created_at)}</p>
-                </li>
-              ))}
-            </ul>
+            <CrmEntityTimeline entityType="customer" entityId={id} />
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Calendar className="h-4 w-4" /> Appointments (read-only)
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {(bookings ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">No linked bookings</p>
-            ) : (
-              <ul className="space-y-2">
-                {(bookings as { id: string; booking_date?: string; status: string; service_type?: string }[]).map(
-                  (b) => (
-                    <li key={b.id} className="rounded-lg border border-border px-3 py-2 text-sm">
-                      <p className="font-medium">{b.service_type || 'Booking'}</p>
-                      <p className="text-muted-foreground">
-                        {b.booking_date ? formatDate(b.booking_date) : '—'} · {b.status}
-                      </p>
-                    </li>
-                  ),
-                )}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Calendar className="h-4 w-4" /> Appointments (read-only)
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {(bookings ?? []).length === 0 ? (
+                <p className="text-sm text-muted-foreground">No linked bookings</p>
+              ) : (
+                <ul className="space-y-2">
+                  {(bookings as { id: string; booking_date?: string; status: string; service_type?: string }[]).map(
+                    (b) => (
+                      <li key={b.id} className="rounded-lg border border-border px-3 py-2 text-sm">
+                        <p className="font-medium">{b.service_type || 'Booking'}</p>
+                        <p className="text-muted-foreground">
+                          {b.booking_date ? formatDate(b.booking_date) : '—'} · {b.status}
+                        </p>
+                        <Link
+                          href={`/dashboard/bookings`}
+                          className="mt-1 inline-flex items-center gap-1 text-xs text-brand-teal-600 hover:underline"
+                        >
+                          Open in bookings <ExternalLink className="h-3 w-3" />
+                        </Link>
+                      </li>
+                    ),
+                  )}
+                </ul>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Zap className="h-4 w-4" /> Integrations
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground">
+              <p>
+                Stage changes on the pipeline board fire{' '}
+                <code className="text-xs">lead_stage_changed</code> and{' '}
+                <code className="text-xs">deal_stage_changed</code> automation events.
+              </p>
+              <Link
+                href="/dashboard/automations"
+                className="mt-3 inline-flex items-center gap-1 font-medium text-brand-teal-600 hover:underline"
+              >
+                Manage automations <ExternalLink className="h-3.5 w-3.5" />
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )

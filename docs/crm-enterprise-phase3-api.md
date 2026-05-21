@@ -27,6 +27,8 @@ Legacy: `GET /pipeline`, `POST /deals/{id}/move` (deals only, stage string).
 | GET/POST/PATCH/DELETE | `/customers` (existing) |
 | GET | `/customers/{id}/bookings` (read-only) |
 | GET/POST | `/activities?entity_type=&entity_id=` |
+| GET | `/timeline?entity_type=&entity_id=` (activities + messages + automation runs) |
+| GET | `/deals/{id}/bookings`, `/leads/{id}/bookings` (read-only) |
 | GET/POST | `/tags`, `/tags/assign`, `/tags/entity` |
 
 ## Custom fields, filters, scoring

@@ -10,6 +10,7 @@ from app.modules.crm.enterprise_schemas import (
     BulkUpdateRequest,
     PipelineCreate,
     StageCreate,
+    TimelineItemResponse,
 )
 from app.modules.crm.pipeline_models import DEFAULT_PIPELINE_STAGES
 from app.modules.crm.enterprise_service import _match_condition
@@ -51,3 +52,19 @@ def test_score_rule_match_eq():
 def test_bulk_update_schema():
     m = BulkUpdateRequest(entity_type="lead", ids=[uuid.uuid4()], updates={"status": "contacted"})
     assert m.entity_type == "lead"
+
+
+def test_timeline_item_schema():
+    from datetime import datetime, timezone
+
+    item = TimelineItemResponse(
+        id="message:abc",
+        source="message",
+        activity_type="email",
+        title="Hello",
+        body="Test",
+        channel="email",
+        direction="outbound",
+        created_at=datetime.now(timezone.utc),
+    )
+    assert item.source == "message"

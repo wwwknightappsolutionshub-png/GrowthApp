@@ -8,6 +8,7 @@ from app.core.config import settings
 from app.core.database import Base, get_db
 from app.core.middleware import limiter
 from app.main import app
+from app.modules.crm import pipeline_models as _crm_pipeline_models  # noqa: F401 — CRM enterprise tables
 
 
 def _derive_test_db_url() -> str:

@@ -335,6 +335,8 @@ export const crm = {
   moveBoardCard: (data: object) => apiClient.post('/crm/board/move', data),
   listActivities: (entityType: string, entityId: string) =>
     apiClient.get('/crm/activities', { params: { entity_type: entityType, entity_id: entityId } }),
+  getTimeline: (entityType: string, entityId: string) =>
+    apiClient.get('/crm/timeline', { params: { entity_type: entityType, entity_id: entityId } }),
   createActivity: (data: object) => apiClient.post('/crm/activities', data),
   listTags: () => apiClient.get('/crm/tags'),
   createTag: (data: object) => apiClient.post('/crm/tags', data),
@@ -354,6 +356,8 @@ export const crm = {
   scanDuplicates: () => apiClient.post('/crm/duplicates/scan'),
   merge: (data: object) => apiClient.post('/crm/merge', data),
   customerBookings: (customerId: string) => apiClient.get(`/crm/customers/${customerId}/bookings`),
+  dealBookings: (dealId: string) => apiClient.get(`/crm/deals/${dealId}/bookings`),
+  leadBookings: (leadId: string) => apiClient.get(`/crm/leads/${leadId}/bookings`),
   exportLeadsCsv: () => apiClient.get('/crm/export/leads', { responseType: 'text' }),
   importLeadsCsv: (csv: string) => apiClient.post('/crm/import/leads', { csv }),
 }

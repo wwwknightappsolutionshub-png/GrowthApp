@@ -439,6 +439,7 @@ async def move_board_card(
             tenant_id=str(tenant_id),
             event="lead_stage_changed",
             entity_id=str(lead.id),
+            entity_type="lead",
         )
 
     elif card_type == "deal":
