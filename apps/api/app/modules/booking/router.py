@@ -5,9 +5,10 @@ from app.core.database import get_db
 from app.core.dependencies import CurrentTenantContext
 from app.modules.booking import service
 from app.modules.booking.schemas import BookingCreate, BookingUpdate, BookingResponse, BookingListResponse
-from app.modules.auth.schemas import MessageResponse
+from app.modules.booking.enterprise_router import router as enterprise_router
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
+router.include_router(enterprise_router)
 
 
 @router.get("", response_model=BookingListResponse)

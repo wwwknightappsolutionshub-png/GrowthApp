@@ -17,6 +17,19 @@ from app.modules.billing.models import SubscriptionPlan, Subscription, BillingIn
 from app.modules.leads.models import Lead, LeadSource  # noqa: F401
 from app.modules.crm.models import Customer, Deal, DealActivity  # noqa: F401
 from app.modules.booking.models import Staff, AvailabilitySlot, Booking  # noqa: F401
+from app.modules.booking.enterprise_models import (  # noqa: F401
+    BookingAbandonedSession,
+    BookingCalendarConnection,
+    BookingCustomerCredit,
+    BookingNotificationQueue,
+    BookingPackage,
+    BookingPromoCode,
+    BookingResource,
+    BookingService,
+    BookingSettings,
+    StaffBlackout,
+    StaffShift,
+)
 from app.modules.quotes_invoices.models import (  # noqa: F401
     QuoteTemplate, Quote, QuoteItem, Invoice, InvoiceItem, Payment
 )

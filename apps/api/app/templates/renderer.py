@@ -377,6 +377,23 @@ def render_trial_auto_leads_ending(
     )
 
 
+def render_business_site_published(
+    *,
+    business_name: str,
+    public_url: str,
+    qr_data_url: str,
+) -> str:
+    return render_email(
+        "emails/business_site_published.html",
+        {
+            "subject": f"Your business page is live — {business_name}",
+            "business_name": business_name,
+            "public_url": public_url,
+            "qr_data_url": qr_data_url,
+        },
+    )
+
+
 def render_trial_expiry(
     *,
     full_name: str,

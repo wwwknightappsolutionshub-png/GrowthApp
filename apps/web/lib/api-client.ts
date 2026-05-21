@@ -221,6 +221,16 @@ export interface ToolMeta {
   label: string
 }
 
+export const businessSite = {
+  getStatus: () => apiClient.get('/tenants/me/business-site'),
+  bootstrap: (template_slug?: string) =>
+    apiClient.post('/tenants/me/business-site/bootstrap', null, {
+      params: template_slug ? { template_slug } : undefined,
+    }),
+  publish: () => apiClient.post('/tenants/me/business-site/publish'),
+  qrDownloadUrl: () => `${API_BASE}/api/v1/tenants/me/business-site/qr.png`,
+}
+
 export const tenants = {
   get: () => apiClient.get('/tenants/me'),
   update: (data: object) => apiClient.patch('/tenants/me', data),
@@ -318,6 +328,39 @@ export const bookings = {
   create: (data: object) => apiClient.post('/bookings', data),
   get: (id: string) => apiClient.get(`/bookings/${id}`),
   update: (id: string, data: object) => apiClient.patch(`/bookings/${id}`, data),
+  getSettings: () => apiClient.get('/bookings/settings'),
+  updateSettings: (data: object) => apiClient.patch('/bookings/settings', data),
+  getLink: () => apiClient.get('/bookings/link'),
+  listServices: () => apiClient.get('/bookings/services'),
+  createService: (data: object) => apiClient.post('/bookings/services', data),
+  updateService: (id: string, data: object) => apiClient.patch(`/bookings/services/${id}`, data),
+  listResources: () => apiClient.get('/bookings/resources'),
+  createResource: (data: object) => apiClient.post('/bookings/resources', data),
+  listStaff: () => apiClient.get('/bookings/staff'),
+  createStaff: (data: object) => apiClient.post('/bookings/staff', data),
+  updateStaff: (id: string, data: object) => apiClient.patch(`/bookings/staff/${id}`, data),
+  listShifts: (params?: object) => apiClient.get('/bookings/staff/shifts', { params }),
+  createShift: (data: object) => apiClient.post('/bookings/staff/shifts', data),
+  listBlackouts: () => apiClient.get('/bookings/staff/blackouts'),
+  createBlackout: (data: object) => apiClient.post('/bookings/staff/blackouts', data),
+  listSlots: (params?: object) => apiClient.get('/bookings/slots', { params }),
+  generateSlots: (data: object) => apiClient.post('/bookings/slots/generate', data),
+  getAnalytics: (params?: object) => apiClient.get('/bookings/analytics', { params }),
+  createPaymentIntent: (data: object) => apiClient.post('/bookings/payments/intent', data),
+  refund: (id: string, data: object) => apiClient.post(`/bookings/${id}/refund`, data),
+  getTimeline: (id: string) => apiClient.get(`/bookings/${id}/timeline`),
+  listPackages: () => apiClient.get('/bookings/packages'),
+  createPackage: (data: object) => apiClient.post('/bookings/packages', data),
+  createPromo: (data: object) => apiClient.post('/bookings/promo-codes', data),
+  exportIcal: () => apiClient.get('/bookings/export/ical', { responseType: 'text' }),
+}
+
+export const publicBooking = {
+  widget: (slug: string) => apiClient.get(`/public/booking/${slug}/widget`),
+  availability: (slug: string, params?: object) =>
+    apiClient.get(`/public/booking/${slug}/availability`, { params }),
+  create: (slug: string, data: object) => apiClient.post(`/public/booking/${slug}`, data),
+  manage: (token: string, data: object) => apiClient.post(`/public/booking/manage/${token}`, data),
 }
 
 export const quotes = {

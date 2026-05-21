@@ -25,6 +25,7 @@ from app.services.ai_scraper.task_runner import run_crawler_task
 from app.workers.tasks.ai_social import run_ai_social_scheduler
 from app.workers.tasks.google_integrations import sync_all_google_reviews
 from app.workers.tasks.trial_leads import assign_daily_trial_leads, send_trial_lead_ending_reminders
+from app.workers.tasks.booking_notifications import process_booking_notification_queue
 
 
 class WorkerSettings:
@@ -56,6 +57,7 @@ class WorkerSettings:
         run_ai_social_scheduler,
         assign_daily_trial_leads,
         send_trial_lead_ending_reminders,
+        process_booking_notification_queue,
     ]
     # Cron jobs:
     #   * Every 5 minutes: sweep for missed task reminders.
@@ -71,6 +73,7 @@ class WorkerSettings:
         cron(sync_all_google_reviews, minute={5, 35}),
         cron(assign_daily_trial_leads, hour={6}, minute={0}),
         cron(send_trial_lead_ending_reminders, hour={9}, minute={0}),
+        cron(process_booking_notification_queue, minute={0, 10, 20, 30, 40, 50}),
     ]
     max_jobs = 10
     job_timeout = 300

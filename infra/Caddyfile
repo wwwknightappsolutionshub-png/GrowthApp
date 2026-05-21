@@ -3,6 +3,12 @@
     admin off
 }
 
+# Wildcard tenant sites: *.{$DOMAIN} → same web app (middleware rewrites to /sites/{slug})
+*.{$DOMAIN} {
+    reverse_proxy web:3000
+    encode gzip
+}
+
 app.{$DOMAIN} {
     reverse_proxy web:3000
     

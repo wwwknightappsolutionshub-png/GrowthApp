@@ -13,6 +13,13 @@ class PaymentLinkResult:
     url: str
 
 
+@dataclass
+class PaymentIntentResult:
+    payment_intent_id: str
+    client_secret: str
+    setup_intent_id: str | None = None
+
+
 class PaymentAdapter(ABC):
     @abstractmethod
     async def create_customer(self, email: str, name: str, metadata: dict) -> str: ...
@@ -32,3 +39,16 @@ class PaymentAdapter(ABC):
 
     @abstractmethod
     async def verify_webhook(self, payload: bytes, sig: str) -> dict: ...
+
+    async def create_payment_intent(
+        self,
+        amount_pence: int,
+        currency: str = "gbp",
+        metadata: dict | None = None,
+        customer_email: str | None = None,
+        setup_future_usage: str | None = None,
+    ) -> dict:
+        raise NotImplementedError
+
+    async def create_refund(self, payment_intent_id: str, amount_pence: int) -> dict:
+        raise NotImplementedError

@@ -483,8 +483,9 @@ export default function OnboardingPage() {
     mutationFn: () => auth.completeOnboarding(),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['me'] })
-      toast.success("You're all set! Welcome to CustomerFlow AI.")
-      router.push('/dashboard')
+      toast.success("You're all set! Next: launch your business page.")
+      const isFreelancer = me.data?.user_type === 'freelancer'
+      router.push(isFreelancer ? '/dashboard' : '/dashboard/site-builder')
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.detail ?? 'Could not complete onboarding')
@@ -521,7 +522,7 @@ export default function OnboardingPage() {
           </p>
           <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
             <Link
-              href="/dashboard"
+              href={userType === 'freelancer' ? '/dashboard' : '/dashboard/site-builder'}
               className="inline-flex flex-1 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm text-foreground hover:bg-muted sm:flex-none"
             >
               Skip for now

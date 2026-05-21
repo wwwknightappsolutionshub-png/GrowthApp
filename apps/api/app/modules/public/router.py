@@ -79,28 +79,102 @@ async def respond_to_quote(public_token: str, request: Request, db: AsyncSession
     return await qi_service.respond_to_quote(db=db, public_token=public_token, accepted=body.get("accepted", True))
 
 
-@router.get("/booking/{tenant_slug}/availability")
-async def get_availability(tenant_slug: str, db: AsyncSession = Depends(get_db)):
-    from app.modules.booking import service as booking_service
-    result = await db.execute(select(Tenant).where(Tenant.slug == tenant_slug))
+@router.get("/site/{tenant_slug}")
+async def get_public_business_site(tenant_slug: str, db: AsyncSession = Depends(get_db)):
+    """Published tenant business site (subdomain + path)."""
+    from app.modules.tenants import site_service
+
+    return await site_service.get_public_site_payload(db, tenant_slug)
+
+
+@router.get("/booking/{tenant_slug}/widget")
+@limiter.limit("60/minute")
+async def get_booking_widget_config(tenant_slug: str, request: Request, db: AsyncSession = Depends(get_db)):
+    from app.modules.booking.public_service import get_widget_config
+
+    result = await db.execute(select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True))
     tenant = result.scalar_one_or_none()
     if not tenant:
-        return {"slots": []}
-    return await booking_service.get_available_slots(db=db, tenant_id=tenant.id)
+        return {"error": "not_found"}
+    return await get_widget_config(db, tenant)
+
+
+@router.get("/booking/{tenant_slug}/availability")
+@limiter.limit("60/minute")
+async def get_availability(
+    tenant_slug: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    staff_id: str | None = None,
+    location_id: str | None = None,
+    service_id: str | None = None,
+):
+    import uuid as _uuid
+
+    from app.modules.booking import service as booking_service
+
+    result = await db.execute(select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True))
+    tenant = result.scalar_one_or_none()
+    if not tenant:
+        return {"slots": [], "timezone": "Europe/London"}
+    return await booking_service.get_available_slots(
+        db=db,
+        tenant_id=tenant.id,
+        staff_id=_uuid.UUID(staff_id) if staff_id else None,
+        location_id=_uuid.UUID(location_id) if location_id else None,
+        service_id=_uuid.UUID(service_id) if service_id else None,
+    )
 
 
 @router.post("/booking/{tenant_slug}")
+@limiter.limit("20/minute")
 async def create_public_booking(tenant_slug: str, request: Request, db: AsyncSession = Depends(get_db)):
     from app.modules.booking.schemas import PublicBookingCreate
     from app.modules.booking import service as booking_service
+
     body = await request.json()
     data = PublicBookingCreate(**body)
-    result = await db.execute(select(Tenant).where(Tenant.slug == tenant_slug))
+    result = await db.execute(select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True))
     tenant = result.scalar_one_or_none()
     if not tenant:
         from app.core.exceptions import NotFoundException
         raise NotFoundException("Tenant")
     return await booking_service.create_public_booking(db=db, tenant=tenant, data=data)
+
+
+@router.post("/booking/manage/{manage_token}")
+@limiter.limit("30/minute")
+async def manage_public_booking(
+    manage_token: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    from app.modules.booking.enterprise_schemas import PublicManageBookingRequest
+    from app.modules.booking import service as booking_service
+
+    body = PublicManageBookingRequest(**(await request.json()))
+    booking = await booking_service.public_manage_booking(
+        db,
+        manage_token,
+        action=body.action,
+        booking_date=body.booking_date,
+        start_time=body.start_time,
+        slot_id=body.slot_id,
+    )
+    return {
+        "booking_id": str(booking.id),
+        "status": booking.status,
+        "booking_date": booking.booking_date.isoformat(),
+        "start_time": booking.start_time.isoformat(),
+    }
+
+
+@router.get("/booking/{tenant_slug}/ical.ics")
+async def public_booking_ical(tenant_slug: str, db: AsyncSession = Depends(get_db)):
+    from app.modules.booking.public_service import get_public_ical
+
+    content = await get_public_ical(db, tenant_slug)
+    return PlainTextResponse(content, media_type="text/calendar; charset=utf-8")
 
 
 @router.get("/landing/{tenant_slug}/{page_slug}")

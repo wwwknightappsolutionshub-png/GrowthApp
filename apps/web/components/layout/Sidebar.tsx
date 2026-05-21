@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
@@ -21,6 +22,7 @@ import {
   Target,
   LogOut,
   ChevronLeft,
+  ChevronDown,
   ListTodo,
   Sparkles,
   PoundSterling,
@@ -64,7 +66,7 @@ const ALL_HREFS = [
   '/dashboard', '/dashboard/assistant', '/dashboard/leads', '/dashboard/crm',
   '/dashboard/tasks', '/dashboard/bookings', '/dashboard/quotes', '/dashboard/invoices',
   '/dashboard/money', '/dashboard/messages', '/dashboard/whatsapp', '/dashboard/auto-replies',
-  '/dashboard/outreach', '/dashboard/landing-pages', '/dashboard/ads', '/dashboard/seo',
+  '/dashboard/outreach', '/dashboard/site-builder', '/dashboard/landing-pages', '/dashboard/ads', '/dashboard/seo',
   '/dashboard/automations', '/dashboard/reviews', '/dashboard/referrals', '/dashboard/notifications', '/dashboard/settings',
   ...AI_SOCIAL_HREFS, ...MARKETER_HREFS,
 ]
@@ -78,7 +80,7 @@ const CATEGORY_DEFAULTS: Record<string, string[]> = {
     '/dashboard/invoices', '/dashboard/money',
     '/dashboard/messages', '/dashboard/whatsapp', '/dashboard/auto-replies',
     '/dashboard/reviews', '/dashboard/referrals',
-    '/dashboard/landing-pages', '/dashboard/outreach', '/dashboard/automations',
+    '/dashboard/site-builder', '/dashboard/landing-pages', '/dashboard/outreach', '/dashboard/automations',
     ...AI_SOCIAL_HREFS, ...MARKETER_HREFS,
     '/dashboard/notifications',
     '/dashboard/settings',
@@ -200,6 +202,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/outreach',     label: 'Outreach',    description: 'Broadcast campaigns, win-back sequences, and drip automations',          icon: Megaphone,     group: 'engage' },
 
   // ── Growth ────────────────────────────────────────────────────────────────
+  { href: '/dashboard/site-builder', label: 'Business Page', description: 'Your branded lead page, subdomain URL, and QR code',                         icon: Globe,        group: 'grow' },
   { href: '/dashboard/landing-pages', label: 'Landing Pages', description: 'AI-generated service pages to capture more enquiries',                      icon: Globe,        group: 'grow' },
   { href: '/dashboard/ads',           label: 'Ads',           description: 'AI-written ad copy for Google, Facebook, and Instagram campaigns',           icon: Megaphone,    group: 'grow' },
   { href: '/dashboard/seo',           label: 'SEO',           description: 'On-page SEO audit and recommendations to rank higher locally',               icon: SearchIcon,   group: 'grow' },
@@ -235,6 +238,42 @@ const groupLabels: Record<NavGroup, string> = {
   ai_social: 'AI Social',
   marketer: 'Marketer Tools',
   system: 'System',
+}
+
+const ALL_NAV_GROUPS: NavGroup[] = [
+  'overview',
+  'pipeline',
+  'engage',
+  'grow',
+  'ai_social',
+  'marketer',
+  'system',
+]
+
+const SIDEBAR_GROUPS_STORAGE_KEY = 'cf:sidebar:collapsed-groups'
+
+/** Default: every group folded to keep the nav compact. */
+function loadCollapsedGroups(): Set<NavGroup> {
+  if (typeof window === 'undefined') return new Set(ALL_NAV_GROUPS)
+  try {
+    const raw = window.localStorage.getItem(SIDEBAR_GROUPS_STORAGE_KEY)
+    if (!raw) return new Set(ALL_NAV_GROUPS)
+    const parsed = JSON.parse(raw) as NavGroup[]
+    return new Set(parsed)
+  } catch {
+    return new Set(ALL_NAV_GROUPS)
+  }
+}
+
+function saveCollapsedGroups(collapsed: Set<NavGroup>) {
+  try {
+    window.localStorage.setItem(
+      SIDEBAR_GROUPS_STORAGE_KEY,
+      JSON.stringify([...collapsed]),
+    )
+  } catch {
+    /* ignore quota */
+  }
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -319,6 +358,46 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
     }
   }
 
+  const activeGroup = useMemo(() => {
+    for (const g of groups) {
+      if (
+        g.items.some((item) =>
+          item.exact ? pathname === item.href : pathname.startsWith(item.href),
+        )
+      ) {
+        return g.key
+      }
+    }
+    return null
+  }, [groups, pathname])
+
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<NavGroup>>(() => new Set())
+
+  useEffect(() => {
+    setCollapsedGroups(loadCollapsedGroups())
+  }, [])
+
+  useEffect(() => {
+    if (!activeGroup || collapsed) return
+    setCollapsedGroups((prev) => {
+      if (!prev.has(activeGroup)) return prev
+      const next = new Set(prev)
+      next.delete(activeGroup)
+      saveCollapsedGroups(next)
+      return next
+    })
+  }, [activeGroup, collapsed])
+
+  const toggleGroup = useCallback((key: NavGroup) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      saveCollapsedGroups(next)
+      return next
+    })
+  }, [])
+
   const handleLogout = async () => {
     await doLogout()
   }
@@ -380,13 +459,29 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
 
       {/* Nav */}
       <nav className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-4">
-        {groups.map((group, gi) => (
-          <div key={group.key} className={cn(gi > 0 && 'mt-5')}>
-            {!collapsed && (
-              <p className="mb-1.5 px-2 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-white/35">
-                {groupLabels[group.key]}
-              </p>
+        {groups.map((group, gi) => {
+          const isGroupCollapsed = collapsedGroups.has(group.key)
+          return (
+          <div key={group.key} className={cn(gi > 0 && 'mt-3')}>
+            {!collapsed ? (
+              <button
+                type="button"
+                onClick={() => toggleGroup(group.key)}
+                className="mb-1 flex w-full items-center justify-between rounded-md px-2 py-1.5 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-white/35 transition-colors hover:bg-white/[0.04] hover:text-white/55"
+                aria-expanded={!isGroupCollapsed}
+              >
+                <span>{groupLabels[group.key]}</span>
+                <ChevronDown
+                  className={cn(
+                    'h-3.5 w-3.5 shrink-0 transition-transform duration-200',
+                    isGroupCollapsed && '-rotate-90',
+                  )}
+                />
+              </button>
+            ) : (
+              gi > 0 && <div className="my-2 border-t border-white/[0.06]" aria-hidden />
             )}
+            {(!isGroupCollapsed || collapsed) && (
             <ul className="space-y-0.5">
               {group.items.map((item, i) => {
                 const active = item.exact
@@ -439,8 +534,9 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
                 )
               })}
             </ul>
+            )}
           </div>
-        ))}
+        )})}
       </nav>
 
       {/* Footer */}

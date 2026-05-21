@@ -25,3 +25,36 @@ class MockPaymentAdapter(PaymentAdapter):
 
     async def verify_webhook(self, payload: bytes, sig: str) -> dict:
         return {"type": "mock.event", "data": {"object": {}}}
+
+    async def create_payment_intent(
+        self,
+        amount_pence: int,
+        currency: str = "gbp",
+        metadata: dict | None = None,
+        customer_email: str | None = None,
+        setup_future_usage: str | None = None,
+    ) -> dict:
+        pid = f"mock_pi_{uuid.uuid4().hex[:16]}"
+        logger.info(
+            "[MOCK PAYMENT] PaymentIntent %s £%.2f %s metadata=%s",
+            pid,
+            amount_pence / 100,
+            currency,
+            metadata,
+        )
+        if setup_future_usage:
+            sid = f"mock_si_{uuid.uuid4().hex[:12]}"
+            return {
+                "payment_intent_id": sid,
+                "client_secret": f"{sid}_secret_mock",
+                "setup_intent_id": sid,
+            }
+        return {
+            "payment_intent_id": pid,
+            "client_secret": f"{pid}_secret_mock",
+        }
+
+    async def create_refund(self, payment_intent_id: str, amount_pence: int) -> dict:
+        rid = f"mock_re_{uuid.uuid4().hex[:12]}"
+        logger.info("[MOCK PAYMENT] Refund %s for %s amount=%s", rid, payment_intent_id, amount_pence)
+        return {"refund_id": rid, "status": "succeeded"}

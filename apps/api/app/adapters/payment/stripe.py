@@ -38,3 +38,42 @@ class StripePaymentAdapter(PaymentAdapter):
     async def verify_webhook(self, payload: bytes, sig: str) -> dict:
         event = stripe.Webhook.construct_event(payload, sig, settings.STRIPE_WEBHOOK_SECRET)
         return dict(event)
+
+    async def create_payment_intent(
+        self,
+        amount_pence: int,
+        currency: str = "gbp",
+        metadata: dict | None = None,
+        customer_email: str | None = None,
+        setup_future_usage: str | None = None,
+    ) -> dict:
+        params: dict = {
+            "amount": amount_pence,
+            "currency": currency,
+            "metadata": metadata or {},
+            "automatic_payment_methods": {"enabled": True},
+        }
+        if customer_email:
+            params["receipt_email"] = customer_email
+        if setup_future_usage:
+            intent = stripe.SetupIntent.create(
+                usage=setup_future_usage,
+                metadata=metadata or {},
+            )
+            return {
+                "payment_intent_id": intent.id,
+                "client_secret": intent.client_secret or "",
+                "setup_intent_id": intent.id,
+            }
+        pi = stripe.PaymentIntent.create(**params)
+        return {
+            "payment_intent_id": pi.id,
+            "client_secret": pi.client_secret or "",
+        }
+
+    async def create_refund(self, payment_intent_id: str, amount_pence: int) -> dict:
+        refund = stripe.Refund.create(
+            payment_intent=payment_intent_id,
+            amount=amount_pence,
+        )
+        return {"refund_id": refund.id, "status": refund.status}

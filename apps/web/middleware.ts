@@ -27,8 +27,29 @@ const PUBLIC_PREFIXES = [
 const DASHBOARD_PREFIX = '/dashboard'
 const ADMIN_PREFIX = '/admin'
 
+const BUSINESS_SITE_BASE =
+  process.env.BUSINESS_SITE_BASE_DOMAIN || 'customerflowai.online'
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const host = (request.headers.get('host') || '').split(':')[0].toLowerCase()
+
+  // Tenant subdomain: acme-plumbing.customerflowai.online → /sites/acme-plumbing
+  if (
+    host.endsWith(`.${BUSINESS_SITE_BASE}`) &&
+    host !== BUSINESS_SITE_BASE &&
+    host !== `www.${BUSINESS_SITE_BASE}` &&
+    host !== `api.${BUSINESS_SITE_BASE}`
+  ) {
+    const slug = host.slice(0, -(BUSINESS_SITE_BASE.length + 1))
+    if (slug && !slug.includes('.')) {
+      const rewritePath =
+        pathname === '/' || pathname === ''
+          ? `/sites/${slug}`
+          : `/sites/${slug}${pathname}`
+      return NextResponse.rewrite(new URL(rewritePath, request.url))
+    }
+  }
 
   if (
     pathname === '/' ||
@@ -41,6 +62,9 @@ export function middleware(request: NextRequest) {
     pathname === '/offline.html' ||
     pathname.startsWith('/icons/') ||
     pathname.startsWith('/static') ||
+    pathname.startsWith('/sites/') ||
+    pathname.startsWith('/book/') ||
+    pathname.startsWith('/embed/') ||
     // Public tenant pages, e.g. "/acme-plumbing" — exclude reserved app routes
     (/^\/[a-z0-9][a-z0-9-]*(\/.*)?$/.test(pathname)
       && !pathname.startsWith(DASHBOARD_PREFIX)

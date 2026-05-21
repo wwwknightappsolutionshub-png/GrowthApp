@@ -1,0 +1,12 @@
+{% extends "emails/base.html" %}
+{% block content %}
+<h1 style="margin:0 0 16px;font-size:22px;color:#111827;">Your business page is live</h1>
+<p style="margin:0 0 12px;color:#374151;">Hi — <strong>{{ business_name }}</strong> now has a professional lead-capture page on CustomerFlow AI.</p>
+<p style="margin:0 0 8px;color:#374151;"><strong>Your link:</strong><br>
+<a href="{{ public_url }}" style="color:#166534;">{{ public_url }}</a></p>
+<p style="margin:16px 0 8px;color:#374151;">Share this QR code on vans, flyers, and business cards:</p>
+<p style="text-align:center;margin:16px 0;">
+  <img src="{{ qr_data_url }}" alt="QR code for {{ public_url }}" width="200" height="200" style="display:inline-block;" />
+</p>
+<p style="margin:16px 0 0;color:#6b7280;font-size:13px;">You can download the QR again anytime from <strong>Dashboard → My Business Page</strong>.</p>
+{% endblock %}

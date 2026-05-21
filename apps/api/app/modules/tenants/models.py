@@ -48,6 +48,11 @@ class Tenant(Base):
     trial_reminder_sent_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    primary_landing_page_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUIDType, ForeignKey("landing_pages.id", ondelete="SET NULL"), nullable=True
+    )
+    business_site_published: Mapped[bool] = mapped_column(Boolean, default=False, server_default="0")
+    business_site_published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # Social media handles per managed client (used by the freelancer dashboard).
     social_handles: Mapped[dict] = mapped_column(JSONBType, default=dict, nullable=False, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

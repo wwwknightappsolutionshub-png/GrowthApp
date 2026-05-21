@@ -12,6 +12,7 @@ const STATUS_COLORS: Record<string, string> = {
   pending: 'bg-yellow-50 text-yellow-700',
   cancelled: 'bg-red-50 text-red-700',
   completed: 'bg-teal-50 text-teal-700',
+  no_show: 'bg-orange-50 text-orange-700',
 }
 
 export default function BookingsPage() {
@@ -35,12 +36,18 @@ export default function BookingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Bookings</h1>
           <p className="text-muted-foreground text-sm">Manage your confirmed appointments</p>
         </div>
-        <span className="text-sm text-muted-foreground">{data?.total ?? 0} total</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <a href="/dashboard/bookings/widget" className="text-xs px-3 py-1.5 rounded-lg border border-brand-forest-700 text-brand-teal-100/80 hover:bg-brand-forest-900">Widget</a>
+          <a href="/dashboard/bookings/staff" className="text-xs px-3 py-1.5 rounded-lg border border-brand-forest-700 text-brand-teal-100/80 hover:bg-brand-forest-900">Staff</a>
+          <a href="/dashboard/bookings/analytics" className="text-xs px-3 py-1.5 rounded-lg border border-brand-forest-700 text-brand-teal-100/80 hover:bg-brand-forest-900">Analytics</a>
+          <a href="/dashboard/bookings/settings" className="text-xs px-3 py-1.5 rounded-lg border border-brand-forest-700 text-brand-teal-100/80 hover:bg-brand-forest-900">Settings</a>
+          <span className="text-sm text-muted-foreground">{data?.total ?? 0} total</span>
+        </div>
       </div>
 
       {isLoading ? (
@@ -102,13 +109,22 @@ export default function BookingsPage() {
                     </button>
                   )}
                   {booking.status === 'confirmed' && (
-                    <button
-                      onClick={() => updateMutation.mutate({ id: booking.id, status: 'cancelled' })}
-                      disabled={updateMutation.isPending}
-                      className="text-xs border border-red-200 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50"
-                    >
-                      Cancel
-                    </button>
+                    <>
+                      <button
+                        onClick={() => updateMutation.mutate({ id: booking.id, status: 'no_show' })}
+                        disabled={updateMutation.isPending}
+                        className="text-xs border border-orange-200 text-orange-600 px-3 py-1.5 rounded-lg hover:bg-orange-50 disabled:opacity-50"
+                      >
+                        No-show
+                      </button>
+                      <button
+                        onClick={() => updateMutation.mutate({ id: booking.id, status: 'cancelled' })}
+                        disabled={updateMutation.isPending}
+                        className="text-xs border border-red-200 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                    </>
                   )}
                 </div>
               </div>

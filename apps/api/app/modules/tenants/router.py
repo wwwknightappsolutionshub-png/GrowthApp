@@ -112,3 +112,50 @@ async def get_tool_config(ctx: CurrentTenantContext, db: AsyncSession = Depends(
     category = classifyBusiness_py(tenant.business_type)
     enabled = await get_config_for_category(db, category)
     return {"category": category, "enabled_tools": enabled}
+
+
+@router.get("/me/business-site")
+async def get_business_site(ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+    from app.modules.tenants import site_service
+
+    _, tenant, _ = ctx
+    return await site_service.get_site_status(db, tenant)
+
+
+@router.post("/me/business-site/bootstrap", status_code=201)
+async def bootstrap_business_site(
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+    template_slug: str | None = None,
+):
+    from app.modules.tenants import site_service
+
+    user, tenant, _ = ctx
+    page = await site_service.bootstrap_business_site(
+        db, tenant, user.id, template_slug=template_slug
+    )
+    status = await site_service.get_site_status(db, tenant)
+    return {**status, "redirect_to": f"/dashboard/landing-pages/{page.id}"}
+
+
+@router.post("/me/business-site/publish")
+async def publish_business_site(ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+    from app.modules.tenants import site_service
+
+    user, tenant, _ = ctx
+    return await site_service.publish_business_site(db, tenant, owner_email=user.email)
+
+
+@router.get("/me/business-site/qr.png")
+async def download_business_site_qr(ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+    from fastapi.responses import Response
+
+    from app.modules.tenants import site_service
+
+    _, tenant, _ = ctx
+    url = site_service.business_site_public_url(tenant.slug)
+    return Response(
+        content=site_service.qr_png_bytes(url),
+        media_type="image/png",
+        headers={"Content-Disposition": f'attachment; filename="{tenant.slug}-qr.png"'},
+    )

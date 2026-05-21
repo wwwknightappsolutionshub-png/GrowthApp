@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     # App
     ENVIRONMENT: Literal["development", "testing", "production"] = "development"
     FRONTEND_URL: str = "http://localhost:3000"
+    # Published tenant sites: https://{tenant_slug}.{BUSINESS_SITE_BASE_DOMAIN}
+    BUSINESS_SITE_BASE_DOMAIN: str = "customerflowai.online"
     ALLOWED_ORIGINS: str = "http://localhost:3000"
     # Absolute URL the embeddable widget should POST back to. Falls back to a
     # relative /api/v1 if blank (works when the widget is hosted on the same

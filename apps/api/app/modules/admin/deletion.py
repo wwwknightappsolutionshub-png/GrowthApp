@@ -80,7 +80,20 @@ async def _purge_tenant_data(db: AsyncSession, tenant_id: uuid.UUID) -> None:
     from app.modules.automation.models import Automation, AutomationRun, MessageTemplate
     from app.modules.auto_replies.models import AutoReplyRule
     from app.modules.billing.models import BillingInvoice, Subscription
-    from app.modules.booking.models import AvailabilityRule, Booking
+    from app.modules.booking.models import AvailabilitySlot, Booking, Staff
+    from app.modules.booking.enterprise_models import (
+        BookingAbandonedSession,
+        BookingCalendarConnection,
+        BookingCustomerCredit,
+        BookingNotificationQueue,
+        BookingPackage,
+        BookingPromoCode,
+        BookingResource,
+        BookingService,
+        BookingSettings,
+        StaffBlackout,
+        StaffShift,
+    )
     from app.modules.crm.models import Customer, Deal, DealActivity
     from app.modules.gdpr.models import GdprRequest
     from app.modules.integrations.models import GoogleBusinessReview, TenantGoogleConnection
@@ -130,8 +143,20 @@ async def _purge_tenant_data(db: AsyncSession, tenant_id: uuid.UUID) -> None:
         QuoteItem,
         Quote,
         Task,
+        BookingNotificationQueue,
+        BookingAbandonedSession,
+        BookingCustomerCredit,
+        BookingCalendarConnection,
         Booking,
-        AvailabilityRule,
+        AvailabilitySlot,
+        StaffShift,
+        StaffBlackout,
+        Staff,
+        BookingPromoCode,
+        BookingPackage,
+        BookingResource,
+        BookingService,
+        BookingSettings,
         AutomationRun,
         Automation,
         MessageTemplate,
