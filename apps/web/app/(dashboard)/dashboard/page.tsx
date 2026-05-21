@@ -223,7 +223,7 @@ function OwnerDashboard({ role }: { role: string }) {
       <QuickActions
         items={[
           { href: '/dashboard/money', label: 'Money intelligence', desc: 'Revenue, cashflow, upsells', tone: 'success' },
-          { href: '/dashboard/crm', label: 'Pipeline', desc: 'Manage your deals', tone: 'info' },
+          { href: '/dashboard/crm/board', label: 'Pipeline', desc: 'Manage your deals', tone: 'info' },
           { href: '/dashboard/settings/usage', label: 'AI usage', desc: 'Track AI spend & quota', tone: 'primary' },
         ]}
       />

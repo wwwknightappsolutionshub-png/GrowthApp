@@ -320,7 +320,42 @@ export const crm = {
   getDeal: (id: string) => apiClient.get(`/crm/deals/${id}`),
   updateDeal: (id: string, data: object) => apiClient.patch(`/crm/deals/${id}`, data),
   moveDeal: (id: string, data: object) => apiClient.post(`/crm/deals/${id}/move`, data),
+  moveDealStage: (id: string, data: object) => apiClient.post(`/crm/deals/${id}/move-stage`, data),
   addNote: (id: string, note: string) => apiClient.post(`/crm/deals/${id}/notes`, { note }),
+
+  // Enterprise
+  dashboard: () => apiClient.get('/crm/dashboard'),
+  listPipelines: () => apiClient.get('/crm/pipelines'),
+  createPipeline: (data: object) => apiClient.post('/crm/pipelines', data),
+  updatePipeline: (id: string, data: object) => apiClient.patch(`/crm/pipelines/${id}`, data),
+  createStage: (pipelineId: string, data: object) =>
+    apiClient.post(`/crm/pipelines/${pipelineId}/stages`, data),
+  getBoard: (pipelineId?: string) =>
+    apiClient.get('/crm/board', { params: pipelineId ? { pipeline_id: pipelineId } : {} }),
+  moveBoardCard: (data: object) => apiClient.post('/crm/board/move', data),
+  listActivities: (entityType: string, entityId: string) =>
+    apiClient.get('/crm/activities', { params: { entity_type: entityType, entity_id: entityId } }),
+  createActivity: (data: object) => apiClient.post('/crm/activities', data),
+  listTags: () => apiClient.get('/crm/tags'),
+  createTag: (data: object) => apiClient.post('/crm/tags', data),
+  assignTags: (data: object) => apiClient.post('/crm/tags/assign', data),
+  listCustomFields: (entityType?: string) =>
+    apiClient.get('/crm/custom-fields', { params: entityType ? { entity_type: entityType } : {} }),
+  createCustomField: (data: object) => apiClient.post('/crm/custom-fields', data),
+  setCustomFieldValue: (data: object) => apiClient.put('/crm/custom-fields/values', data),
+  listFilters: (entityType?: string) =>
+    apiClient.get('/crm/filters', { params: entityType ? { entity_type: entityType } : {} }),
+  createFilter: (data: object) => apiClient.post('/crm/filters', data),
+  listScoreRules: () => apiClient.get('/crm/score-rules'),
+  createScoreRule: (data: object) => apiClient.post('/crm/score-rules', data),
+  applyLeadScores: (leadId: string) => apiClient.post(`/crm/leads/${leadId}/apply-scores`),
+  enrichLead: (leadId: string) => apiClient.post(`/crm/leads/${leadId}/enrich`),
+  bulkUpdate: (data: object) => apiClient.post('/crm/bulk', data),
+  scanDuplicates: () => apiClient.post('/crm/duplicates/scan'),
+  merge: (data: object) => apiClient.post('/crm/merge', data),
+  customerBookings: (customerId: string) => apiClient.get(`/crm/customers/${customerId}/bookings`),
+  exportLeadsCsv: () => apiClient.get('/crm/export/leads', { responseType: 'text' }),
+  importLeadsCsv: (csv: string) => apiClient.post('/crm/import/leads', { csv }),
 }
 
 export const bookings = {
