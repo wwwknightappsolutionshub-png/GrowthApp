@@ -31,6 +31,7 @@ class CustomerSegment(Base):
         UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
     )
     name: Mapped[str] = mapped_column(String(100), nullable=False)
+    entity_type: Mapped[str] = mapped_column(String(20), nullable=False, default="customer", server_default="customer")
     description: Mapped[str | None] = mapped_column(Text)
     rules: Mapped[dict] = mapped_column(JSONBType, nullable=False, default=dict)
     size: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

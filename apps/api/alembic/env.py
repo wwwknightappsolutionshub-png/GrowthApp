@@ -16,6 +16,21 @@ from app.modules.tenants.models import Tenant, TenantMember, Location  # noqa: F
 from app.modules.billing.models import SubscriptionPlan, Subscription, BillingInvoice  # noqa: F401
 from app.modules.leads.models import Lead, LeadSource  # noqa: F401
 from app.modules.crm.models import Customer, Deal, DealActivity  # noqa: F401
+from app.modules.crm.pipeline_models import (  # noqa: F401
+    CrmActivity,
+    CrmAssignment,
+    CrmAttachment,
+    CrmCustomFieldDefinition,
+    CrmCustomFieldValue,
+    CrmDuplicateCandidate,
+    CrmImportJob,
+    CrmPipeline,
+    CrmSavedFilter,
+    CrmScoreRule,
+    CrmStage,
+    CrmTag,
+    CrmTagAssignment,
+)
 from app.modules.booking.models import Staff, AvailabilitySlot, Booking  # noqa: F401
 from app.modules.booking.enterprise_models import (  # noqa: F401
     BookingAbandonedSession,

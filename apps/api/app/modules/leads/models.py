@@ -22,6 +22,16 @@ class Lead(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUIDType, primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUIDType, ForeignKey("tenants.id"), nullable=False, index=True)
     location_id: Mapped[uuid.UUID | None] = mapped_column(UUIDType, ForeignKey("locations.id"), nullable=True)
+    pipeline_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUIDType, ForeignKey("crm_pipelines.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    stage_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUIDType, ForeignKey("crm_stages.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    stage_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False, server_default="0")
+    assigned_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUIDType, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     first_name: Mapped[str] = mapped_column(String(100), nullable=False)
     last_name: Mapped[str | None] = mapped_column(String(100))
     email: Mapped[str | None] = mapped_column(String(255), index=True)

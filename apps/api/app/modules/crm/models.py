@@ -26,6 +26,9 @@ class Customer(Base):
     requires_followup: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
     followup_reminder_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     special_comments: Mapped[str | None] = mapped_column(Text, nullable=True)
+    assigned_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUIDType, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -41,6 +44,12 @@ class Deal(Base):
     lead_id: Mapped[uuid.UUID | None] = mapped_column(UUIDType, ForeignKey("leads.id"), nullable=True)
     location_id: Mapped[uuid.UUID | None] = mapped_column(UUIDType, ForeignKey("locations.id"), nullable=True)
     assigned_user_id: Mapped[uuid.UUID | None] = mapped_column(UUIDType, ForeignKey("users.id"), nullable=True)
+    pipeline_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUIDType, ForeignKey("crm_pipelines.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    stage_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUIDType, ForeignKey("crm_stages.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     stage: Mapped[str] = mapped_column(String(50), default="New")
     stage_order: Mapped[int] = mapped_column(Integer, default=0)
