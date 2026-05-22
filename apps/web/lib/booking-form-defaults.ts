@@ -38,11 +38,15 @@ export const DEFAULT_PUBLIC_BOOKING_SCHEMA: FormSchema = {
   ],
 }
 
-export function resolvePublicBookingSchema(
-  raw: { fields?: FormSchema['fields'] } | null | undefined,
-): FormSchema {
-  if (raw?.fields && raw.fields.length > 0) {
-    return { version: raw.version ?? 1, fields: raw.fields }
+export type BookingFormPayload = {
+  version?: number
+  fields?: unknown[]
+}
+
+export function resolvePublicBookingSchema(raw: BookingFormPayload | null | undefined): FormSchema {
+  const fields = raw?.fields
+  if (Array.isArray(fields) && fields.length > 0) {
+    return { version: raw?.version ?? 1, fields: fields as FormSchema['fields'] }
   }
   return DEFAULT_PUBLIC_BOOKING_SCHEMA
 }

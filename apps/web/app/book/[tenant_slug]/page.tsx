@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { publicBooking } from '@/lib/api-client'
-import { resolvePublicBookingSchema } from '@/lib/booking-form-defaults'
+import { resolvePublicBookingSchema, type BookingFormPayload } from '@/lib/booking-form-defaults'
 import { toast } from 'sonner'
 import { PublicBookShell } from '@/components/bookings/PublicBookShell'
 import { DynamicPublicBookingForm } from '@/components/bookings/DynamicPublicBookingForm'
@@ -13,7 +13,7 @@ type WidgetConfig = {
   tenant_slug?: string
   tenant_name?: string
   widget_primary_color?: string
-  booking_form?: { version?: number; fields?: unknown[] }
+  booking_form?: BookingFormPayload
   services?: { id: string; name: string; duration_minutes?: number; deposit_pence?: number }[]
   deposit_enabled?: boolean
   default_deposit_pence?: number
