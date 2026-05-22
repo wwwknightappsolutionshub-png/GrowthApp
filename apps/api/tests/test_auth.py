@@ -89,6 +89,48 @@ async def test_tenant_endpoints_work_without_tid_claim(client):
 
 
 @pytest.mark.asyncio
+async def test_suspended_tenant_owner_can_login(client, db_session):
+    """Suspended tenants must still receive tokens (admin suspend UX)."""
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "suspended@example.com",
+            "password": "TestPass123",
+            "full_name": "Suspended Owner",
+            "business_name": "Suspended Plumbing",
+            "business_type": "plumber",
+            "postcode": "SW1A 2AA",
+        },
+    )
+    from app.modules.auth.models import User
+    from app.modules.tenants.models import Tenant, TenantMember
+    from sqlalchemy import select
+
+    user = (
+        await db_session.execute(select(User).where(User.email == "suspended@example.com"))
+    ).scalar_one_or_none()
+    assert user is not None
+    tenant = (
+        await db_session.execute(
+            select(Tenant)
+            .join(TenantMember, TenantMember.tenant_id == Tenant.id)
+            .where(TenantMember.user_id == user.id)
+        )
+    ).scalar_one_or_none()
+    assert tenant is not None
+    tenant.is_active = False
+    await db_session.commit()
+
+    response = await client.post(
+        "/api/v1/auth/login",
+        json={"email": "suspended@example.com", "password": "TestPass123"},
+    )
+    assert response.status_code == 200
+    payload = decode_access_token(response.json()["access_token"])
+    assert payload.get("tid")
+
+
+@pytest.mark.asyncio
 async def test_login_wrong_password(client):
     response = await client.post("/api/v1/auth/login", json={
         "email": "noone@example.com",

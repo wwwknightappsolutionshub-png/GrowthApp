@@ -227,23 +227,27 @@ async def _issue_tokens(db: AsyncSession, user: User) -> dict:
     soft-deactivated, so token tenant context must never point at an inactive
     tenant or every tenant-scoped module will 403 after login.
     """
-    from app.modules.tenants.service import resolve_primary_tenant_membership
+    from app.modules.tenants.service import resolve_primary_tenant_membership_for_login
 
-    pair = await resolve_primary_tenant_membership(
+    pair = await resolve_primary_tenant_membership_for_login(
         db,
         user.id,
         prefer_freelancer_clients=user.user_type == "freelancer",
     )
     if pair:
-        member, _tenant = pair
+        member, tenant = pair
         tenant_id = member.tenant_id
         role = member.role
+        if user.user_type == "tenant" and not tenant.is_active:
+            # Still issue tokens — dashboard can show suspension; matches admin suspend UX.
+            pass
     else:
         tenant_id = None
         role = None
         if user.user_type == "tenant":
             raise UnauthorizedException(
-                "No active business is linked to this account. Please contact support."
+                "No business workspace is linked to this account. "
+                "If you recently registered, try completing signup again or contact support."
             )
 
     access_token = create_access_token(subject=user.id, tenant_id=tenant_id, role=role)

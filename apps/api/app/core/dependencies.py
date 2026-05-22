@@ -138,9 +138,9 @@ async def get_current_tenant(
 
     # Backfill tenant id for access tokens issued without ``tid`` (legacy refresh).
     if not tenant_id:
-        from app.modules.tenants.service import resolve_primary_tenant_membership
+        from app.modules.tenants.service import resolve_primary_tenant_membership_for_login
 
-        pair = await resolve_primary_tenant_membership(
+        pair = await resolve_primary_tenant_membership_for_login(
             db,
             user.id,
             prefer_freelancer_clients=user.user_type == "freelancer",
@@ -151,26 +151,20 @@ async def get_current_tenant(
     if not tenant_id:
         raise UnauthorizedException("Token missing tenant context")
 
-    # Fetch tenant membership
+    # Fetch tenant membership (allow suspended tenants so owners can still sign in).
     member_result = await db.execute(
         select(TenantMember, Tenant)
         .join(Tenant, TenantMember.tenant_id == Tenant.id)
         .where(
             TenantMember.user_id == UUID(user_id),
             TenantMember.tenant_id == UUID(tenant_id),
-            Tenant.is_active == True,  # noqa: E712
         )
     )
     row = member_result.first()
     if not row:
         if user.is_superadmin:
             tenant = (
-                await db.execute(
-                    select(Tenant).where(
-                        Tenant.id == UUID(tenant_id),
-                        Tenant.is_active == True,  # noqa: E712
-                    )
-                )
+                await db.execute(select(Tenant).where(Tenant.id == UUID(tenant_id)))
             ).scalar_one_or_none()
             if tenant:
                 await set_rls_context(db, tenant.id)

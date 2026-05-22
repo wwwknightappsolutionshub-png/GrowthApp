@@ -21,31 +21,66 @@ def _slugify(name: str) -> str:
     return slug[:100]
 
 
+async def _query_primary_tenant_membership(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    *,
+    prefer_freelancer_clients: bool,
+    active_only: bool,
+) -> tuple[TenantMember, Tenant] | None:
+    order = [TenantMember.created_at]
+    if prefer_freelancer_clients:
+        order = [Tenant.is_managed_client.desc(), TenantMember.created_at]
+    q = (
+        select(TenantMember, Tenant)
+        .join(Tenant, TenantMember.tenant_id == Tenant.id)
+        .where(TenantMember.user_id == user_id)
+    )
+    if active_only:
+        q = q.where(Tenant.is_active == True)  # noqa: E712
+    row = (await db.execute(q.order_by(*order).limit(1))).first()
+    if not row:
+        return None
+    return row[0], row[1]
+
+
 async def resolve_primary_tenant_membership(
     db: AsyncSession,
     user_id: uuid.UUID,
     *,
     prefer_freelancer_clients: bool = False,
+    active_only: bool = True,
 ) -> tuple[TenantMember, Tenant] | None:
-    """Pick the user's primary active tenant membership for JWT / RLS context."""
-    order = [TenantMember.created_at]
-    if prefer_freelancer_clients:
-        order = [Tenant.is_managed_client.desc(), TenantMember.created_at]
-    row = (
-        await db.execute(
-            select(TenantMember, Tenant)
-            .join(Tenant, TenantMember.tenant_id == Tenant.id)
-            .where(
-                TenantMember.user_id == user_id,
-                Tenant.is_active == True,  # noqa: E712
-            )
-            .order_by(*order)
-            .limit(1)
-        )
-    ).first()
-    if not row:
-        return None
-    return row[0], row[1]
+    """Pick the user's primary tenant membership for JWT / RLS context."""
+    return await _query_primary_tenant_membership(
+        db,
+        user_id,
+        prefer_freelancer_clients=prefer_freelancer_clients,
+        active_only=active_only,
+    )
+
+
+async def resolve_primary_tenant_membership_for_login(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    *,
+    prefer_freelancer_clients: bool = False,
+) -> tuple[TenantMember, Tenant] | None:
+    """Prefer an active tenant; fall back to suspended/inactive so owners can still sign in."""
+    pair = await _query_primary_tenant_membership(
+        db,
+        user_id,
+        prefer_freelancer_clients=prefer_freelancer_clients,
+        active_only=True,
+    )
+    if pair:
+        return pair
+    return await _query_primary_tenant_membership(
+        db,
+        user_id,
+        prefer_freelancer_clients=prefer_freelancer_clients,
+        active_only=False,
+    )
 
 
 async def update_tenant(
