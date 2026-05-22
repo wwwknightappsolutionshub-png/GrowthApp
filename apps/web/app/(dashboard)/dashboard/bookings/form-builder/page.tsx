@@ -27,7 +27,10 @@ export default function TenantBookingFormBuilderPage() {
 
   const { data: links } = useQuery({
     queryKey: ['bookings', 'links'],
-    queryFn: () => bookings.getLinks().then((r) => r.data as { booking_url?: string; slug?: string }),
+    queryFn: () =>
+      bookings.getLinks().then(
+        (r) => r.data as { booking_url?: string; slug?: string; referral_url?: string },
+      ),
   })
 
   const { data: formData, isLoading } = useQuery({
