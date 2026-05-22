@@ -28,7 +28,19 @@ const FIELD_TYPES = [
   { value: 'checkbox', label: 'Checkbox' },
   { value: 'date', label: 'Date' },
   { value: 'file', label: 'File link' },
+  { value: 'service', label: 'Service picker' },
+  { value: 'slot', label: 'Time slot picker' },
 ]
+
+function isTypeLocked(field: FormFieldDef, allowSystemEdit: boolean): boolean {
+  if (allowSystemEdit) return false
+  if (!field.system) return false
+  return field.id === 'service_id' || field.id === 'slot_id' || field.type === 'service' || field.type === 'slot'
+}
+
+function isIdLocked(field: FormFieldDef, allowSystemEdit: boolean): boolean {
+  return Boolean(field.system && !allowSystemEdit)
+}
 
 const inputClass =
   'w-full border border-brand-forest-700 rounded-lg px-3 py-2 bg-brand-forest-900 text-white text-sm'
@@ -104,7 +116,7 @@ export function BookingFormBuilder({ schema, onChange, allowSystemEdit = false }
                   <input
                     className={inputClass}
                     value={field.id}
-                    disabled={field.system && !allowSystemEdit}
+                    disabled={isIdLocked(field, allowSystemEdit)}
                     onChange={(e) => updateField(index, { id: e.target.value.replace(/\s/g, '_') })}
                   />
                 </div>
@@ -113,7 +125,7 @@ export function BookingFormBuilder({ schema, onChange, allowSystemEdit = false }
                   <select
                     className={inputClass}
                     value={field.type}
-                    disabled={field.system && !allowSystemEdit}
+                    disabled={isTypeLocked(field, allowSystemEdit)}
                     onChange={(e) => updateField(index, { type: e.target.value })}
                   >
                     {FIELD_TYPES.map((t) => (
@@ -121,13 +133,12 @@ export function BookingFormBuilder({ schema, onChange, allowSystemEdit = false }
                         {t.label}
                       </option>
                     ))}
-                    {field.system && (
-                      <>
-                        <option value="service">Service picker</option>
-                        <option value="slot">Slot picker</option>
-                      </>
-                    )}
                   </select>
+                  {isTypeLocked(field, allowSystemEdit) ? (
+                    <p className="text-[10px] text-brand-teal-100/50 mt-1">
+                      Service and slot types are fixed for booking availability.
+                    </p>
+                  ) : null}
                 </div>
                 <div className="sm:col-span-2">
                   <label className={labelClass}>Label</label>

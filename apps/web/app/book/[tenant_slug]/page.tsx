@@ -42,6 +42,8 @@ export default function PublicBookPage() {
     },
     enabled: !!slug,
     retry: 1,
+    staleTime: 0,
+    refetchOnMount: 'always',
   })
 
   const bookMutation = useMutation({

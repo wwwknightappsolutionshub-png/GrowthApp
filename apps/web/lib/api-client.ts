@@ -15,6 +15,13 @@ export const apiClient: AxiosInstance = axios.create({
   withCredentials: true,
 })
 
+/** Public booking pages — no auth cookies (avoids session interference). */
+export const publicApiClient: AxiosInstance = axios.create({
+  baseURL: `${API_BASE}/api/v1`,
+  headers: { 'Content-Type': 'application/json' },
+  withCredentials: false,
+})
+
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const activeClientId = window.localStorage.getItem('cf:freelancer:activeClientId')
@@ -418,13 +425,13 @@ export const bookings = {
 }
 
 export const publicBooking = {
-  widget: (slug: string) => apiClient.get(`/public/booking/${slug}/widget`),
+  widget: (slug: string) => publicApiClient.get(`/public/booking/${slug}/widget`),
   availability: (slug: string, params?: object) =>
-    apiClient.get(`/public/booking/${slug}/availability`, { params }),
-  create: (slug: string, data: object) => apiClient.post(`/public/booking/${slug}`, data),
-  submitRefer: (slug: string, data: object) => apiClient.post(`/public/booking/${slug}/refer`, data),
-  getReviewUrl: (slug: string) => apiClient.get(`/public/booking/${slug}/review-url`),
-  manage: (token: string, data: object) => apiClient.post(`/public/booking/manage/${token}`, data),
+    publicApiClient.get(`/public/booking/${slug}/availability`, { params }),
+  create: (slug: string, data: object) => publicApiClient.post(`/public/booking/${slug}`, data),
+  submitRefer: (slug: string, data: object) => publicApiClient.post(`/public/booking/${slug}/refer`, data),
+  getReviewUrl: (slug: string) => publicApiClient.get(`/public/booking/${slug}/review-url`),
+  manage: (token: string, data: object) => publicApiClient.post(`/public/booking/manage/${token}`, data),
 }
 
 export const quotes = {

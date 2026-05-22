@@ -8,11 +8,14 @@ import { LayoutGrid } from 'lucide-react'
 import { bookings, auth, tenants } from '@/lib/api-client'
 import { TenantWelcomeHeader } from '@/components/dashboard/TenantWelcomeHeader'
 import { BookingFormBuilder, type FormSchema } from '@/components/bookings/BookingFormBuilder'
-import { resolvePublicBookingSchema } from '@/lib/booking-form-defaults'
+import {
+  DEFAULT_PUBLIC_BOOKING_SCHEMA,
+  schemaFromFormApi,
+} from '@/lib/booking-form-defaults'
 
 export default function TenantBookingFormBuilderPage() {
   const qc = useQueryClient()
-  const [schema, setSchema] = useState<FormSchema>({ version: 1, fields: [] })
+  const [schema, setSchema] = useState<FormSchema>(DEFAULT_PUBLIC_BOOKING_SCHEMA)
 
   const { data: me } = useQuery({
     queryKey: ['me'],
@@ -23,16 +26,21 @@ export default function TenantBookingFormBuilderPage() {
     queryFn: () => tenants.get().then((r) => r.data as { name?: string }),
   })
 
+  const { data: links } = useQuery({
+    queryKey: ['bookings', 'links'],
+    queryFn: () => bookings.getLinks().then((r) => r.data as { booking_url?: string; slug?: string }),
+  })
+
   const { data: formData, isLoading } = useQuery({
     queryKey: ['bookings', 'form'],
     queryFn: () => bookings.getForm().then((r) => r.data),
   })
 
   useEffect(() => {
-    if (formData?.schema) {
-      setSchema(resolvePublicBookingSchema(formData.schema as FormSchema))
-    }
-  }, [formData])
+    if (isLoading) return
+    const loaded = schemaFromFormApi(formData as Record<string, unknown> | undefined)
+    if (loaded) setSchema(loaded)
+  }, [formData, isLoading])
 
   const save = useMutation({
     mutationFn: () => {
@@ -74,15 +82,32 @@ export default function TenantBookingFormBuilderPage() {
           <p className="text-sm text-brand-teal-100/60">Loading…</p>
         ) : (
           <>
+            <p className="text-xs text-brand-teal-100/55 mb-3">
+              {schema.fields.length} field(s). Edit labels and types; add custom questions with{' '}
+              <strong className="text-brand-teal-200">Add field</strong>. Service/slot types stay
+              fixed so appointments work.
+            </p>
             <BookingFormBuilder schema={schema} onChange={setSchema} />
-            <button
-              type="button"
-              onClick={() => save.mutate()}
-              disabled={save.isPending || !schema.fields?.length}
-              className="mt-4 px-4 py-2 rounded-lg bg-brand-forest-700 text-white text-sm font-semibold disabled:opacity-50"
-            >
-              Save booking form
-            </button>
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => save.mutate()}
+                disabled={save.isPending || !schema.fields?.length}
+                className="px-4 py-2 rounded-lg bg-brand-teal-600 text-white text-sm font-semibold disabled:opacity-50"
+              >
+                {save.isPending ? 'Saving…' : 'Save booking form'}
+              </button>
+              {links?.booking_url ? (
+                <a
+                  href={links.booking_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-brand-teal-300 hover:text-white underline"
+                >
+                  Preview public form →
+                </a>
+              ) : null}
+            </div>
           </>
         )}
       </div>

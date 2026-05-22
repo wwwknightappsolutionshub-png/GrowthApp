@@ -8,7 +8,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -506,38 +506,44 @@ async def get_booking_form_template(category: str, _: SuperAdmin, db: AsyncSessi
     row = next((r for r in rows if r.category == category), None)
     if not row:
         raise NotFoundException("Template")
-    return BookingFormTemplateResponse(
-        category=row.category,
-        name=row.name,
-        form_schema=row.schema,
-        updated_at=row.updated_at,
-    )
+    return {
+        "category": row.category,
+        "name": row.name,
+        "schema": row.schema,
+        "updated_at": row.updated_at.isoformat() if row.updated_at else None,
+    }
 
 
 @router.put("/booking-forms/templates/{category}")
 async def put_booking_form_template(
     category: str,
-    body: BookingFormTemplateUpdate,
+    request: Request,
     admin: SuperAdmin,
     db: AsyncSession = Depends(get_db),
 ):
     from app.core.exceptions import BadRequestException
-    from app.modules.booking.enterprise_schemas import BookingFormTemplateResponse
-    from app.modules.booking.form_builder import upsert_template
+    from app.modules.booking.form_builder import extract_schema_payload, upsert_template
 
+    raw = await request.json()
+    if not isinstance(raw, dict):
+        raise BadRequestException("Invalid JSON body")
+    try:
+        schema_in = extract_schema_payload(raw)
+    except ValueError as exc:
+        raise BadRequestException(str(exc)) from exc
     try:
         row = await upsert_template(
             db,
             category,
-            body.form_schema,
-            name=body.name,
+            schema_in,
+            name=raw.get("name"),
             user_id=admin.id,
         )
     except ValueError as exc:
         raise BadRequestException(str(exc)) from exc
-    return BookingFormTemplateResponse(
-        category=row.category,
-        name=row.name,
-        form_schema=row.schema,
-        updated_at=row.updated_at,
-    )
+    return {
+        "category": row.category,
+        "name": row.name,
+        "schema": row.schema,
+        "updated_at": row.updated_at.isoformat() if row.updated_at else None,
+    }

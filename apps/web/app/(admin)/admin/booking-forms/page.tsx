@@ -6,11 +6,12 @@ import { LayoutGrid } from 'lucide-react'
 import { toast } from 'sonner'
 import { admin } from '@/lib/api-client'
 import { BookingFormBuilder, type FormSchema } from '@/components/bookings/BookingFormBuilder'
+import { DEFAULT_PUBLIC_BOOKING_SCHEMA, schemaFromFormApi } from '@/lib/booking-form-defaults'
 
 export default function AdminBookingFormsPage() {
   const qc = useQueryClient()
   const [category, setCategory] = useState('general')
-  const [schema, setSchema] = useState<FormSchema>({ version: 1, fields: [] })
+  const [schema, setSchema] = useState<FormSchema>(DEFAULT_PUBLIC_BOOKING_SCHEMA)
 
   const { data: categories } = useQuery({
     queryKey: ['admin', 'booking-form-categories'],
@@ -24,10 +25,10 @@ export default function AdminBookingFormsPage() {
   })
 
   useEffect(() => {
-    if (template?.schema) {
-      setSchema(template.schema as FormSchema)
-    }
-  }, [template])
+    if (isLoading) return
+    const loaded = schemaFromFormApi(template as Record<string, unknown> | undefined)
+    if (loaded) setSchema(loaded)
+  }, [template, isLoading])
 
   const save = useMutation({
     mutationFn: () =>

@@ -43,6 +43,14 @@ export type BookingFormPayload = {
   fields?: unknown[]
 }
 
+/** Normalize GET /bookings/form or admin template API payloads. */
+export function schemaFromFormApi(data: Record<string, unknown> | null | undefined): FormSchema | null {
+  if (!data) return null
+  const raw = (data.schema ?? data.form_schema) as BookingFormPayload | undefined
+  if (!raw || typeof raw !== 'object') return null
+  return resolvePublicBookingSchema(raw)
+}
+
 export function resolvePublicBookingSchema(raw: BookingFormPayload | null | undefined): FormSchema {
   const fields = raw?.fields
   if (Array.isArray(fields) && fields.length > 0) {
