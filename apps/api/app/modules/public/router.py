@@ -129,17 +129,48 @@ async def get_availability(
 @router.post("/booking/{tenant_slug}")
 @limiter.limit("20/minute")
 async def create_public_booking(tenant_slug: str, request: Request, db: AsyncSession = Depends(get_db)):
+    from app.modules.booking.form_builder import map_submission_to_booking, resolve_tenant_booking_form
     from app.modules.booking.schemas import PublicBookingCreate
     from app.modules.booking import service as booking_service
 
     body = await request.json()
-    data = PublicBookingCreate(**body)
     result = await db.execute(select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True))
     tenant = result.scalar_one_or_none()
     if not tenant:
         from app.core.exceptions import NotFoundException
         raise NotFoundException("Tenant")
+    schema = await resolve_tenant_booking_form(db, tenant)
+    booking_fields, extras = map_submission_to_booking(body, schema)
+    merged = {**booking_fields, **extras, "channel": body.get("channel") or "widget"}
+    data = PublicBookingCreate(**merged)
     return await booking_service.create_public_booking(db=db, tenant=tenant, data=data)
+
+
+@router.post("/booking/{tenant_slug}/refer")
+@limiter.limit("20/minute")
+async def submit_public_refer_win(tenant_slug: str, request: Request, db: AsyncSession = Depends(get_db)):
+    from app.modules.booking.refer_win import ReferWinSubmitBody, submit_refer_win
+
+    body = ReferWinSubmitBody(**(await request.json()))
+    result = await db.execute(select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True))
+    tenant = result.scalar_one_or_none()
+    if not tenant:
+        from app.core.exceptions import NotFoundException
+        raise NotFoundException("Tenant")
+    return await submit_refer_win(db, tenant, body)
+
+
+@router.get("/booking/{tenant_slug}/review-url")
+@limiter.limit("60/minute")
+async def get_public_review_url(tenant_slug: str, request: Request, db: AsyncSession = Depends(get_db)):
+    from app.modules.booking.review_link import get_public_google_review_url
+
+    result = await db.execute(select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True))
+    tenant = result.scalar_one_or_none()
+    if not tenant:
+        from app.core.exceptions import NotFoundException
+        raise NotFoundException("Tenant")
+    return await get_public_google_review_url(db, tenant)
 
 
 @router.post("/booking/manage/{manage_token}")

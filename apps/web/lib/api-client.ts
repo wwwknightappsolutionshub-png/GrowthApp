@@ -383,6 +383,8 @@ export const bookings = {
   delete: (id: string) => apiClient.delete(`/bookings/${id}`),
   upcoming: (limit?: number) => apiClient.get('/bookings/upcoming', { params: { limit } }),
   getLinks: () => apiClient.get('/bookings/links'),
+  getForm: () => apiClient.get('/bookings/form'),
+  updateForm: (data: { schema: object; name?: string }) => apiClient.put('/bookings/form', data),
   requestFeedback: (id: string, channels: string[]) =>
     apiClient.post(`/bookings/${id}/request-feedback`, { channels }),
   getSettings: () => apiClient.get('/bookings/settings'),
@@ -420,6 +422,8 @@ export const publicBooking = {
   availability: (slug: string, params?: object) =>
     apiClient.get(`/public/booking/${slug}/availability`, { params }),
   create: (slug: string, data: object) => apiClient.post(`/public/booking/${slug}`, data),
+  submitRefer: (slug: string, data: object) => apiClient.post(`/public/booking/${slug}/refer`, data),
+  getReviewUrl: (slug: string) => apiClient.get(`/public/booking/${slug}/review-url`),
   manage: (token: string, data: object) => apiClient.post(`/public/booking/manage/${token}`, data),
 }
 
@@ -820,6 +824,14 @@ export const admin = {
     apiClient.put<CategoryToolConfig>(`/admin/tool-configs/${category}`, { enabled_tools }),
   resetToolConfig: (category: string) =>
     apiClient.post<CategoryToolConfig>(`/admin/tool-configs/${category}/reset`),
+  // Booking form templates (category defaults) -----------------------------
+  listBookingFormCategories: () =>
+    apiClient.get<{ categories: string[] }>('/admin/booking-forms/categories'),
+  listBookingFormTemplates: () => apiClient.get('/admin/booking-forms/templates'),
+  getBookingFormTemplate: (category: string) =>
+    apiClient.get(`/admin/booking-forms/templates/${category}`),
+  updateBookingFormTemplate: (category: string, data: { name?: string; schema: object }) =>
+    apiClient.put(`/admin/booking-forms/templates/${category}`, data),
   // Lead requests -----------------------------------------------------------
   listLeadRequests: (status?: string) =>
     apiClient.get<LeadRequestItem[]>('/admin/lead-requests', { params: status ? { status } : {} }),

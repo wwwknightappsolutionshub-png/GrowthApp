@@ -66,6 +66,11 @@ class CustomerResponse(BaseModel):
     upsell_date: datetime | None = None
     special_event: str | None = None
     needs_reminders: bool = False
+    ref_count: int = 0
+    referral_program_id: UUID | None = None
+    reward_amount: float | None = None
+    reward_type: str | None = None
+    reward_delivery_method: str | None = None
     created_at: datetime
 
 

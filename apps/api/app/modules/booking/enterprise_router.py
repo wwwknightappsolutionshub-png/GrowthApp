@@ -34,6 +34,8 @@ from app.modules.booking.enterprise_schemas import (
     BookingServiceCreate,
     BookingServiceResponse,
     BookingServiceUpdate,
+    BookingFormSchemaResponse,
+    BookingFormTemplateUpdate,
     BookingSettingsResponse,
     BookingSettingsUpdate,
     ClientReminderRequest,
@@ -103,7 +105,52 @@ async def get_booking_qr_links(ctx: CurrentTenantContext):
         "booking_url": base_book,
         "referral_url": refer_url_for_slug(tenant.slug),
         "rate_url": f"{base_book.rstrip('/')}/rate",
+        "review_label": "Review & Comments (Google)",
+        "refer_label": "Refer & Win",
+        "booking_label": "Book appointment",
     }
+
+
+@router.get("/form", response_model=BookingFormSchemaResponse)
+async def get_tenant_booking_form(ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+    from app.modules.admin.tool_config import classifyBusiness_py
+    from app.modules.booking.form_builder import resolve_tenant_booking_form
+
+    _, tenant, _ = ctx
+    settings = await settings_svc.get_or_create_settings(db, tenant.id)
+    category = classifyBusiness_py(tenant.business_type or "general")
+    override = getattr(settings, "booking_form_override", None) or {}
+    return BookingFormSchemaResponse(
+        category=category,
+        form_schema=await resolve_tenant_booking_form(db, tenant),
+        is_tenant_override=bool(override.get("fields")),
+    )
+
+
+@router.put("/form", response_model=BookingFormSchemaResponse)
+async def update_tenant_booking_form(
+    body: BookingFormTemplateUpdate,
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+):
+    from app.core.exceptions import BadRequestException
+    from app.modules.admin.tool_config import classifyBusiness_py
+    from app.modules.booking.form_builder import update_tenant_form_override
+
+    user, tenant, _ = ctx
+    try:
+        schema = await update_tenant_form_override(
+            db, tenant.id, body.form_schema, user_id=user.id
+        )
+    except ValueError as exc:
+        raise BadRequestException(str(exc)) from exc
+    settings = await settings_svc.get_or_create_settings(db, tenant.id)
+    override = getattr(settings, "booking_form_override", None) or {}
+    return BookingFormSchemaResponse(
+        category=classifyBusiness_py(tenant.business_type or "general"),
+        form_schema=schema,
+        is_tenant_override=bool(override.get("fields")),
+    )
 
 
 @router.post("/{booking_id}/request-feedback")

@@ -34,9 +34,24 @@ export default function BookingWidgetPage() {
 
   const qrTargets = useMemo(
     () => [
-      { id: 'booking', label: 'Book appointment', description: 'Full booking form with services & slots', value: links?.booking_url ?? '' },
-      { id: 'referral', label: 'Refer a friend', description: 'Referral landing — share after service', value: links?.referral_url ?? '' },
-      { id: 'rate', label: 'Rate us (info)', description: 'Signage QR — actual rating via post-visit link', value: links?.rate_url ?? '' },
+      {
+        id: 'booking',
+        label: links?.booking_label ?? 'Public booking page',
+        description: 'Form builder — book appointment',
+        value: links?.booking_url ?? '',
+      },
+      {
+        id: 'referral',
+        label: links?.refer_label ?? 'Refer & Win',
+        description: 'Referral form → CRM pipeline (New)',
+        value: links?.referral_url ?? '',
+      },
+      {
+        id: 'rate',
+        label: links?.review_label ?? 'Review & Comments',
+        description: 'Opens Google review (GMB connected)',
+        value: links?.rate_url ?? '',
+      },
     ],
     [links],
   )
@@ -55,9 +70,17 @@ export default function BookingWidgetPage() {
         userName={me?.full_name}
         subtitle="Widget embed & QR codes for booking, referrals, and feedback"
       />
-      <Link href="/dashboard/bookings" className="text-sm text-brand-teal-100/70 hover:text-white inline-block">
-        ← Bookings hub
-      </Link>
+      <div className="flex flex-wrap items-center gap-3">
+        <Link href="/dashboard/bookings" className="text-sm text-brand-teal-100/70 hover:text-white">
+          ← Bookings hub
+        </Link>
+        <Link
+          href="/dashboard/bookings/form-builder"
+          className="text-sm text-brand-teal-300 hover:text-white font-medium"
+        >
+          Edit booking form (QR A) →
+        </Link>
+      </div>
 
       <div className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 p-6 space-y-4">
         <h2 className="text-lg font-bold text-white flex items-center gap-2">

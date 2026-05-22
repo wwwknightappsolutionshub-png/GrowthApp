@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import DateTime, ForeignKey, String, Text, Boolean, Integer, func
+from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text, Boolean, Integer, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 from app.core.db_types import UUIDType, JSONBType
@@ -34,6 +34,13 @@ class Customer(Base):
     assigned_user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUIDType, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
+    ref_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False, server_default="0")
+    referral_program_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUIDType, ForeignKey("referral_programs.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    reward_amount: Mapped[float | None] = mapped_column(Numeric(14, 2), nullable=True)
+    reward_type: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    reward_delivery_method: Mapped[str | None] = mapped_column(String(30), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

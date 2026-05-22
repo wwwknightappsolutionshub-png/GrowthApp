@@ -35,6 +35,7 @@ class BookingSettingsUpdate(BaseModel):
     meta_pixel_id: str | None = None
     widget_primary_color: str | None = None
     intake_questions: list[dict[str, Any]] | None = None
+    booking_form_override: dict[str, Any] | None = None
 
 
 class BookingSettingsResponse(BaseModel):
@@ -56,6 +57,31 @@ class BookingSettingsResponse(BaseModel):
     meta_pixel_id: str | None
     widget_primary_color: str | None
     intake_questions: list[dict[str, Any]]
+    booking_form_override: dict[str, Any] = Field(default_factory=dict)
+
+
+class BookingFormSchemaResponse(BaseModel):
+    category: str
+    form_schema: dict[str, Any] = Field(serialization_alias="schema")
+    is_tenant_override: bool = False
+
+    model_config = {"populate_by_name": True}
+
+
+class BookingFormTemplateResponse(BaseModel):
+    category: str
+    name: str
+    form_schema: dict[str, Any] = Field(serialization_alias="schema")
+    updated_at: datetime | None = None
+
+    model_config = {"populate_by_name": True}
+
+
+class BookingFormTemplateUpdate(BaseModel):
+    name: str | None = None
+    form_schema: dict[str, Any] = Field(serialization_alias="schema")
+
+    model_config = {"populate_by_name": True}
 
 
 # ── Services (bookable) ───────────────────────────────────────────────────────
@@ -261,6 +287,7 @@ class PublicWidgetConfigResponse(BaseModel):
     google_pixel_id: str | None
     meta_pixel_id: str | None
     intake_questions: list[dict[str, Any]]
+    booking_form: dict[str, Any] = Field(default_factory=dict)
     deposit_enabled: bool
     default_deposit_pence: int
 

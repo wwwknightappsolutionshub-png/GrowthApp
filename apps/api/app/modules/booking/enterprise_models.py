@@ -44,6 +44,7 @@ class BookingSettings(Base):
     meta_pixel_id: Mapped[str | None] = mapped_column(String(100))
     widget_primary_color: Mapped[str | None] = mapped_column(String(20))
     intake_questions: Mapped[list] = mapped_column(JSONBType, default=list)
+    booking_form_override: Mapped[dict] = mapped_column(JSONBType, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

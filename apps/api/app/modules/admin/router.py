@@ -51,6 +51,7 @@ from app.modules.admin.tenant_health_service import (
     send_tenant_action_reminder,
     snapshot_tenant_health,
 )
+from app.modules.booking.enterprise_schemas import BookingFormTemplateUpdate
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -467,3 +468,76 @@ async def reset_tool_config(
 ):
     """Delete any customisation for a category, reverting to system defaults."""
     return await tc.reset_config(db, category)
+
+
+# ── Booking form templates (per business category) ─────────────────────────────
+
+@router.get("/booking-forms/categories")
+async def list_booking_form_categories(_: SuperAdmin):
+    from app.modules.booking.form_builder import BOOKING_CATEGORIES
+
+    return {"categories": list(BOOKING_CATEGORIES)}
+
+
+@router.get("/booking-forms/templates")
+async def list_booking_form_templates(_: SuperAdmin, db: AsyncSession = Depends(get_db)):
+    from app.modules.booking.form_builder import list_all_templates
+    from app.modules.booking.enterprise_schemas import BookingFormTemplateResponse
+
+    rows = await list_all_templates(db)
+    return [
+        BookingFormTemplateResponse(
+            category=r.category,
+            name=r.name,
+            form_schema=r.schema,
+            updated_at=r.updated_at,
+        )
+        for r in rows
+    ]
+
+
+@router.get("/booking-forms/templates/{category}")
+async def get_booking_form_template(category: str, _: SuperAdmin, db: AsyncSession = Depends(get_db)):
+    from app.core.exceptions import NotFoundException
+    from app.modules.booking.form_builder import list_all_templates
+    from app.modules.booking.enterprise_schemas import BookingFormTemplateResponse
+
+    rows = await list_all_templates(db)
+    row = next((r for r in rows if r.category == category), None)
+    if not row:
+        raise NotFoundException("Template")
+    return BookingFormTemplateResponse(
+        category=row.category,
+        name=row.name,
+        form_schema=row.schema,
+        updated_at=row.updated_at,
+    )
+
+
+@router.put("/booking-forms/templates/{category}")
+async def put_booking_form_template(
+    category: str,
+    body: BookingFormTemplateUpdate,
+    admin: SuperAdmin,
+    db: AsyncSession = Depends(get_db),
+):
+    from app.core.exceptions import BadRequestException
+    from app.modules.booking.enterprise_schemas import BookingFormTemplateResponse
+    from app.modules.booking.form_builder import upsert_template
+
+    try:
+        row = await upsert_template(
+            db,
+            category,
+            body.form_schema,
+            name=body.name,
+            user_id=admin.id,
+        )
+    except ValueError as exc:
+        raise BadRequestException(str(exc)) from exc
+    return BookingFormTemplateResponse(
+        category=row.category,
+        name=row.name,
+        form_schema=row.schema,
+        updated_at=row.updated_at,
+    )

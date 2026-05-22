@@ -14,9 +14,13 @@ from app.modules.tenants.models import Tenant
 
 
 async def get_widget_config(db: AsyncSession, tenant: Tenant) -> PublicWidgetConfigResponse:
+    from app.modules.booking.form_builder import resolve_tenant_booking_form
+
     settings = await get_or_create_settings(db, tenant.id)
     services = await list_services(db, tenant.id, active_only=True)
     from app.modules.booking.enterprise_schemas import BookingServiceResponse
+
+    booking_form = await resolve_tenant_booking_form(db, tenant)
 
     return PublicWidgetConfigResponse(
         tenant_slug=tenant.slug,
@@ -27,6 +31,7 @@ async def get_widget_config(db: AsyncSession, tenant: Tenant) -> PublicWidgetCon
         google_pixel_id=settings.google_pixel_id,
         meta_pixel_id=settings.meta_pixel_id,
         intake_questions=settings.intake_questions or [],
+        booking_form=booking_form,
         deposit_enabled=settings.deposit_enabled,
         default_deposit_pence=settings.default_deposit_pence,
     )

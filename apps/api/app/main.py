@@ -17,6 +17,7 @@ from app.modules.crm import pipeline_models as _crm_pipeline_models  # noqa: F40
 from app.modules.booking.router import router as booking_router
 from app.modules.booking import models as _booking_models  # noqa: F401
 from app.modules.booking import enterprise_models as _booking_enterprise_models  # noqa: F401
+from app.modules.booking import form_models as _booking_form_models  # noqa: F401
 from app.modules.quotes_invoices.router import router as quotes_router
 from app.modules.automation.router import router as automation_router
 from app.modules.messaging.router import router as messaging_router
