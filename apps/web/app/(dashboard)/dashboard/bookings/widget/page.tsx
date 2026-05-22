@@ -5,8 +5,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { bookings, auth, tenants } from '@/lib/api-client'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { Copy, ExternalLink, LayoutGrid, Pencil, QrCode } from 'lucide-react'
-import { TenantWelcomeHeader } from '@/components/dashboard/TenantWelcomeHeader'
+import { Copy, ExternalLink, LayoutGrid, QrCode } from 'lucide-react'
+import { BookingsSubpageLayout } from '@/components/bookings/BookingsSubpageLayout'
 
 function qrImageUrl(data: string, size = 220) {
   return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}`
@@ -91,25 +91,12 @@ export default function BookingWidgetPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <TenantWelcomeHeader
-        tenantName={tenant?.name}
-        userName={me?.full_name}
-        subtitle="Widget embed & QR codes for booking, referrals, and feedback"
-      />
-      <div className="flex flex-wrap items-center gap-3">
-        <Link href="/dashboard/bookings" className="text-sm text-brand-teal-100/70 hover:text-white">
-          ← Bookings hub
-        </Link>
-        <Link
-          href="/dashboard/bookings/form-builder"
-          className="inline-flex items-center gap-1.5 text-sm text-brand-teal-300 hover:text-white font-medium"
-        >
-          <Pencil className="w-3.5 h-3.5" />
-          Booking form builder (QR A)
-        </Link>
-      </div>
-
+    <BookingsSubpageLayout
+      tenantName={tenant?.name}
+      userName={me?.full_name}
+      subtitle="Widget embed & QR codes for booking, referrals, and feedback"
+      maxWidth="xl"
+    >
       {needsPublicBookingFix ? (
         <div className="rounded-xl border border-amber-500/40 bg-amber-950/40 px-4 py-3 text-sm text-amber-100">
           <p className="font-semibold text-amber-50 mb-1">
@@ -126,8 +113,8 @@ export default function BookingWidgetPage() {
             ) : (
               <>
                 The booking URL <span className="font-mono text-xs">/book/{slug}</span> is correct, but this
-                workspace is still marked inactive after a prior delete. Enable public booking below (or Super
-                Admin → Tenants → Reactivate).
+                workspace is still marked inactive. Enable public booking below (or Super Admin → Tenants →
+                Reactivate).
               </>
             )}
           </p>
@@ -146,14 +133,16 @@ export default function BookingWidgetPage() {
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 p-6 space-y-4">
+      <div className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 p-6 space-y-5">
         <h2 className="text-lg font-bold text-white flex items-center gap-2">
           <LayoutGrid className="w-5 h-5 text-brand-teal-300" />
           Website embed
         </h2>
         <div>
           <p className="text-sm text-brand-teal-100/70 mb-1">Public booking link</p>
-          <p className="text-white font-mono text-sm break-all">{bookUrl || '…'}</p>
+          <p className="text-white font-mono text-sm break-all bg-brand-forest-900/80 rounded-lg px-3 py-2 border border-brand-forest-700">
+            {bookUrl || '…'}
+          </p>
           <button
             type="button"
             onClick={() => bookUrl && copy(bookUrl, 'link')}
@@ -165,7 +154,7 @@ export default function BookingWidgetPage() {
         </div>
         <div>
           <p className="text-sm text-brand-teal-100/70 mb-2">Embed snippet</p>
-          <pre className="text-xs bg-brand-forest-900 p-4 rounded-lg overflow-x-auto text-brand-teal-100/90">
+          <pre className="text-xs bg-brand-forest-900 p-4 rounded-lg overflow-x-auto text-brand-teal-100/90 border border-brand-forest-700">
             {embedCode}
           </pre>
           <button
@@ -184,17 +173,17 @@ export default function BookingWidgetPage() {
           <QrCode className="w-5 h-5 text-brand-teal-300" />
           Three QR use cases
         </h2>
-        <p className="text-sm text-brand-teal-100/65 mb-6">
-          Print or share — each code opens a distinct customer journey aligned with your operations.
+        <p className="text-sm text-brand-teal-100/65 mb-6 max-w-2xl mx-auto text-center">
+          Print or share — each code opens a distinct customer journey.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 max-w-4xl mx-auto">
           {qrTargets.map((t) => (
             <div
               key={t.id}
-              className="rounded-xl border border-brand-forest-700 bg-brand-forest-900 p-4 text-center"
+              className="rounded-xl border border-brand-forest-700 bg-brand-forest-900 p-4 text-center flex flex-col"
             >
               <p className="text-sm font-semibold text-white mb-1">{t.label}</p>
-              <p className="text-xs text-brand-teal-100/55 mb-3 min-h-[2.5rem]">{t.description}</p>
+              <p className="text-xs text-brand-teal-100/55 mb-3 min-h-[2.5rem] flex-1">{t.description}</p>
               {t.value ? (
                 <img
                   src={qrImageUrl(t.value)}
@@ -210,7 +199,7 @@ export default function BookingWidgetPage() {
               )}
               {t.value ? (
                 <div className="mt-3 flex flex-col items-center gap-2">
-                  <p className="text-[10px] text-brand-teal-100/45 font-mono break-all line-clamp-2 px-1">
+                  <p className="text-[10px] text-brand-teal-100/45 font-mono break-all line-clamp-2 px-1 w-full">
                     {t.value}
                   </p>
                   <a
@@ -235,6 +224,6 @@ export default function BookingWidgetPage() {
           ))}
         </div>
       </section>
-    </div>
+    </BookingsSubpageLayout>
   )
 }

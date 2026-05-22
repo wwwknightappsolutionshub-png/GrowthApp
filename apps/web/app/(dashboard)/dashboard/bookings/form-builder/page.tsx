@@ -1,12 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { LayoutGrid } from 'lucide-react'
+import { LayoutGrid, Save } from 'lucide-react'
 import { bookings, auth, tenants } from '@/lib/api-client'
-import { TenantWelcomeHeader } from '@/components/dashboard/TenantWelcomeHeader'
+import { BookingsSubpageLayout } from '@/components/bookings/BookingsSubpageLayout'
 import { BookingFormBuilder, type FormSchema } from '@/components/bookings/BookingFormBuilder'
 import {
   DEFAULT_PUBLIC_BOOKING_SCHEMA,
@@ -59,58 +58,66 @@ export default function TenantBookingFormBuilderPage() {
   })
 
   return (
-    <div className="space-y-6 max-w-3xl">
-      <TenantWelcomeHeader
-        tenantName={tenant?.name}
-        userName={me?.full_name}
-        subtitle="Customise your public booking form (QR A)"
-      />
-      <Link href="/dashboard/bookings/widget" className="text-sm text-brand-teal-100/70 hover:text-white">
-        ← Widget & QR codes
-      </Link>
-
-      <div className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 p-6">
-        <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-1">
-          <LayoutGrid className="w-5 h-5 text-brand-teal-300" />
-          Form builder
-        </h2>
-        <p className="text-xs text-brand-teal-100/60 mb-4">
-          Category: <span className="text-brand-teal-200">{formData?.category ?? '…'}</span>
-          {formData?.is_tenant_override ? ' · customised' : ' · using platform default'}
-        </p>
-        {isLoading ? (
-          <p className="text-sm text-brand-teal-100/60">Loading…</p>
-        ) : (
-          <>
-            <p className="text-xs text-brand-teal-100/55 mb-3">
-              {schema.fields.length} field(s). Edit labels and types; add custom questions with{' '}
-              <strong className="text-brand-teal-200">Add field</strong>. Service/slot types stay
-              fixed so appointments work.
-            </p>
-            <BookingFormBuilder schema={schema} onChange={setSchema} />
-            <div className="mt-4 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={() => save.mutate()}
-                disabled={save.isPending || !schema.fields?.length}
-                className="px-4 py-2 rounded-lg bg-brand-teal-600 text-white text-sm font-semibold disabled:opacity-50"
-              >
-                {save.isPending ? 'Saving…' : 'Save booking form'}
-              </button>
-              {links?.booking_url ? (
-                <a
-                  href={links.booking_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-brand-teal-300 hover:text-white underline"
+    <BookingsSubpageLayout
+      tenantName={tenant?.name}
+      userName={me?.full_name}
+      subtitle="Customise your public booking form (QR — Book appointment)"
+      maxWidth="lg"
+    >
+      <div className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 p-6 sm:p-8">
+        <div className="max-w-2xl mx-auto w-full">
+          <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-1">
+            <LayoutGrid className="w-5 h-5 text-brand-teal-300" />
+            Form builder
+          </h2>
+          <p className="text-xs text-brand-teal-100/60 mb-1 text-center sm:text-left">
+            Category: <span className="text-brand-teal-200">{formData?.category ?? '…'}</span>
+            {formData?.is_tenant_override ? ' · customised' : ' · platform default'}
+          </p>
+          {isLoading ? (
+            <p className="text-sm text-brand-teal-100/60 text-center py-8">Loading form…</p>
+          ) : (
+            <>
+              <p className="text-sm text-brand-teal-100/65 mb-4 text-center sm:text-left">
+                Drag fields to reorder. Add custom questions with <strong className="text-brand-teal-200">Add field</strong>.
+                Service and slot types stay fixed so scheduling works.
+              </p>
+              <BookingFormBuilder schema={schema} onChange={setSchema} />
+              <div className="mt-6 flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3 pt-2 border-t border-brand-forest-800">
+                <button
+                  type="button"
+                  onClick={() => save.mutate()}
+                  disabled={save.isPending || !schema.fields?.length}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-brand-teal-600 hover:bg-brand-teal-500 text-white text-sm font-semibold disabled:opacity-50"
                 >
-                  Preview public form →
-                </a>
-              ) : null}
-            </div>
-          </>
-        )}
+                  <Save className="w-4 h-4" />
+                  {save.isPending ? 'Saving…' : 'Save booking form'}
+                </button>
+                {links?.booking_url ? (
+                  <a
+                    href={links.booking_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-brand-teal-300 hover:text-white underline"
+                  >
+                    Preview public form →
+                  </a>
+                ) : null}
+                {links?.referral_url ? (
+                  <a
+                    href={links.referral_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-brand-teal-300/80 hover:text-white underline"
+                  >
+                    Preview refer page →
+                  </a>
+                ) : null}
+              </div>
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </BookingsSubpageLayout>
   )
 }
