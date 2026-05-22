@@ -8,7 +8,7 @@ import { mergePublicBookingFields } from '@/lib/booking-form-defaults'
 import type { FormFieldDef, FormSchema } from './BookingFormBuilder'
 
 const fieldClass =
-  'w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm text-slate-900 focus:ring-2 focus:ring-emerald-600/30 focus:border-emerald-700'
+  'w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white text-slate-900 shadow-sm placeholder:text-slate-400 focus:ring-2 focus:ring-emerald-600/40 focus:border-emerald-600 [color-scheme:light] [&>option]:bg-white [&>option]:text-slate-900'
 
 const CORE_IDS = new Set([
   'customer_name',
@@ -108,7 +108,7 @@ export function DynamicPublicBookingForm({
   return (
     <div className="space-y-4">
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1">
+        <label className="block text-xs font-medium text-slate-700 mb-1">
           {labelFor(fieldsById, 'customer_name', 'Your name')} *
         </label>
         <input
@@ -120,7 +120,7 @@ export function DynamicPublicBookingForm({
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1">
+        <label className="block text-xs font-medium text-slate-700 mb-1">
           {labelFor(fieldsById, 'customer_email', 'Email')}
         </label>
         <input
@@ -132,7 +132,7 @@ export function DynamicPublicBookingForm({
       </div>
 
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1">
+        <label className="block text-xs font-medium text-slate-700 mb-1">
           {labelFor(fieldsById, 'customer_phone', 'Phone')}
         </label>
         <input
@@ -145,7 +145,7 @@ export function DynamicPublicBookingForm({
 
       {showService ? (
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">
+          <label className="block text-xs font-medium text-slate-700 mb-1">
             {labelFor(fieldsById, 'service_id', 'Service')}
           </label>
           <select
@@ -165,7 +165,7 @@ export function DynamicPublicBookingForm({
 
       {showSlotPicker ? (
         <div>
-          <label className="block text-xs font-medium text-slate-600 mb-1">
+          <label className="block text-xs font-medium text-slate-700 mb-1">
             {labelFor(fieldsById, 'slot_id', 'Available time')} *
           </label>
           <select
@@ -186,7 +186,7 @@ export function DynamicPublicBookingForm({
       {!hideManualDateTime ? (
         <>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="block text-xs font-medium text-slate-700 mb-1">
               {labelFor(fieldsById, 'booking_date', 'Preferred date')} *
             </label>
             <input
@@ -197,7 +197,7 @@ export function DynamicPublicBookingForm({
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="block text-xs font-medium text-slate-700 mb-1">
               {labelFor(fieldsById, 'start_time', 'Preferred time')} *
             </label>
             <input
@@ -211,7 +211,7 @@ export function DynamicPublicBookingForm({
       ) : null}
 
       <div>
-        <label className="block text-xs font-medium text-slate-600 mb-1">
+        <label className="block text-xs font-medium text-slate-700 mb-1">
           {labelFor(fieldsById, 'service_description', 'What do you need?')}
         </label>
         <textarea
@@ -231,7 +231,7 @@ export function DynamicPublicBookingForm({
         }
         return (
           <div key={f.id}>
-            <label className="block text-xs font-medium text-slate-600 mb-1">
+            <label className="block text-xs font-medium text-slate-700 mb-1">
               {f.label}
               {f.required ? ' *' : ''}
             </label>
