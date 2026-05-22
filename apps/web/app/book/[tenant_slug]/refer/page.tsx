@@ -52,16 +52,17 @@ export default function PublicReferPage() {
           </p>
         </div>
       ) : (
-        <p className="text-sm text-violet-900/80 bg-violet-50 border border-violet-100 rounded-lg px-3 py-2 mb-2">
-          Tell us about your referral — we&apos;ll add them to our pipeline as a new lead.
-        </p>
-        <form
-          className="space-y-4"
-          onSubmit={(e) => {
-            e.preventDefault()
-            submit.mutate()
-          }}
-        >
+        <>
+          <p className="text-sm text-violet-900/80 bg-violet-50 border border-violet-100 rounded-lg px-3 py-2 mb-2">
+            Tell us about your referral — we&apos;ll add them to our pipeline as a new lead.
+          </p>
+          <form
+            className="space-y-4"
+            onSubmit={(e) => {
+              e.preventDefault()
+              submit.mutate()
+            }}
+          >
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Your name *</label>
             <input
@@ -118,7 +119,8 @@ export default function PublicReferPage() {
           >
             {submit.isPending ? 'Sending…' : 'Submit referral'}
           </button>
-        </form>
+          </form>
+        </>
       )}
     </PublicBookShell>
   )
