@@ -4,7 +4,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.dependencies import CurrentTenantContext
 from app.modules.booking import service
-from app.modules.booking.schemas import BookingCreate, BookingUpdate, BookingResponse, BookingListResponse
+from app.modules.booking.schemas import (
+    BookingCreate,
+    BookingListResponse,
+    BookingResponse,
+    BookingUpdate,
+    UpcomingBookingsResponse,
+)
 from app.modules.booking.enterprise_router import router as enterprise_router
 
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
@@ -24,6 +30,16 @@ async def create_booking(data: BookingCreate, ctx: CurrentTenantContext, db: Asy
     return await service.create_booking(db, tenant.id, data)
 
 
+@router.get("/upcoming", response_model=UpcomingBookingsResponse)
+async def list_upcoming_bookings(
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+    limit: int = Query(20, ge=1, le=50),
+):
+    _, tenant, _ = ctx
+    return await service.list_upcoming_bookings(db, tenant.id, limit=limit)
+
+
 @router.get("/{booking_id}", response_model=BookingResponse)
 async def get_booking(booking_id: UUID, ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
     _, tenant, _ = ctx
@@ -32,5 +48,11 @@ async def get_booking(booking_id: UUID, ctx: CurrentTenantContext, db: AsyncSess
 
 @router.patch("/{booking_id}", response_model=BookingResponse)
 async def update_booking(booking_id: UUID, data: BookingUpdate, ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
-    _, tenant, _ = ctx
+    user, tenant, _ = ctx
     return await service.update_booking(db, tenant.id, booking_id, data)
+
+
+@router.delete("/{booking_id}", status_code=204)
+async def delete_booking(booking_id: UUID, ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+    user, tenant, _ = ctx
+    await service.delete_booking(db, tenant.id, booking_id, actor_user_id=user.id)

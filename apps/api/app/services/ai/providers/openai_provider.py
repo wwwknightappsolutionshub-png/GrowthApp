@@ -59,7 +59,8 @@ class OpenAIProvider(AIProvider):
             "timeout": timeout,
         }
         if max_tokens is not None:
-            kwargs["max_tokens"] = max_tokens
+            # gpt-4o / gpt-4o-mini reject legacy max_tokens on chat completions
+            kwargs["max_completion_tokens"] = max_tokens
         if tools:
             kwargs["tools"] = tools
             kwargs["tool_choice"] = "auto"
@@ -72,9 +73,19 @@ class OpenAIProvider(AIProvider):
         except APIStatusError as exc:
             # 5xx → transient; 4xx → permanent
             status = getattr(exc, "status_code", 0) or 0
+            body = getattr(exc, "body", None)
+            detail = f"openai HTTP {status}"
+            if isinstance(body, dict) and body.get("error"):
+                err = body["error"]
+                if isinstance(err, dict):
+                    detail = f"{detail}: {err.get('message', err)}"
+                else:
+                    detail = f"{detail}: {err}"
+            elif exc.message:
+                detail = f"{detail}: {exc.message}"
             if 500 <= status < 600:
-                raise TransientProviderError(f"openai 5xx: {exc!r}") from exc
-            raise PermanentProviderError(f"openai 4xx: {exc!r}") from exc
+                raise TransientProviderError(detail) from exc
+            raise PermanentProviderError(detail) from exc
         except APIError as exc:
             raise TransientProviderError(f"openai api: {exc!r}") from exc
 

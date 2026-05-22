@@ -19,6 +19,7 @@ import { formatDate } from '@/lib/utils'
 import { ModuleMetricCharts, type MetricSeries } from '@/components/modules/ModuleMetricCharts'
 import { ModuleCardGrid, type ModuleCardItem } from '@/components/modules/ModuleCardGrid'
 import { TenantWelcomeHeader } from '@/components/dashboard/TenantWelcomeHeader'
+import { UpcomingCountdown } from '@/components/bookings/UpcomingCountdown'
 
 type BookingRow = {
   id: string
@@ -142,6 +143,17 @@ export default function BookingsHubPage() {
 
       <ModuleCardGrid items={gridCards} />
 
+      <UpcomingCountdown />
+
+      <div className="flex justify-end">
+        <Link
+          href="/dashboard/bookings/new"
+          className="px-4 py-2 rounded-lg bg-brand-forest-700 text-white text-sm font-semibold hover:bg-brand-forest-600"
+        >
+          + New booking
+        </Link>
+      </div>
+
       <section className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <h2 className="text-sm font-bold text-white flex items-center gap-2">
@@ -230,12 +242,12 @@ export default function BookingsHubPage() {
           ) : (
             filtered.map((b) => (
               <li key={b.id} className="px-5 py-3 flex justify-between gap-4 hover:bg-brand-forest-900">
-                <div>
+                <Link href={`/dashboard/bookings/${b.id}`} className="min-w-0 flex-1">
                   <p className="font-semibold text-white text-sm">{b.customer_name}</p>
                   <p className="text-xs text-brand-teal-100/65 mt-0.5">
                     {formatDate(b.booking_date)} · {b.start_time?.slice(0, 5)}
                   </p>
-                </div>
+                </Link>
                 <span className="text-xs capitalize px-2 py-0.5 rounded-full bg-brand-forest-800 text-brand-teal-200 h-fit">
                   {b.status}
                 </span>

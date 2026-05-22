@@ -2,56 +2,68 @@
 
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
-import { bookings } from '@/lib/api-client'
+import { bookings, auth, tenants } from '@/lib/api-client'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Copy, LayoutGrid, QrCode } from 'lucide-react'
+import { TenantWelcomeHeader } from '@/components/dashboard/TenantWelcomeHeader'
 
 function qrImageUrl(data: string, size = 220) {
   return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}`
 }
 
 export default function BookingWidgetPage() {
-  const { data: linkData } = useQuery({
-    queryKey: ['bookings', 'link'],
-    queryFn: () => bookings.getLink().then((r) => r.data),
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => auth.me().then((r) => r.data as { full_name?: string }),
+  })
+  const { data: tenant } = useQuery({
+    queryKey: ['tenant'],
+    queryFn: () => tenants.get().then((r) => r.data as { name?: string }),
+  })
+  const { data: links } = useQuery({
+    queryKey: ['bookings', 'links'],
+    queryFn: () => bookings.getLinks().then((r) => r.data),
   })
 
-  const [copied, setCopied] = useState<'link' | 'embed' | null>(null)
-  const bookUrl = linkData?.url || ''
-  const slug = linkData?.slug || 'your-slug'
+  const [copied, setCopied] = useState<string | null>(null)
+  const bookUrl = links?.booking_url || ''
+  const slug = links?.slug || 'your-slug'
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   const embedCode = `<script src="${origin}/embed/booking-widget.js" data-tenant="${slug}" data-book-url="${bookUrl}"></script>`
 
   const qrTargets = useMemo(
     () => [
-      { id: 'booking', label: 'Public booking page', value: bookUrl },
-      { id: 'widget', label: 'Widget landing', value: bookUrl ? `${bookUrl}?embed=1` : '' },
-      { id: 'manage', label: 'Manage booking (token link pattern)', value: `${origin}/book/manage` },
+      { id: 'booking', label: 'Book appointment', description: 'Full booking form with services & slots', value: links?.booking_url ?? '' },
+      { id: 'referral', label: 'Refer a friend', description: 'Referral landing — share after service', value: links?.referral_url ?? '' },
+      { id: 'rate', label: 'Rate us (info)', description: 'Signage QR — actual rating via post-visit link', value: links?.rate_url ?? '' },
     ],
-    [bookUrl, origin],
+    [links],
   )
 
-  const copy = (text: string, kind: 'link' | 'embed') => {
+  const copy = (text: string, id: string) => {
     navigator.clipboard.writeText(text)
-    setCopied(kind)
+    setCopied(id)
     toast.success('Copied')
     setTimeout(() => setCopied(null), 2000)
   }
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <div className="flex items-center gap-3">
-        <Link href="/dashboard/bookings" className="text-sm text-brand-teal-100/70 hover:text-white">
-          ← Bookings
-        </Link>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <LayoutGrid className="w-6 h-6 text-brand-teal-300" />
-          Booking widget & QR codes
-        </h1>
-      </div>
+      <TenantWelcomeHeader
+        tenantName={tenant?.name}
+        userName={me?.full_name}
+        subtitle="Widget embed & QR codes for booking, referrals, and feedback"
+      />
+      <Link href="/dashboard/bookings" className="text-sm text-brand-teal-100/70 hover:text-white inline-block">
+        ← Bookings hub
+      </Link>
 
       <div className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 p-6 space-y-4">
+        <h2 className="text-lg font-bold text-white flex items-center gap-2">
+          <LayoutGrid className="w-5 h-5 text-brand-teal-300" />
+          Website embed
+        </h2>
         <div>
           <p className="text-sm text-brand-teal-100/70 mb-1">Public booking link</p>
           <p className="text-white font-mono text-sm break-all">{bookUrl || '…'}</p>
@@ -65,7 +77,7 @@ export default function BookingWidgetPage() {
           </button>
         </div>
         <div>
-          <p className="text-sm text-brand-teal-100/70 mb-2">Embed on your website</p>
+          <p className="text-sm text-brand-teal-100/70 mb-2">Embed snippet</p>
           <pre className="text-xs bg-brand-forest-900 p-4 rounded-lg overflow-x-auto text-brand-teal-100/90">
             {embedCode}
           </pre>
@@ -83,10 +95,10 @@ export default function BookingWidgetPage() {
       <section className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 p-6">
         <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-1">
           <QrCode className="w-5 h-5 text-brand-teal-300" />
-          Centralized QR codes
+          Three QR use cases
         </h2>
         <p className="text-sm text-brand-teal-100/65 mb-6">
-          Print or share these codes — customers scan to book without typing a URL.
+          Print or share — each code opens a distinct customer journey aligned with your operations.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {qrTargets.map((t) => (
@@ -94,7 +106,8 @@ export default function BookingWidgetPage() {
               key={t.id}
               className="rounded-xl border border-brand-forest-700 bg-brand-forest-900 p-4 text-center"
             >
-              <p className="text-sm font-semibold text-white mb-3">{t.label}</p>
+              <p className="text-sm font-semibold text-white mb-1">{t.label}</p>
+              <p className="text-xs text-brand-teal-100/55 mb-3 min-h-[2.5rem]">{t.description}</p>
               {t.value ? (
                 <img
                   src={qrImageUrl(t.value)}
@@ -105,16 +118,16 @@ export default function BookingWidgetPage() {
                 />
               ) : (
                 <div className="h-[200px] flex items-center justify-center text-xs text-brand-teal-100/50">
-                  Loading link…
+                  Loading…
                 </div>
               )}
               {t.value ? (
                 <button
                   type="button"
-                  onClick={() => copy(t.value, 'link')}
+                  onClick={() => copy(t.value, t.id)}
                   className="mt-3 text-xs text-brand-teal-300 hover:underline"
                 >
-                  Copy URL
+                  {copied === t.id ? 'Copied!' : 'Copy URL'}
                 </button>
               ) : null}
             </div>

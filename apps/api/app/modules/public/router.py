@@ -169,6 +169,25 @@ async def manage_public_booking(
     }
 
 
+@router.get("/booking/feedback/{token}")
+@limiter.limit("60/minute")
+async def get_public_feedback_form(token: str, request: Request, db: AsyncSession = Depends(get_db)):
+    from app.modules.booking.feedback import get_feedback_form
+
+    return await get_feedback_form(db, token)
+
+
+@router.post("/booking/feedback/{token}")
+@limiter.limit("20/minute")
+async def submit_public_feedback(token: str, request: Request, db: AsyncSession = Depends(get_db)):
+    from app.modules.booking.feedback import submit_feedback
+
+    body = await request.json()
+    rating = int(body.get("rating", 0))
+    feedback_text = body.get("feedback_text")
+    return await submit_feedback(db, token, rating=rating, feedback_text=feedback_text)
+
+
 @router.get("/booking/{tenant_slug}/ical.ics")
 async def public_booking_ical(tenant_slug: str, db: AsyncSession = Depends(get_db)):
     from app.modules.booking.public_service import get_public_ical

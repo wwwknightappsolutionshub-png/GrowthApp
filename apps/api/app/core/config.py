@@ -96,6 +96,13 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
 
+    @field_validator("OPENAI_API_KEY", mode="before")
+    @classmethod
+    def _strip_openai_api_key(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.strip().strip('"').strip("'")
+        return value
+
     # ── Hybrid AI router ─────────────────────────────────────────────────
     # Ordered list of providers the router will try, comma-separated.
     # First successful provider wins. e.g. "openai,anthropic,ollama".

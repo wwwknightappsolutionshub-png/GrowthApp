@@ -71,6 +71,19 @@ async def update_staff(
     return row
 
 
+async def delete_staff(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    staff_id: uuid.UUID,
+    *,
+    user_id: uuid.UUID | None = None,
+) -> None:
+    row = await _get_staff(db, tenant_id, staff_id)
+    await db.delete(row)
+    await log_action(db, "booking.staff.delete", "staff", staff_id, tenant_id=tenant_id, user_id=user_id)
+    await db.commit()
+
+
 async def _get_staff(db: AsyncSession, tenant_id: uuid.UUID, staff_id: uuid.UUID) -> Staff:
     row = (
         await db.execute(select(Staff).where(Staff.id == staff_id, Staff.tenant_id == tenant_id))

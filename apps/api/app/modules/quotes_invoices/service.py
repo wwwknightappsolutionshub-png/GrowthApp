@@ -252,3 +252,30 @@ async def record_invoice_paid(db: AsyncSession, tenant_id: uuid.UUID, invoice_id
 
     await on_invoice_paid(db, tenant_id=tenant_id, invoice_id=invoice_id)
     return inv
+
+
+async def delete_invoice(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    invoice_id: uuid.UUID,
+    *,
+    actor_user_id: uuid.UUID | None = None,
+) -> None:
+    """Hard-delete draft invoices only."""
+    from app.core.audit import log_action
+    from app.core.exceptions import BadRequestException
+
+    inv = await get_invoice(db, tenant_id, invoice_id)
+    if inv.status != "draft":
+        raise BadRequestException("Only draft invoices can be deleted. Void sent invoices instead.")
+    await log_action(
+        db,
+        action="invoice.deleted",
+        resource="invoice",
+        resource_id=invoice_id,
+        tenant_id=tenant_id,
+        user_id=actor_user_id,
+        metadata={"invoice_number": inv.invoice_number},
+    )
+    await db.delete(inv)
+    await db.commit()

@@ -28,6 +28,7 @@ import type { AxiosError } from 'axios'
 import { formatCurrency } from '@/lib/utils'
 import { ModuleCardGrid, type ModuleCardItem } from '@/components/modules/ModuleCardGrid'
 import { TenantWelcomeHeader } from '@/components/dashboard/TenantWelcomeHeader'
+import { AccountsInvoicesPanel } from '@/components/accounts/AccountsInvoicesPanel'
 import { auth, tenants } from '@/lib/api-client'
 
 type Dashboard = {
@@ -216,6 +217,10 @@ export function AccountsDashboard() {
           </div>
         </div>
       )}
+
+      <section className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 p-6">
+        <AccountsInvoicesPanel />
+      </section>
     </div>
   )
 }

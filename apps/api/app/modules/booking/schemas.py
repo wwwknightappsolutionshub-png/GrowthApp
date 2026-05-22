@@ -42,14 +42,21 @@ class BookingUpdate(BaseModel):
     notes: str | None = None
     booking_date: date | None = None
     start_time: time | None = None
+    slot_id: UUID | None = None
+    staff_id: UUID | None = None
+    service_id: UUID | None = None
     lead_status: str | None = None
     custom_fields: dict[str, Any] | None = None
+    notify_customer: bool = False
+    notify_channels: list[str] = Field(default_factory=lambda: ["email"])
 
 
 class BookingResponse(BaseModel):
     model_config = {"from_attributes": True}
     id: UUID
     tenant_id: UUID
+    customer_id: UUID | None = None
+    slot_id: UUID | None = None
     customer_name: str
     customer_email: str | None
     customer_phone: str | None
@@ -75,6 +82,24 @@ class BookingResponse(BaseModel):
     channel: str | None = None
     notes: str | None
     created_at: datetime
+    feedback_token: str | None = None
+    service_rating: int | None = None
+    feedback_submitted_at: datetime | None = None
+
+
+class UpcomingBookingItem(BaseModel):
+    id: UUID
+    customer_name: str
+    booking_date: date
+    start_time: time
+    status: str
+    seconds_until_start: int
+    hours_until_start: float
+
+
+class UpcomingBookingsResponse(BaseModel):
+    items: list[UpcomingBookingItem]
+    timezone: str
 
 
 class BookingListResponse(BaseModel):

@@ -61,6 +61,22 @@ async def create_booking(db: AsyncSession, tenant_id: uuid.UUID, data: BookingCr
 
     settings = await get_or_create_settings(db, tenant_id)
 
+    from app.modules.booking.crm_link import ensure_lead_for_booking, resolve_customer_for_booking
+
+    dump_pre = data.model_dump(exclude={"slot_id", "promo_code"}, exclude_none=False)
+    if not dump_pre.get("customer_id"):
+        resolved_cid = await resolve_customer_for_booking(
+            db,
+            tenant_id,
+            customer_id=None,
+            customer_name=data.customer_name,
+            customer_email=data.customer_email,
+            customer_phone=data.customer_phone,
+            channel=getattr(data, "channel", None),
+        )
+        if resolved_cid:
+            data = data.model_copy(update={"customer_id": resolved_cid})
+
     if data.slot_id:
         slot_result = await db.execute(
             select(AvailabilitySlot).where(
@@ -112,6 +128,29 @@ async def create_booking(db: AsyncSession, tenant_id: uuid.UUID, data: BookingCr
         status="pending" if deposit_required > 0 else "confirmed",
     )
     db.add(booking)
+
+    if booking.customer_email or booking.customer_phone:
+        await ensure_lead_for_booking(
+            db,
+            tenant_id,
+            customer_email=booking.customer_email,
+            customer_phone=booking.customer_phone,
+            customer_name=booking.customer_name,
+            channel=booking.channel,
+        )
+
+    from app.core.audit import log_action
+
+    await log_action(
+        db,
+        action="booking.created",
+        resource="booking",
+        resource_id=booking.id,
+        tenant_id=tenant_id,
+        user_id=None,
+        metadata={"channel": booking.channel, "customer_id": str(booking.customer_id) if booking.customer_id else None},
+    )
+
     await db.commit()
     await db.refresh(booking)
 
@@ -199,8 +238,25 @@ async def update_booking(
 
     b = await get_booking(db, tenant_id, booking_id)
     old_status = b.status
-    for field, value in data.model_dump(exclude_none=True).items():
+    old_date, old_time = b.booking_date, b.start_time
+    payload = data.model_dump(exclude_none=True)
+    notify_customer = payload.pop("notify_customer", False)
+    notify_channels = payload.pop("notify_channels", ["email"])
+    new_slot_id = payload.pop("slot_id", None)
+
+    if new_slot_id is not None:
+        if new_slot_id:
+            await _reserve_slot(db, tenant_id, new_slot_id, b)
+            b.slot_id = new_slot_id
+        else:
+            await _release_slot(db, tenant_id, b.slot_id)
+            b.slot_id = None
+
+    for field, value in payload.items():
         setattr(b, field, value)
+
+    if b.booking_date and b.start_time:
+        b.end_time = _calc_end_time(b.start_time, b.duration_minutes)
 
     if b.status == "cancelled" and old_status != "cancelled":
         await _release_slot(db, tenant_id, b.slot_id)
@@ -216,7 +272,160 @@ async def update_booking(
         from app.modules.referrals.service import on_booking_completed
 
         await on_booking_completed(db, tenant_id=tenant_id, booking=b)
+
+    if notify_customer and (b.booking_date != old_date or b.start_time != old_time):
+        await _notify_booking_schedule_change(
+            db, tenant_id, b, channels=notify_channels,
+        )
     return b
+
+
+async def delete_booking(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    booking_id: uuid.UUID,
+    *,
+    actor_user_id: uuid.UUID | None = None,
+) -> None:
+    """Hard-delete a booking and release its slot."""
+    from sqlalchemy import delete as sa_delete
+
+    from app.core.audit import log_action
+    from app.modules.booking.enterprise_models import BookingNotificationQueue
+
+    b = await get_booking(db, tenant_id, booking_id)
+    await _release_slot(db, tenant_id, b.slot_id)
+    await db.execute(
+        sa_delete(BookingNotificationQueue).where(
+            BookingNotificationQueue.booking_id == booking_id,
+        )
+    )
+    await log_action(
+        db,
+        action="booking.deleted",
+        resource="booking",
+        resource_id=booking_id,
+        tenant_id=tenant_id,
+        user_id=actor_user_id,
+        metadata={"customer_name": b.customer_name},
+    )
+    await db.delete(b)
+    await db.commit()
+
+
+async def list_upcoming_bookings(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    *,
+    limit: int = 20,
+) -> dict:
+    """Sessions starting in the future with countdown metadata."""
+    from app.modules.booking.enterprise.settings import get_or_create_settings
+
+    settings = await get_or_create_settings(db, tenant_id)
+    now = datetime.now(timezone.utc)
+    today = now.date()
+    now_t = now.time()
+
+    rows = (
+        await db.execute(
+            select(Booking)
+            .where(
+                Booking.tenant_id == tenant_id,
+                Booking.status.in_(("pending", "confirmed")),
+                Booking.booking_date >= today,
+            )
+            .order_by(Booking.booking_date, Booking.start_time)
+            .limit(limit * 3)
+        )
+    ).scalars().all()
+
+    items: list[dict] = []
+    for b in rows:
+        start_dt = datetime.combine(b.booking_date, b.start_time, tzinfo=timezone.utc)
+        if b.booking_date == today and b.start_time < now_t:
+            continue
+        delta = start_dt - now
+        if delta.total_seconds() <= 0:
+            continue
+        items.append({
+            "id": b.id,
+            "customer_name": b.customer_name,
+            "booking_date": b.booking_date,
+            "start_time": b.start_time,
+            "status": b.status,
+            "seconds_until_start": int(delta.total_seconds()),
+            "hours_until_start": round(delta.total_seconds() / 3600, 2),
+        })
+        if len(items) >= limit:
+            break
+
+    return {"items": items, "timezone": settings.timezone}
+
+
+async def _notify_booking_schedule_change(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    booking: Booking,
+    *,
+    channels: list[str],
+) -> None:
+    from app.adapters import get_email_adapter
+    from app.core.config import settings as app_settings
+    from app.modules.notifications.service import create_notification
+    from app.modules.tenants.models import Tenant
+    from app.templates.renderer import render_booking_reminder
+
+    tenant = (await db.execute(select(Tenant).where(Tenant.id == tenant_id))).scalar_one_or_none()
+    business_name = tenant.name if tenant else "Your provider"
+    manage_url = None
+    if booking.manage_token:
+        base = (app_settings.FRONTEND_URL or "http://localhost:3000").rstrip("/")
+        manage_url = f"{base}/book/manage/{booking.manage_token}"
+
+    detail = (
+        f"{booking.booking_date.isoformat()} at {booking.start_time.strftime('%H:%M')}"
+    )
+
+    if "email" in channels and booking.customer_email:
+        adapter = get_email_adapter()
+        html = render_booking_reminder(
+            customer_name=booking.customer_name,
+            business_name=business_name,
+            booking_date=booking.booking_date.isoformat(),
+            start_time=booking.start_time.strftime("%H:%M"),
+            window_label="rescheduled",
+            service_description=booking.service_description,
+            reschedule_url=manage_url,
+        )
+        await adapter.send(
+            to=booking.customer_email,
+            subject=f"Appointment rescheduled — {business_name}",
+            html=html,
+        )
+
+    if "in_app" in channels:
+        await create_notification(
+            db,
+            tenant_id=tenant_id,
+            user_id=None,
+            kind="booking.rescheduled",
+            title=f"Schedule updated — {booking.customer_name}",
+            body=f"Client notified of new time: {detail}",
+            link=f"/dashboard/bookings/{booking.id}",
+            extra={"booking_id": str(booking.id)},
+        )
+
+    await create_notification(
+        db,
+        tenant_id=tenant_id,
+        user_id=None,
+        kind="booking.upcoming",
+        title=f"Upcoming: {booking.customer_name}",
+        body=f"Session on {detail}",
+        link=f"/dashboard/bookings/{booking.id}",
+        extra={"booking_id": str(booking.id), "seconds_until_start": None},
+    )
 
 
 async def public_manage_booking(

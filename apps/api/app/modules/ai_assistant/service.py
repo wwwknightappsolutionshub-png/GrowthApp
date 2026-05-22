@@ -112,7 +112,7 @@ async def _ensure_thread_active(thread: AIAssistantThread) -> None:
         )
 
 
-async def _touch_thread_session(thread: AIAssistantThread) -> None:
+def _touch_thread_session(thread: AIAssistantThread) -> None:
     """Slide expiry forward on activity unless the user saved the thread."""
     if thread.saved_at is None:
         thread.expires_at = _thread_expires_at()

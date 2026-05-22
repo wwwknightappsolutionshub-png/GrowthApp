@@ -37,6 +37,7 @@ from app.modules.booking.enterprise_schemas import (
     BookingSettingsResponse,
     BookingSettingsUpdate,
     ClientReminderRequest,
+    FeedbackRequestBody,
     CalendarConnectionCreate,
     CalendarSyncResponse,
     SlotGenerateRequest,
@@ -88,6 +89,36 @@ async def send_booking_client_reminder(
 async def get_booking_link(ctx: CurrentTenantContext):
     _, tenant, _ = ctx
     return {"url": marketing.booking_link_for_tenant(tenant.slug), "slug": tenant.slug}
+
+
+@router.get("/links")
+async def get_booking_qr_links(ctx: CurrentTenantContext):
+    """Distinct public URLs for booking, referral, and rate-us QR codes."""
+    from app.modules.booking.feedback import refer_url_for_slug
+
+    _, tenant, _ = ctx
+    base_book = marketing.booking_link_for_tenant(tenant.slug)
+    return {
+        "slug": tenant.slug,
+        "booking_url": base_book,
+        "referral_url": refer_url_for_slug(tenant.slug),
+        "rate_url": f"{base_book.rstrip('/')}/rate",
+    }
+
+
+@router.post("/{booking_id}/request-feedback")
+async def request_booking_feedback(
+    booking_id: UUID,
+    body: FeedbackRequestBody,
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+):
+    from app.modules.booking.feedback import request_service_feedback
+
+    user, tenant, _ = ctx
+    return await request_service_feedback(
+        db, tenant.id, booking_id, channels=body.channels, actor_user_id=user.id
+    )
 
 
 # ── Services & resources ──────────────────────────────────────────────────────
@@ -153,6 +184,14 @@ async def update_booking_staff(
 ):
     _, tenant, _ = ctx
     return await staff_ops.update_staff(db, tenant.id, staff_id, body)
+
+
+@router.delete("/staff/{staff_id}", status_code=204)
+async def delete_booking_staff(
+    staff_id: UUID, ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)
+):
+    user, tenant, _ = ctx
+    await staff_ops.delete_staff(db, tenant.id, staff_id, user_id=user.id)
 
 
 @router.post("/staff/shifts", status_code=201)

@@ -21,20 +21,23 @@ from app.modules.leads.models import Lead
 from app.modules.quotes_invoices.models import Invoice, Quote
 from app.modules.tasks.models import Task
 
+
+def _tool_parameters(**properties: dict) -> dict:
+    """OpenAI requires object schemas to declare ``required`` (may be empty)."""
+    return {"type": "object", "properties": properties, "required": []}
+
+
 TOOL_SCHEMAS: list[dict] = [
     {
         "type": "function",
         "function": {
             "name": "list_recent_leads",
             "description": "List the most recently received leads (newest first). Use when the user asks about new enquiries.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "limit": {"type": "integer", "minimum": 1, "maximum": 25, "default": 10},
-                    "status": {"type": "string", "description": "Filter by lead status (new, contacted, qualified, …)"},
-                    "min_score": {"type": "integer", "description": "Only return leads with AI score >= this value"},
-                },
-            },
+            "parameters": _tool_parameters(
+                limit={"type": "integer", "minimum": 1, "maximum": 25, "default": 10},
+                status={"type": "string", "description": "Filter by lead status (new, contacted, qualified, …)"},
+                min_score={"type": "integer", "description": "Only return leads with AI score >= this value"},
+            ),
         },
     },
     {
@@ -42,7 +45,7 @@ TOOL_SCHEMAS: list[dict] = [
         "function": {
             "name": "pipeline_summary",
             "description": "Return a count + total value of deals per pipeline stage. Use when the user asks about the pipeline.",
-            "parameters": {"type": "object", "properties": {}},
+            "parameters": _tool_parameters(),
         },
     },
     {
@@ -50,12 +53,9 @@ TOOL_SCHEMAS: list[dict] = [
         "function": {
             "name": "overdue_tasks",
             "description": "List tasks whose due date has passed and that are not done.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "limit": {"type": "integer", "minimum": 1, "maximum": 25, "default": 10},
-                },
-            },
+            "parameters": _tool_parameters(
+                limit={"type": "integer", "minimum": 1, "maximum": 25, "default": 10},
+            ),
         },
     },
     {
@@ -75,13 +75,10 @@ TOOL_SCHEMAS: list[dict] = [
         "function": {
             "name": "outstanding_invoices",
             "description": "List unpaid invoices, optionally filtered to those overdue.",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "limit": {"type": "integer", "minimum": 1, "maximum": 25, "default": 10},
-                    "overdue_only": {"type": "boolean", "default": False},
-                },
-            },
+            "parameters": _tool_parameters(
+                limit={"type": "integer", "minimum": 1, "maximum": 25, "default": 10},
+                overdue_only={"type": "boolean", "default": False},
+            ),
         },
     },
 ]

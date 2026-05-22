@@ -380,6 +380,11 @@ export const bookings = {
   create: (data: object) => apiClient.post('/bookings', data),
   get: (id: string) => apiClient.get(`/bookings/${id}`),
   update: (id: string, data: object) => apiClient.patch(`/bookings/${id}`, data),
+  delete: (id: string) => apiClient.delete(`/bookings/${id}`),
+  upcoming: (limit?: number) => apiClient.get('/bookings/upcoming', { params: { limit } }),
+  getLinks: () => apiClient.get('/bookings/links'),
+  requestFeedback: (id: string, channels: string[]) =>
+    apiClient.post(`/bookings/${id}/request-feedback`, { channels }),
   getSettings: () => apiClient.get('/bookings/settings'),
   updateSettings: (data: object) => apiClient.patch('/bookings/settings', data),
   getLink: () => apiClient.get('/bookings/link'),
@@ -391,6 +396,7 @@ export const bookings = {
   listStaff: () => apiClient.get('/bookings/staff'),
   createStaff: (data: object) => apiClient.post('/bookings/staff', data),
   updateStaff: (id: string, data: object) => apiClient.patch(`/bookings/staff/${id}`, data),
+  deleteStaff: (id: string) => apiClient.delete(`/bookings/staff/${id}`),
   listShifts: (params?: object) => apiClient.get('/bookings/staff/shifts', { params }),
   createShift: (data: object) => apiClient.post('/bookings/staff/shifts', data),
   listBlackouts: () => apiClient.get('/bookings/staff/blackouts'),
@@ -429,6 +435,13 @@ export const invoices = {
   create: (data: object) => apiClient.post('/invoices', data),
   get: (id: string) => apiClient.get(`/invoices/${id}`),
   recordPayment: (id: string) => apiClient.post(`/invoices/${id}/record-payment`),
+  delete: (id: string) => apiClient.delete(`/invoices/${id}`),
+}
+
+export const publicFeedback = {
+  get: (token: string) => apiClient.get(`/public/booking/feedback/${token}`),
+  submit: (token: string, data: { rating: number; feedback_text?: string }) =>
+    apiClient.post(`/public/booking/feedback/${token}`, data),
 }
 
 export const automations = {

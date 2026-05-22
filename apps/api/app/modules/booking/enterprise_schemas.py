@@ -14,6 +14,10 @@ class ClientReminderRequest(BaseModel):
     channel: Literal["email", "sms"] = "email"
 
 
+class FeedbackRequestBody(BaseModel):
+    channels: list[Literal["email", "in_app"]] = Field(default_factory=lambda: ["email", "in_app"])
+
+
 class BookingSettingsUpdate(BaseModel):
     timezone: str | None = None
     default_duration_minutes: int | None = Field(None, ge=15, le=480)

@@ -118,6 +118,12 @@ class HybridAIRouter:
                     break
 
                 # Success
+                if response.provider == "mock" and fallback_depth > 0:
+                    logger.warning(
+                        "AI fell back to mock (purpose=%s); prior attempts=%s",
+                        purpose,
+                        attempts,
+                    )
                 logger.info(
                     "AI ok: purpose=%s provider=%s model=%s tokens=%s+%s cost=%spp lat=%sms fb=%s",
                     purpose, response.provider, response.model,
@@ -200,8 +206,14 @@ class HybridAIRouter:
 @lru_cache
 def get_ai_router() -> HybridAIRouter:
     """Build a router from the configured provider order. Cached per process."""
-    if settings.AI_PROVIDER == "mock":
+    # Legacy flag: mock-only when no cloud key is configured. If OPENAI_API_KEY is set,
+    # always build the hybrid chain so production isn't stuck on canned replies.
+    if settings.AI_PROVIDER == "mock" and not settings.OPENAI_API_KEY:
         return HybridAIRouter([MockAIProvider()])
+    if settings.AI_PROVIDER == "mock" and settings.OPENAI_API_KEY:
+        logger.info(
+            "AI_PROVIDER=mock ignored because OPENAI_API_KEY is set; using AI_PROVIDER_ORDER",
+        )
 
     providers: list[AIProvider] = []
     seen: set[str] = set()

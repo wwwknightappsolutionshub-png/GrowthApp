@@ -61,3 +61,9 @@ async def get_invoice(invoice_id: UUID, ctx: CurrentTenantContext, db: AsyncSess
 async def record_invoice_payment(invoice_id: UUID, ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
     _, tenant, _ = ctx
     return await service.record_invoice_paid(db, tenant.id, invoice_id)
+
+
+@router.delete("/invoices/{invoice_id}", status_code=204)
+async def delete_invoice(invoice_id: UUID, ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+    user, tenant, _ = ctx
+    await service.delete_invoice(db, tenant.id, invoice_id, actor_user_id=user.id)
