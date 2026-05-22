@@ -17,6 +17,11 @@ class CustomerCreate(BaseModel):
     requires_followup: bool = False
     followup_reminder_at: datetime | None = None
     special_comments: str | None = None
+    client_type: str = "individual"
+    business_name: str | None = None
+    upsell_date: datetime | None = None
+    special_event: str | None = None
+    needs_reminders: bool = False
 
 
 class CustomerUpdate(BaseModel):
@@ -32,6 +37,11 @@ class CustomerUpdate(BaseModel):
     requires_followup: bool | None = None
     followup_reminder_at: datetime | None = None
     special_comments: str | None = None
+    client_type: str | None = None
+    business_name: str | None = None
+    upsell_date: datetime | None = None
+    special_event: str | None = None
+    needs_reminders: bool | None = None
 
 
 class CustomerResponse(BaseModel):
@@ -51,6 +61,11 @@ class CustomerResponse(BaseModel):
     requires_followup: bool = False
     followup_reminder_at: datetime | None = None
     special_comments: str | None = None
+    client_type: str = "individual"
+    business_name: str | None = None
+    upsell_date: datetime | None = None
+    special_event: str | None = None
+    needs_reminders: bool = False
     created_at: datetime
 
 

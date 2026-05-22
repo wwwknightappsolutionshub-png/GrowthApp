@@ -65,6 +65,7 @@ const MARKETER_HREFS = [
 const ALL_HREFS = [
   '/dashboard', '/dashboard/assistant', '/dashboard/leads', '/dashboard/crm',
   '/dashboard/tasks', '/dashboard/bookings', '/dashboard/quotes', '/dashboard/invoices',
+  '/dashboard/accounts',
   '/dashboard/money', '/dashboard/messages', '/dashboard/whatsapp', '/dashboard/auto-replies',
   '/dashboard/outreach', '/dashboard/site-builder', '/dashboard/landing-pages', '/dashboard/ads', '/dashboard/seo',
   '/dashboard/automations', '/dashboard/reviews', '/dashboard/referrals', '/dashboard/notifications', '/dashboard/settings',
@@ -77,7 +78,7 @@ const CATEGORY_DEFAULTS: Record<string, string[]> = {
   tradesman: [
     '/dashboard', '/dashboard/leads', '/dashboard/crm',
     '/dashboard/tasks', '/dashboard/bookings', '/dashboard/quotes',
-    '/dashboard/invoices', '/dashboard/money',
+    '/dashboard/invoices', '/dashboard/accounts',
     '/dashboard/messages', '/dashboard/whatsapp', '/dashboard/auto-replies',
     '/dashboard/reviews', '/dashboard/referrals',
     '/dashboard/site-builder', '/dashboard/landing-pages', '/dashboard/outreach', '/dashboard/automations',
@@ -87,7 +88,7 @@ const CATEGORY_DEFAULTS: Record<string, string[]> = {
   ],
   salon_beauty: [
     '/dashboard', '/dashboard/leads', '/dashboard/crm',
-    '/dashboard/tasks', '/dashboard/bookings', '/dashboard/invoices', '/dashboard/money',
+    '/dashboard/tasks', '/dashboard/bookings', '/dashboard/invoices', '/dashboard/accounts',
     '/dashboard/messages', '/dashboard/whatsapp', '/dashboard/auto-replies',
     '/dashboard/outreach', '/dashboard/reviews', '/dashboard/referrals',
     '/dashboard/landing-pages', '/dashboard/automations',
@@ -97,7 +98,7 @@ const CATEGORY_DEFAULTS: Record<string, string[]> = {
   ],
   healthcare: [
     '/dashboard', '/dashboard/leads', '/dashboard/crm',
-    '/dashboard/tasks', '/dashboard/bookings', '/dashboard/invoices', '/dashboard/money',
+    '/dashboard/tasks', '/dashboard/bookings', '/dashboard/invoices', '/dashboard/accounts',
     '/dashboard/messages', '/dashboard/auto-replies',
     '/dashboard/reviews', '/dashboard/referrals',
     '/dashboard/landing-pages', '/dashboard/automations',
@@ -107,7 +108,7 @@ const CATEGORY_DEFAULTS: Record<string, string[]> = {
   ],
   restaurant_food: [
     '/dashboard', '/dashboard/leads', '/dashboard/crm',
-    '/dashboard/tasks', '/dashboard/bookings', '/dashboard/money',
+    '/dashboard/tasks', '/dashboard/bookings', '/dashboard/accounts',
     '/dashboard/messages', '/dashboard/whatsapp', '/dashboard/auto-replies',
     '/dashboard/outreach', '/dashboard/reviews', '/dashboard/referrals',
     '/dashboard/landing-pages', '/dashboard/ads', '/dashboard/seo',
@@ -118,7 +119,7 @@ const CATEGORY_DEFAULTS: Record<string, string[]> = {
   ],
   retail: [
     '/dashboard', '/dashboard/leads', '/dashboard/crm',
-    '/dashboard/tasks', '/dashboard/money',
+    '/dashboard/tasks', '/dashboard/accounts',
     '/dashboard/messages', '/dashboard/whatsapp', '/dashboard/auto-replies',
     '/dashboard/outreach', '/dashboard/reviews', '/dashboard/referrals',
     '/dashboard/landing-pages', '/dashboard/ads', '/dashboard/seo',
@@ -129,7 +130,7 @@ const CATEGORY_DEFAULTS: Record<string, string[]> = {
   ],
   fitness_wellness: [
     '/dashboard', '/dashboard/leads', '/dashboard/crm',
-    '/dashboard/tasks', '/dashboard/bookings', '/dashboard/invoices', '/dashboard/money',
+    '/dashboard/tasks', '/dashboard/bookings', '/dashboard/invoices', '/dashboard/accounts',
     '/dashboard/messages', '/dashboard/whatsapp', '/dashboard/auto-replies',
     '/dashboard/outreach', '/dashboard/reviews', '/dashboard/referrals',
     '/dashboard/landing-pages', '/dashboard/automations',
@@ -193,7 +194,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/bookings', label: 'Bookings', description: 'Schedule and manage appointments, jobs, and consultations',          icon: Calendar,       group: 'pipeline' },
   { href: '/dashboard/quotes',   label: 'Quotes',   description: 'Create, send, and track professional price quotes',                  icon: FileText,       group: 'pipeline' },
   { href: '/dashboard/invoices', label: 'Invoices', description: 'Issue invoices, record payments, and track outstanding balances',    icon: CreditCard,     group: 'pipeline' },
-  { href: '/dashboard/money',    label: 'Money',    description: 'Revenue overview, cash flow trends, and financial health',           icon: PoundSterling,  group: 'pipeline' },
+  { href: '/dashboard/accounts', label: 'Accounts', description: 'Cash in, pending, collections, and business reporting',              icon: PoundSterling,  group: 'pipeline' },
 
   // ── Engagement ────────────────────────────────────────────────────────────
   { href: '/dashboard/messages',     label: 'Messages',    description: 'SMS and email conversations with customers in one inbox',               icon: MessageSquare, group: 'engage' },
@@ -341,9 +342,11 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
     return CATEGORY_DEFAULTS.general
   }
   const enabledSet = new Set<string>(resolvedTools())
+  if (enabledSet.has('/dashboard/money')) enabledSet.add('/dashboard/accounts')
 
   // Hide the "Clients" entry for non-freelancers (it's freelancer-only).
   const visibleItems = navItems
+    .filter((item) => item.href !== '/dashboard/money')
     .filter((item) => enabledSet.has(item.href))
     .filter((item) => (item.href === '/dashboard/clients' ? isFreelancer : true))
 

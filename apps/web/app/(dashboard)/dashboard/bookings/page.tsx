@@ -1,158 +1,256 @@
 'use client'
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { bookings } from '@/lib/api-client'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import Link from 'next/link'
+import { useQuery } from '@tanstack/react-query'
+import {
+  BarChart3,
+  Bell,
+  Calendar,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  LayoutGrid,
+  Settings,
+  Users,
+} from 'lucide-react'
+import { bookings, auth, tenants } from '@/lib/api-client'
 import { formatDate } from '@/lib/utils'
-import { toast } from 'sonner'
-import { Calendar, Clock, User } from 'lucide-react'
+import { ModuleMetricCharts, type MetricSeries } from '@/components/modules/ModuleMetricCharts'
+import { ModuleCardGrid, type ModuleCardItem } from '@/components/modules/ModuleCardGrid'
+import { TenantWelcomeHeader } from '@/components/dashboard/TenantWelcomeHeader'
 
-const STATUS_COLORS: Record<string, string> = {
-  confirmed: 'bg-green-50 text-green-700',
-  pending: 'bg-yellow-50 text-yellow-700',
-  cancelled: 'bg-red-50 text-red-700',
-  completed: 'bg-teal-50 text-teal-700',
-  no_show: 'bg-orange-50 text-orange-700',
+type BookingRow = {
+  id: string
+  customer_name: string
+  booking_date: string
+  start_time: string
+  status: string
 }
 
-export default function BookingsPage() {
-  const [page, setPage] = useState(1)
-  const qc = useQueryClient()
+export default function BookingsHubPage() {
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [calMonth, setCalMonth] = useState(() => new Date())
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['bookings', { page }],
-    queryFn: () => bookings.list({ page, page_size: 25 }).then(r => r.data),
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => auth.me().then((r) => r.data as { full_name?: string }),
+  })
+  const { data: tenant } = useQuery({
+    queryKey: ['tenant'],
+    queryFn: () => tenants.get().then((r) => r.data as { name?: string }),
+  })
+  const { data: analytics } = useQuery({
+    queryKey: ['bookings', 'analytics', 30],
+    queryFn: () => bookings.getAnalytics({ days: 30 }).then((r) => r.data),
+  })
+  const { data: listData } = useQuery({
+    queryKey: ['bookings', 'hub-list'],
+    queryFn: () => bookings.list({ page: 1, page_size: 200 }).then((r) => r.data),
   })
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
-      bookings.update(id, { status }),
-    onSuccess: () => {
-      toast.success('Booking updated')
-      qc.invalidateQueries({ queryKey: ['bookings'] })
+  const items: BookingRow[] = listData?.items ?? []
+  const today = new Date().toISOString().slice(0, 10)
+
+  const upcoming = items.filter(
+    (b) => ['confirmed', 'pending'].includes(b.status) && b.booking_date >= today
+  ).length
+  const completed = items.filter((b) => b.status === 'completed').length
+  const missed = items.filter((b) => ['no_show', 'cancelled'].includes(b.status)).length
+  const bookedSessions = analytics?.total_bookings ?? items.length
+
+  const chartData: MetricSeries[] = [
+    { name: 'This week', booked: bookedSessions, upcoming, completed, missed },
+    {
+      name: 'Rates',
+      booked: analytics?.confirmed ?? 0,
+      upcoming: Math.round(analytics?.utilization_rate ?? 0),
+      completed: analytics?.completed ?? 0,
+      missed: analytics?.no_show ?? 0,
     },
-    onError: () => toast.error('Failed to update booking'),
-  })
+  ]
+
+  const filtered = useMemo(() => {
+    if (statusFilter === 'all') return items
+    return items.filter((b) => b.status === statusFilter)
+  }, [items, statusFilter])
+
+  const gridCards: ModuleCardItem[] = [
+    {
+      title: 'Booking widget',
+      description: 'Embed the public booking form on your site or landing page.',
+      href: '/dashboard/bookings/widget',
+      icon: LayoutGrid,
+    },
+    {
+      title: 'Staff',
+      description: 'Manage team members, shifts, and availability.',
+      href: '/dashboard/bookings/staff',
+      icon: Users,
+    },
+    {
+      title: 'Analytics',
+      description: 'Deep dive into utilisation, channels, and revenue.',
+      href: '/dashboard/bookings/analytics',
+      icon: BarChart3,
+    },
+    {
+      title: 'Booking reminders',
+      description: 'Automated SMS/email reminders for customers and your team.',
+      href: '/dashboard/bookings/settings',
+      icon: Bell,
+      badge: 'Settings',
+    },
+    {
+      title: 'Services & packages',
+      description: 'Catalogue, pricing, and enterprise booking rules.',
+      href: '/dashboard/bookings/settings',
+      icon: Settings,
+    },
+    {
+      title: 'Reports',
+      description: 'Export booking performance and filter by date range.',
+      href: '/dashboard/bookings/analytics',
+      icon: Filter,
+    },
+  ]
+
+  const year = calMonth.getFullYear()
+  const month = calMonth.getMonth()
+  const firstDay = new Date(year, month, 1)
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const startPad = firstDay.getDay()
+  const bookingsByDate = useMemo(() => {
+    const m: Record<string, BookingRow[]> = {}
+    for (const b of items) {
+      const d = b.booking_date?.slice(0, 10)
+      if (!d) continue
+      m[d] = m[d] ?? []
+      m[d].push(b)
+    }
+    return m
+  }, [items])
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Bookings</h1>
-          <p className="text-muted-foreground text-sm">Manage your confirmed appointments</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <a href="/dashboard/bookings/widget" className="text-xs px-3 py-1.5 rounded-lg border border-brand-forest-700 text-brand-teal-100/80 hover:bg-brand-forest-900">Widget</a>
-          <a href="/dashboard/bookings/staff" className="text-xs px-3 py-1.5 rounded-lg border border-brand-forest-700 text-brand-teal-100/80 hover:bg-brand-forest-900">Staff</a>
-          <a href="/dashboard/bookings/analytics" className="text-xs px-3 py-1.5 rounded-lg border border-brand-forest-700 text-brand-teal-100/80 hover:bg-brand-forest-900">Analytics</a>
-          <a href="/dashboard/bookings/settings" className="text-xs px-3 py-1.5 rounded-lg border border-brand-forest-700 text-brand-teal-100/80 hover:bg-brand-forest-900">Settings</a>
-          <span className="text-sm text-muted-foreground">{data?.total ?? 0} total</span>
-        </div>
-      </div>
+      <TenantWelcomeHeader
+        tenantName={tenant?.name}
+        userName={me?.full_name}
+        subtitle="Bookings — sessions, staff, reminders, and calendar"
+      />
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="animate-spin w-8 h-8 border-4 border-brand-forest-700 border-t-transparent rounded-full" />
+      <ModuleMetricCharts
+        title="Booking analytics"
+        subtitle="Booked sessions, upcoming, completed, and missed"
+        data={chartData}
+        seriesKeys={['booked', 'upcoming', 'completed', 'missed']}
+      />
+
+      <ModuleCardGrid items={gridCards} />
+
+      <section className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <h2 className="text-sm font-bold text-white flex items-center gap-2">
+            <CalendarDays className="w-4 h-4 text-brand-teal-300" />
+            Calendar & availability
+          </h2>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCalMonth(new Date(year, month - 1, 1))}
+              className="p-2 rounded-lg border border-brand-forest-700 text-brand-teal-100/80 hover:bg-brand-forest-900"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-sm font-semibold text-white min-w-[140px] text-center">
+              {calMonth.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
+            </span>
+            <button
+              type="button"
+              onClick={() => setCalMonth(new Date(year, month + 1, 1))}
+              className="p-2 rounded-lg border border-brand-forest-700 text-brand-teal-100/80 hover:bg-brand-forest-900"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
-      ) : (
-        <div className="grid gap-4">
-          {data?.items?.length === 0 && (
-            <div className="rounded-xl border border-brand-forest-800 bg-brand-forest-950 p-12 text-center text-brand-teal-100/60">
-              <Calendar className="w-10 h-10 mx-auto mb-3 text-brand-teal-300/70" />
-              <p className="font-medium">No bookings yet</p>
-              <p className="text-sm mt-1">Bookings created via your pipeline or public booking form will appear here</p>
-            </div>
-          )}
-          {data?.items?.map((booking: any) => (
-            <div key={booking.id} className="rounded-xl border border-brand-forest-800 bg-brand-forest-950 p-5 shadow-sm">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_COLORS[booking.status] || 'bg-gray-100 text-muted-foreground'}`}>
-                      {booking.status}
-                    </span>
-                    {booking.deposit_required_pence > 0 && (
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${booking.deposit_paid_pence >= booking.deposit_required_pence ? 'bg-green-50 text-green-700' : 'bg-orange-50 text-orange-700'}`}>
-                        Deposit {booking.deposit_paid_pence >= booking.deposit_required_pence ? 'paid' : 'unpaid'}
-                      </span>
-                    )}
-                  </div>
-                  <p className="font-semibold text-white">{booking.customer_name}</p>
-                  {booking.service_description && (
-                    <p className="text-sm text-brand-teal-100/70 mt-0.5">{booking.service_description}</p>
-                  )}
-                  <div className="flex items-center gap-4 mt-3 text-sm text-brand-teal-100/70">
-                    <span className="flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5" />
-                      {booking.booking_date}
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <Clock className="w-3.5 h-3.5" />
-                      {booking.start_time}
-                    </span>
-                    {(booking.customer_phone || booking.customer_email) && (
-                      <span className="flex items-center gap-1.5">
-                        <User className="w-3.5 h-3.5" />
-                        {booking.customer_phone || booking.customer_email}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  {booking.status === 'confirmed' && (
-                    <button
-                      onClick={() => updateMutation.mutate({ id: booking.id, status: 'completed' })}
-                      disabled={updateMutation.isPending}
-                      className="text-xs bg-brand-forest-700 text-brand-forest-foreground px-3 py-1.5 rounded-lg hover:bg-brand-forest-800 disabled:opacity-50"
-                    >
-                      Mark Complete
-                    </button>
-                  )}
-                  {booking.status === 'confirmed' && (
-                    <>
-                      <button
-                        onClick={() => updateMutation.mutate({ id: booking.id, status: 'no_show' })}
-                        disabled={updateMutation.isPending}
-                        className="text-xs border border-orange-200 text-orange-600 px-3 py-1.5 rounded-lg hover:bg-orange-50 disabled:opacity-50"
-                      >
-                        No-show
-                      </button>
-                      <button
-                        onClick={() => updateMutation.mutate({ id: booking.id, status: 'cancelled' })}
-                        disabled={updateMutation.isPending}
-                        className="text-xs border border-red-200 text-red-600 px-3 py-1.5 rounded-lg hover:bg-red-50 disabled:opacity-50"
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
+        <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase text-brand-teal-100/50 mb-2">
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
+            <div key={d}>{d}</div>
           ))}
         </div>
-      )}
-
-      {/* Pagination */}
-      {data && data.total > 25 && (
-        <div className="flex items-center justify-center gap-3">
-          <button
-            onClick={() => setPage(p => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="px-4 py-2 text-sm border border-brand-forest-700 rounded-lg disabled:opacity-40 hover:bg-brand-forest-900"
-          >
-            Previous
-          </button>
-          <span className="text-sm text-muted-foreground">Page {page}</span>
-          <button
-            onClick={() => setPage(p => p + 1)}
-            disabled={data.items.length < 25}
-            className="px-4 py-2 text-sm border border-brand-forest-700 rounded-lg disabled:opacity-40 hover:bg-brand-forest-900"
-          >
-            Next
-          </button>
+        <div className="grid grid-cols-7 gap-1">
+          {Array.from({ length: startPad }).map((_, i) => (
+            <div key={`pad-${i}`} className="min-h-[72px]" />
+          ))}
+          {Array.from({ length: daysInMonth }).map((_, i) => {
+            const day = i + 1
+            const key = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+            const dayBookings = bookingsByDate[key] ?? []
+            return (
+              <div
+                key={key}
+                className={`min-h-[72px] rounded-lg border p-1 text-left ${
+                  dayBookings.length
+                    ? 'border-brand-teal-400/40 bg-brand-forest-900'
+                    : 'border-brand-forest-800 bg-brand-forest-950/50'
+                }`}
+              >
+                <span className="text-xs font-semibold text-white">{day}</span>
+                {dayBookings.slice(0, 2).map((b) => (
+                  <p key={b.id} className="text-[9px] text-brand-teal-100/70 truncate mt-0.5">
+                    {b.start_time?.slice(0, 5)} {b.customer_name}
+                  </p>
+                ))}
+                {dayBookings.length > 2 ? (
+                  <p className="text-[9px] text-brand-teal-300">+{dayBookings.length - 2}</p>
+                ) : null}
+              </div>
+            )
+          })}
         </div>
-      )}
+      </section>
+
+      <section className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 overflow-hidden">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-brand-forest-800">
+          <h2 className="text-sm font-bold text-white flex items-center gap-2">
+            <Calendar className="w-4 h-4" />
+            All bookings
+          </h2>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-lg border border-brand-forest-700 bg-brand-forest-900 px-3 py-1.5 text-sm text-white"
+          >
+            <option value="all">All statuses</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="pending">Pending</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+            <option value="no_show">No show</option>
+          </select>
+        </div>
+        <ul className="divide-y divide-brand-forest-800 max-h-[420px] overflow-y-auto">
+          {filtered.length === 0 ? (
+            <li className="px-5 py-12 text-center text-sm text-brand-teal-100/60">No bookings match this filter.</li>
+          ) : (
+            filtered.map((b) => (
+              <li key={b.id} className="px-5 py-3 flex justify-between gap-4 hover:bg-brand-forest-900">
+                <div>
+                  <p className="font-semibold text-white text-sm">{b.customer_name}</p>
+                  <p className="text-xs text-brand-teal-100/65 mt-0.5">
+                    {formatDate(b.booking_date)} · {b.start_time?.slice(0, 5)}
+                  </p>
+                </div>
+                <span className="text-xs capitalize px-2 py-0.5 rounded-full bg-brand-forest-800 text-brand-teal-200 h-fit">
+                  {b.status}
+                </span>
+              </li>
+            ))
+          )}
+        </ul>
+      </section>
     </div>
   )
 }

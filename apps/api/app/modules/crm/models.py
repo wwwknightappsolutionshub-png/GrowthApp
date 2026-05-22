@@ -26,6 +26,11 @@ class Customer(Base):
     requires_followup: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
     followup_reminder_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     special_comments: Mapped[str | None] = mapped_column(Text, nullable=True)
+    client_type: Mapped[str] = mapped_column(String(20), nullable=False, default="individual", server_default="individual")
+    business_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    upsell_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    special_event: Mapped[str | None] = mapped_column(Text, nullable=True)
+    needs_reminders: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, server_default="false")
     assigned_user_id: Mapped[uuid.UUID | None] = mapped_column(
         UUIDType, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )

@@ -9,6 +9,7 @@ import { TopBar } from '@/components/layout/TopBar'
 import { CommandPalette } from '@/components/search/CommandPalette'
 import { PageTransition } from '@/components/layout/PageTransition'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { LandingPageExitIntent } from '@/components/dashboard/LandingPagePrompt'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
@@ -97,6 +98,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </main>
         </div>
         <CommandPalette />
+        <LandingPageExitIntent />
       </div>
     </TooltipProvider>
   )

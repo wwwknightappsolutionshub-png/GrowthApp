@@ -2,10 +2,13 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Bot, Plus, Send, Sparkles, User } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
-import { aiAssistant } from '@/lib/api-client'
+import { useSearchParams } from 'next/navigation'
+import { aiAssistant, auth } from '@/lib/api-client'
+import { firstName, greetingPhrase } from '@/lib/greeting'
+import { CRM_EDUCATOR_PROMPTS, GROWTH_TOPIC_PROMPTS, type GrowthTopic } from '@/lib/assistant-prompts'
 
 type Thread = {
   id: string
@@ -28,12 +31,11 @@ type Message = {
   created_at: string
 }
 
-const SUGGESTED_PROMPTS = [
-  'Show me my hottest leads this week',
-  "What's stuck in my pipeline?",
-  'Which invoices are overdue?',
-  'Draft a follow-up message for my newest lead',
-  'How many tasks am I overdue on?',
+const GROWTH_TOPICS: { key: GrowthTopic; label: string; description: string }[] = [
+  { key: 'lead_generation', label: 'Lead generation', description: 'Landing page, ads, referrals' },
+  { key: 'lead_conversion', label: 'Lead conversion', description: 'Pipeline & follow-ups' },
+  { key: 'retargeting', label: 'Retargeting', description: 'Win back cold contacts' },
+  { key: 'retention', label: 'Retention', description: 'Repeat bookings & nurture' },
 ]
 
 function ThreadList({
@@ -132,10 +134,19 @@ function MessageBubble({ message }: { message: Message }) {
   )
 }
 
-function ChatView({ threadId }: { threadId: string | null }) {
+function ChatView({
+  threadId,
+  userName,
+  onSendTopic,
+}: {
+  threadId: string | null
+  userName: string
+  onSendTopic: (text: string) => void
+}) {
   const qc = useQueryClient()
   const [input, setInput] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
+  const greet = greetingPhrase()
 
   const { data: messages, isLoading } = useQuery<Message[]>({
     queryKey: ['assistant-messages', threadId],
@@ -168,13 +179,13 @@ function ChatView({ threadId }: { threadId: string | null }) {
 
   if (!threadId) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-brand-forest-950">
-        <div className="text-center max-w-md px-6">
+      <div className="flex-1 flex items-center justify-center bg-brand-forest-950 p-6">
+        <div className="text-center max-w-lg">
           <Sparkles className="w-10 h-10 text-brand-teal-300 mx-auto" />
-          <h2 className="mt-3 text-lg font-bold text-white">CustomerFlow AI Assistant</h2>
+          <p className="text-xs font-bold uppercase tracking-widest text-brand-teal-300/90 mt-4">{greet}</p>
+          <h2 className="mt-2 text-xl font-bold text-white">Hi {firstName(userName)} — let&apos;s grow your business</h2>
           <p className="mt-2 text-sm text-brand-teal-100/70">
-            Ask anything about your pipeline, leads, invoices or tasks. The assistant can read your
-            data and suggest next actions.
+            Start a conversation to get guidance on leads, conversion, retargeting, and retention.
           </p>
         </div>
       </div>
@@ -192,18 +203,26 @@ function ChatView({ threadId }: { threadId: string | null }) {
           </div>
         )}
         {!isLoading && list.length === 0 && (
-          <div className="max-w-2xl mx-auto py-6">
-            <p className="text-sm text-brand-teal-100/70 mb-3">Try one of these to get started:</p>
+          <div className="max-w-2xl mx-auto py-6 space-y-4">
+            <div className="rounded-2xl border border-brand-teal-400/30 bg-brand-forest-900 p-4">
+              <p className="text-xs font-bold uppercase tracking-widest text-brand-teal-300">{greet}</p>
+              <p className="text-base font-semibold text-white mt-1">
+                {firstName(userName)}, I&apos;m here to help you win more leads and keep clients longer.
+              </p>
+              <p className="text-sm text-brand-teal-100/70 mt-2">
+                Pick a focus below — I&apos;ll suggest practical next steps using your CustomerFlow data.
+              </p>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {SUGGESTED_PROMPTS.map((p) => (
+              {GROWTH_TOPICS.map((t) => (
                 <button
-                  key={p}
-                  onClick={() => {
-                    setInput(p)
-                  }}
-                  className="text-left text-sm px-3 py-2 rounded-lg border border-brand-forest-700 bg-brand-forest-900 text-brand-teal-50 hover:border-brand-teal-300 hover:bg-brand-forest-800 transition-colors"
+                  key={t.key}
+                  type="button"
+                  onClick={() => onSendTopic(GROWTH_TOPIC_PROMPTS[t.key])}
+                  className="text-left text-sm px-3 py-3 rounded-xl border border-brand-forest-700 bg-brand-forest-900 text-brand-teal-50 hover:border-brand-teal-300 hover:bg-brand-forest-800 transition-colors"
                 >
-                  {p}
+                  <span className="font-semibold text-white block">{t.label}</span>
+                  <span className="text-xs text-brand-teal-100/60">{t.description}</span>
                 </button>
               ))}
             </div>
@@ -260,9 +279,17 @@ function ChatView({ threadId }: { threadId: string | null }) {
   )
 }
 
-export default function AssistantPage() {
+function AssistantPageInner() {
   const qc = useQueryClient()
+  const searchParams = useSearchParams()
+  const focus = searchParams.get('focus')
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [started, setStarted] = useState(false)
+
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => auth.me().then((r) => r.data as { full_name?: string }),
+  })
 
   const { data: threads } = useQuery<Thread[]>({
     queryKey: ['assistant-threads'],
@@ -270,13 +297,33 @@ export default function AssistantPage() {
   })
 
   const createMutation = useMutation({
-    mutationFn: () => aiAssistant.createThread().then((r) => r.data),
+    mutationFn: (title?: string) => aiAssistant.createThread(title).then((r) => r.data),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['assistant-threads'] })
       setActiveId(data.id)
+      return data
     },
-    onError: () => toast.error('Failed to create thread'),
+    onError: () => toast.error('Failed to create conversation'),
   })
+
+  const sendMutation = useMutation({
+    mutationFn: ({ threadId, content }: { threadId: string; content: string }) =>
+      aiAssistant.sendMessage(threadId, content).then((r) => r.data),
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['assistant-messages', vars.threadId] })
+      qc.invalidateQueries({ queryKey: ['assistant-threads'] })
+    },
+    onError: () => toast.error('Failed to send message'),
+  })
+
+  const startConversation = async (prompt?: string) => {
+    const title = focus === 'crm' ? 'CRM coach' : 'Growth assistant'
+    const thread = await createMutation.mutateAsync(title)
+    if (prompt && thread?.id) {
+      await sendMutation.mutateAsync({ threadId: thread.id, content: prompt })
+    }
+    setStarted(true)
+  }
 
   useEffect(() => {
     if (!activeId && threads && threads.length > 0) {
@@ -284,15 +331,55 @@ export default function AssistantPage() {
     }
   }, [activeId, threads])
 
+  useEffect(() => {
+    if (threads === undefined || started || activeId) return
+    if (threads.length === 0 && !createMutation.isPending) {
+      setStarted(true)
+      if (focus === 'crm') {
+        startConversation(CRM_EDUCATOR_PROMPTS.pipeline)
+      } else {
+        startConversation('Growth assistant')
+      }
+    }
+  }, [threads, started, activeId, focus])
+
+  const userName = me?.full_name ?? ''
+
+  const handleTopic = async (text: string) => {
+    if (!activeId) {
+      await startConversation(text)
+      return
+    }
+    await sendMutation.mutateAsync({ threadId: activeId, content: text })
+  }
+
   return (
     <div className="-m-4 flex h-[calc(100dvh-4rem)] min-h-[620px] flex-col bg-brand-forest-950 sm:-m-6 lg:flex-row">
       <ThreadList
         threads={threads ?? []}
         activeId={activeId}
         onSelect={setActiveId}
-        onCreate={() => createMutation.mutate()}
+        onCreate={() => startConversation()}
       />
-      <ChatView threadId={activeId} />
+      <ChatView
+        threadId={activeId}
+        userName={userName}
+        onSendTopic={handleTopic}
+      />
     </div>
+  )
+}
+
+export default function AssistantPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-20 bg-brand-forest-950">
+          <div className="animate-spin w-8 h-8 border-4 border-brand-teal-400 border-t-transparent rounded-full" />
+        </div>
+      }
+    >
+      <AssistantPageInner />
+    </Suspense>
   )
 }

@@ -28,6 +28,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
+import { TenantWelcomeHeader } from '@/components/dashboard/TenantWelcomeHeader'
+import { CrossModuleCharts } from '@/components/dashboard/CrossModuleCharts'
+import { LandingPagePromptBanner } from '@/components/dashboard/LandingPagePrompt'
+import { tenants } from '@/lib/api-client'
 
 type RbacMe = { role: string; permissions: string[] }
 type MeForDashboard = { user_type?: 'tenant' | 'freelancer'; full_name?: string }
@@ -72,6 +76,14 @@ export default function DashboardPage() {
 /* ── Owner / Admin dashboard ─────────────────────────────────────────────── */
 
 function OwnerDashboard({ role }: { role: string }) {
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => auth.me().then((r) => r.data as { full_name?: string }),
+  })
+  const { data: tenant } = useQuery({
+    queryKey: ['tenant'],
+    queryFn: () => tenants.get().then((r) => r.data as { name?: string }),
+  })
   const { data: repData } = useQuery({
     queryKey: ['reputation-dashboard'],
     queryFn: () => reputation.dashboard().then((r) => r.data),
@@ -97,15 +109,19 @@ function OwnerDashboard({ role }: { role: string }) {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-end justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Owner dashboard</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            The whole business at a glance. You can drill into anything you see.
-          </p>
+      <div className="flex items-end justify-between flex-wrap gap-3">
+        <div className="flex-1 min-w-0">
+          <TenantWelcomeHeader
+            tenantName={tenant?.name}
+            userName={me?.full_name}
+          />
         </div>
-        <Badge variant="secondary" className="capitalize">{role}</Badge>
-      </header>
+        <Badge variant="secondary" className="capitalize shrink-0">{role}</Badge>
+      </div>
+
+      <LandingPagePromptBanner />
+
+      <CrossModuleCharts />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -222,7 +238,7 @@ function OwnerDashboard({ role }: { role: string }) {
 
       <QuickActions
         items={[
-          { href: '/dashboard/money', label: 'Money intelligence', desc: 'Revenue, cashflow, upsells', tone: 'success' },
+          { href: '/dashboard/accounts', label: 'Accounts', desc: 'Revenue, cashflow, collections', tone: 'success' },
           { href: '/dashboard/crm/board', label: 'Pipeline', desc: 'Manage your deals', tone: 'info' },
           { href: '/dashboard/settings/usage', label: 'AI usage', desc: 'Track AI spend & quota', tone: 'primary' },
         ]}

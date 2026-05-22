@@ -28,6 +28,11 @@ interface Customer {
   address: string | null
   postcode: string | null
   notes: string | null
+  client_type?: string
+  business_name?: string | null
+  upsell_date?: string | null
+  special_event?: string | null
+  needs_reminders?: boolean
   first_visit_date: string | null
   next_visit_date: string | null
   requires_followup: boolean
@@ -56,6 +61,8 @@ function CustomerForm({
 }) {
   const editing = !!customer
   const [form, setForm] = useState({
+    client_type: customer?.client_type ?? 'individual',
+    business_name: customer?.business_name ?? '',
     first_name: customer?.first_name ?? '',
     last_name: customer?.last_name ?? '',
     email: customer?.email ?? '',
@@ -65,11 +72,16 @@ function CustomerForm({
     first_visit_date: customer?.first_visit_date ? customer.first_visit_date.slice(0, 10) : '',
     next_visit_date: customer?.next_visit_date ? customer.next_visit_date.slice(0, 10) : '',
     requires_followup: customer?.requires_followup ?? false,
+    needs_reminders: customer?.needs_reminders ?? false,
     followup_reminder_at: customer?.followup_reminder_at
       ? customer.followup_reminder_at.slice(0, 16)
       : '',
+    upsell_date: customer?.upsell_date ? customer.upsell_date.slice(0, 10) : '',
     special_comments: customer?.special_comments ?? '',
+    special_event: customer?.special_event ?? '',
     notes: customer?.notes ?? '',
+    custom_field_label: '',
+    custom_field_value: '',
   })
 
   const qc = useQueryClient()
@@ -98,15 +110,39 @@ function CustomerForm({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-      <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-border bg-card shadow-2xl">
+      <div className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-border bg-card shadow-2xl">
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
-          <h2 className="text-base font-semibold">{editing ? 'Edit Customer' : 'Add Customer'}</h2>
+          <h2 className="text-base font-semibold">
+            {editing ? 'Edit customer' : 'Add customer'}
+            <span className="block text-xs font-normal text-muted-foreground mt-0.5">Enterprise profile</span>
+          </h2>
           <button type="button" onClick={onClose}>
             <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="space-y-4 p-6">
+        <div className="space-y-6 p-6">
           <div className="grid grid-cols-2 gap-4">
+            <div className="col-span-2 sm:col-span-1">
+              <label className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">Client type</label>
+              <select
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                value={form.client_type}
+                onChange={(e) => setForm((p) => ({ ...p, client_type: e.target.value }))}
+              >
+                <option value="individual">Individual</option>
+                <option value="business">Business</option>
+              </select>
+            </div>
+            {form.client_type === 'business' ? (
+              <div className="col-span-2 sm:col-span-1">
+                <label className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">Business name</label>
+                <input
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                  value={form.business_name}
+                  onChange={(e) => setForm((p) => ({ ...p, business_name: e.target.value }))}
+                />
+              </div>
+            ) : null}
             {(['first_name', 'last_name', 'email', 'phone', 'address', 'postcode'] as const).map((k) => (
               <div key={k}>
                 <label className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">
@@ -114,11 +150,117 @@ function CustomerForm({
                 </label>
                 <input
                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
-                  value={String(form[k])}
+                  value={String(form[k as keyof typeof form] ?? '')}
                   onChange={(e) => setForm((p) => ({ ...p, [k]: e.target.value }))}
                 />
               </div>
             ))}
+          </div>
+          <div className="grid grid-cols-2 gap-4 border-t border-border pt-4">
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">Joining date</label>
+              <p className="text-sm text-muted-foreground py-2">
+                {customer?.created_at ? fmt(customer.created_at) : 'Set on save'}
+              </p>
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">First visit</label>
+              <input
+                type="date"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                value={form.first_visit_date}
+                onChange={(e) => setForm((p) => ({ ...p, first_visit_date: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">Next visit</label>
+              <input
+                type="date"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                value={form.next_visit_date}
+                onChange={(e) => setForm((p) => ({ ...p, next_visit_date: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">Upsell date</label>
+              <input
+                type="date"
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                value={form.upsell_date}
+                onChange={(e) => setForm((p) => ({ ...p, upsell_date: e.target.value }))}
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-6 border-t border-border pt-4">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.requires_followup}
+                onChange={(e) => setForm((p) => ({ ...p, requires_followup: e.target.checked }))}
+              />
+              Need follow-up
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.needs_reminders}
+                onChange={(e) => setForm((p) => ({ ...p, needs_reminders: e.target.checked }))}
+              />
+              Need reminders
+            </label>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">Reminder at</label>
+            <input
+              type="datetime-local"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              value={form.followup_reminder_at}
+              onChange={(e) => setForm((p) => ({ ...p, followup_reminder_at: e.target.value }))}
+            />
+          </div>
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">Special comment</label>
+              <textarea
+                rows={2}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                value={form.special_comments}
+                onChange={(e) => setForm((p) => ({ ...p, special_comments: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">Special event</label>
+              <input
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                value={form.special_event}
+                onChange={(e) => setForm((p) => ({ ...p, special_event: e.target.value }))}
+                placeholder="Birthday, renewal, anniversary…"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">Contract / notes</label>
+              <textarea
+                rows={2}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                value={form.notes}
+                onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
+              />
+            </div>
+          </div>
+          <div className="rounded-xl border border-dashed border-border p-4 grid grid-cols-2 gap-3">
+            <p className="col-span-2 text-xs font-semibold text-muted-foreground uppercase">Add custom field</p>
+            <input
+              placeholder="Field label"
+              className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              value={form.custom_field_label}
+              onChange={(e) => setForm((p) => ({ ...p, custom_field_label: e.target.value }))}
+            />
+            <input
+              placeholder="Value"
+              className="rounded-lg border border-border bg-background px-3 py-2 text-sm"
+              value={form.custom_field_value}
+              onChange={(e) => setForm((p) => ({ ...p, custom_field_value: e.target.value }))}
+            />
           </div>
           <button
             type="button"
