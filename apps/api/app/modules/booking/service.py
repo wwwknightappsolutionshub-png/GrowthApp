@@ -99,9 +99,10 @@ async def create_booking(db: AsyncSession, tenant_id: uuid.UUID, data: BookingCr
 
     dump = data.model_dump(exclude={"slot_id", "promo_code"})
     duration = dump.pop("duration_minutes", None) or settings.default_duration_minutes
+    timezone = dump.pop("timezone", None) or settings.timezone
     end_time = _calc_end_time(dump.get("start_time"), duration)
 
-    deposit_required = dump.get("deposit_required_pence") or 0
+    deposit_required = dump.pop("deposit_required_pence", None) or 0
     if settings.deposit_enabled and deposit_required == 0:
         deposit_required = settings.default_deposit_pence
 
@@ -120,7 +121,7 @@ async def create_booking(db: AsyncSession, tenant_id: uuid.UUID, data: BookingCr
         slot_id=data.slot_id,
         duration_minutes=duration,
         end_time=end_time,
-        timezone=dump.get("timezone") or settings.timezone,
+        timezone=timezone,
         deposit_required_pence=deposit_required,
         service_fee_pence=service_fee,
         no_show_fee_pence=settings.no_show_fee_pence,
