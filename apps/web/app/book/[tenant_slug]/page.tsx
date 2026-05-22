@@ -7,6 +7,6 @@ type Props = {
 
 export default async function PublicBookPage({ params }: Props) {
   const { tenant_slug: slug } = await params
-  const initialWidget = await fetchPublicBookingWidget(slug)
-  return <PublicBookClient slug={slug} initialWidget={initialWidget} />
+  const { widget, status } = await fetchPublicBookingWidget(slug)
+  return <PublicBookClient slug={slug} initialWidget={widget} loadStatus={status} />
 }

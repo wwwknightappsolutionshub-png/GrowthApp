@@ -11,7 +11,13 @@ export type PublicWidgetPayload = {
   error?: string
 }
 
-function apiBase(): string | null {
+export type PublicWidgetLoadResult = {
+  widget: PublicWidgetPayload | null
+  /** ok = tenant found; not_found = inactive/unknown slug; error = network/5xx; skipped = no INTERNAL_API_URL */
+  status: 'ok' | 'not_found' | 'error' | 'skipped'
+}
+
+export function publicApiBase(): string | null {
   return (
     process.env.INTERNAL_API_URL ||
     process.env.API_PROXY_TARGET ||
@@ -19,16 +25,27 @@ function apiBase(): string | null {
   )
 }
 
-export async function fetchPublicBookingWidget(slug: string): Promise<PublicWidgetPayload | null> {
-  const base = apiBase()
-  if (!base || !slug) return null
+export async function fetchPublicBookingWidget(slug: string): Promise<PublicWidgetLoadResult> {
+  const base = publicApiBase()
+  if (!base || !slug) {
+    return { widget: null, status: 'skipped' }
+  }
   try {
     const res = await fetch(`${base}/api/v1/public/booking/${encodeURIComponent(slug)}/widget`, {
       cache: 'no-store',
     })
-    if (!res.ok) return null
-    return (await res.json()) as PublicWidgetPayload
+    if (res.status === 404) {
+      return { widget: null, status: 'not_found' }
+    }
+    if (!res.ok) {
+      return { widget: null, status: 'error' }
+    }
+    const widget = (await res.json()) as PublicWidgetPayload
+    if (widget?.error === 'not_found' || (!widget?.tenant_slug && !widget?.tenant_name)) {
+      return { widget: null, status: 'not_found' }
+    }
+    return { widget, status: 'ok' }
   } catch {
-    return null
+    return { widget: null, status: 'error' }
   }
 }
