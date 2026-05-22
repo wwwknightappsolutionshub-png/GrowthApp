@@ -8,6 +8,7 @@ import { LayoutGrid } from 'lucide-react'
 import { bookings, auth, tenants } from '@/lib/api-client'
 import { TenantWelcomeHeader } from '@/components/dashboard/TenantWelcomeHeader'
 import { BookingFormBuilder, type FormSchema } from '@/components/bookings/BookingFormBuilder'
+import { resolvePublicBookingSchema } from '@/lib/booking-form-defaults'
 
 export default function TenantBookingFormBuilderPage() {
   const qc = useQueryClient()
@@ -28,14 +29,22 @@ export default function TenantBookingFormBuilderPage() {
   })
 
   useEffect(() => {
-    if (formData?.schema) setSchema(formData.schema as FormSchema)
+    if (formData?.schema) {
+      setSchema(resolvePublicBookingSchema(formData.schema as FormSchema))
+    }
   }, [formData])
 
   const save = useMutation({
-    mutationFn: () => bookings.updateForm({ schema }),
+    mutationFn: () => {
+      if (!schema.fields?.length) {
+        return Promise.reject(new Error('Form must include at least one field'))
+      }
+      return bookings.updateForm({ schema })
+    },
     onSuccess: () => {
       toast.success('Booking form saved')
       qc.invalidateQueries({ queryKey: ['bookings', 'form'] })
+      qc.invalidateQueries({ queryKey: ['bookings', 'links'] })
     },
     onError: (e: { response?: { data?: { detail?: string } } }) =>
       toast.error(e.response?.data?.detail ?? 'Save failed'),
@@ -69,7 +78,7 @@ export default function TenantBookingFormBuilderPage() {
             <button
               type="button"
               onClick={() => save.mutate()}
-              disabled={save.isPending}
+              disabled={save.isPending || !schema.fields?.length}
               className="mt-4 px-4 py-2 rounded-lg bg-brand-forest-700 text-white text-sm font-semibold disabled:opacity-50"
             >
               Save booking form

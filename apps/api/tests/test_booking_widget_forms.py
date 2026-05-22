@@ -9,11 +9,18 @@ from app.modules.booking.form_builder import (
     BOOKING_CATEGORIES,
     default_schema_for_category,
     ensure_booking_form_schema,
+    extract_schema_payload,
     merge_form_schemas,
     _validate_schema,
     map_submission_to_booking,
 )
 from app.modules.booking.refer_win import ReferWinSubmitBody
+
+
+def test_extract_schema_payload_accepts_wrapped_schema():
+    inner = default_schema_for_category("general")
+    wrapped = extract_schema_payload({"schema": inner, "name": "x"})
+    assert len(wrapped["fields"]) >= 3
 
 
 def test_ensure_booking_form_schema_fills_empty():

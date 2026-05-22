@@ -50,3 +50,33 @@ export function resolvePublicBookingSchema(raw: BookingFormPayload | null | unde
   }
   return DEFAULT_PUBLIC_BOOKING_SCHEMA
 }
+
+/** Read booking form JSON from widget API (supports legacy/alternate keys). */
+export function extractBookingFormFromWidget(
+  widget: Record<string, unknown> | null | undefined,
+): BookingFormPayload | undefined {
+  if (!widget) return undefined
+  const direct = widget.booking_form ?? widget.bookingForm
+  if (direct && typeof direct === 'object' && !Array.isArray(direct)) {
+    return direct as BookingFormPayload
+  }
+  const nested = widget.schema ?? widget.form_schema
+  if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+    return nested as BookingFormPayload
+  }
+  return undefined
+}
+
+/** Merge tenant/category fields onto platform defaults so core inputs always render. */
+export function mergePublicBookingFields(schema: FormSchema): FormSchema['fields'] {
+  const byId = new Map<string, FormSchema['fields'][number]>()
+  for (const f of DEFAULT_PUBLIC_BOOKING_SCHEMA.fields) {
+    byId.set(f.id, { ...f })
+  }
+  for (const f of schema.fields || []) {
+    if (!f?.id) continue
+    const prev = byId.get(f.id)
+    byId.set(f.id, prev ? { ...prev, ...f } : f)
+  }
+  return Array.from(byId.values()).sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+}

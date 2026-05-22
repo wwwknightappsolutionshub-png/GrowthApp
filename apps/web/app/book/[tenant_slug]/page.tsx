@@ -4,7 +4,10 @@ import { useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { publicBooking } from '@/lib/api-client'
-import { resolvePublicBookingSchema, type BookingFormPayload } from '@/lib/booking-form-defaults'
+import {
+  extractBookingFormFromWidget,
+  resolvePublicBookingSchema,
+} from '@/lib/booking-form-defaults'
 import { toast } from 'sonner'
 import { PublicBookShell } from '@/components/bookings/PublicBookShell'
 import { DynamicPublicBookingForm } from '@/components/bookings/DynamicPublicBookingForm'
@@ -13,7 +16,6 @@ type WidgetConfig = {
   tenant_slug?: string
   tenant_name?: string
   widget_primary_color?: string
-  booking_form?: BookingFormPayload
   services?: { id: string; name: string; duration_minutes?: number; deposit_pence?: number }[]
   deposit_enabled?: boolean
   default_deposit_pence?: number
@@ -60,8 +62,8 @@ export default function PublicBookPage() {
 
   const accent = widget?.widget_primary_color || '#166534'
   const schema = useMemo(
-    () => resolvePublicBookingSchema(widget?.booking_form),
-    [widget?.booking_form],
+    () => resolvePublicBookingSchema(extractBookingFormFromWidget(widget as Record<string, unknown>)),
+    [widget],
   )
 
   const errDetail =

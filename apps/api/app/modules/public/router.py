@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -98,7 +98,11 @@ async def get_booking_widget_config(tenant_slug: str, request: Request, db: Asyn
     tenant = result.scalar_one_or_none()
     if not tenant:
         raise NotFoundException("Tenant")
-    return await get_widget_config(db, tenant)
+    payload = await get_widget_config(db, tenant)
+    return JSONResponse(
+        content=payload.model_dump(mode="json"),
+        headers={"Cache-Control": "no-store, no-cache, must-revalidate"},
+    )
 
 
 @router.get("/booking/{tenant_slug}/availability")

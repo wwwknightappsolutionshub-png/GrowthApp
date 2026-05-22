@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { publicBooking } from '@/lib/api-client'
 import { formatCurrency } from '@/lib/utils'
+import { mergePublicBookingFields } from '@/lib/booking-form-defaults'
 import type { FormFieldDef, FormSchema } from './BookingFormBuilder'
 
 const fieldClass =
@@ -35,10 +36,7 @@ export function DynamicPublicBookingForm({
 }: Props) {
   const [values, setValues] = useState<Record<string, string>>({})
 
-  const fields = useMemo(
-    () => [...(schema.fields || [])].sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
-    [schema],
-  )
+  const fields = useMemo(() => mergePublicBookingFields(schema), [schema])
 
   const serviceId = values.service_id || ''
   const { data: availability } = useQuery({
@@ -139,8 +137,9 @@ export function DynamicPublicBookingForm({
           }
           return null
         }
-        if (f.id === 'booking_date' && values.slot_id) return null
-        if (f.id === 'start_time' && values.slot_id) return null
+        if ((f.id === 'booking_date' || f.id === 'start_time') && String(values.slot_id || '').trim()) {
+          return null
+        }
 
         const common = {
           className: fieldClass,

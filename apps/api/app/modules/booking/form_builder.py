@@ -326,6 +326,18 @@ async def upsert_template(
     return row
 
 
+def extract_schema_payload(raw: dict[str, Any]) -> dict[str, Any]:
+    """Accept PUT body {schema:{...}} or a bare {version, fields} object."""
+    if not isinstance(raw, dict):
+        raise ValueError("Form schema must be an object")
+    if isinstance(raw.get("fields"), list):
+        return raw
+    nested = raw.get("schema") or raw.get("form_schema")
+    if isinstance(nested, dict):
+        return nested
+    raise ValueError("Form schema must include a fields array")
+
+
 async def update_tenant_form_override(
     db: AsyncSession,
     tenant_id: uuid.UUID,
@@ -336,7 +348,11 @@ async def update_tenant_form_override(
     from app.modules.booking.enterprise.settings import update_settings
     from app.modules.booking.enterprise_schemas import BookingSettingsUpdate
 
-    validated = _validate_schema(override) if override.get("fields") else {"version": 1, "fields": []}
+    payload = extract_schema_payload(override)
+    fields = payload.get("fields")
+    if not isinstance(fields, list) or len(fields) == 0:
+        raise ValueError("Add at least one form field before saving")
+    validated = _validate_schema(payload)
     await update_settings(
         db,
         tenant_id,

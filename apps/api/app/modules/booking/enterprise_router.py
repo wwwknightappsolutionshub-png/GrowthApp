@@ -129,18 +129,25 @@ async def get_tenant_booking_form(ctx: CurrentTenantContext, db: AsyncSession = 
 
 @router.put("/form", response_model=BookingFormSchemaResponse)
 async def update_tenant_booking_form(
-    body: BookingFormTemplateUpdate,
+    request: Request,
     ctx: CurrentTenantContext,
     db: AsyncSession = Depends(get_db),
 ):
     from app.core.exceptions import BadRequestException
     from app.modules.admin.tool_config import classifyBusiness_py
-    from app.modules.booking.form_builder import update_tenant_form_override
+    from app.modules.booking.form_builder import extract_schema_payload, update_tenant_form_override
 
     user, tenant, _ = ctx
+    raw = await request.json()
+    if not isinstance(raw, dict):
+        raise BadRequestException("Invalid JSON body")
+    try:
+        schema_in = extract_schema_payload(raw)
+    except ValueError as exc:
+        raise BadRequestException(str(exc)) from exc
     try:
         schema = await update_tenant_form_override(
-            db, tenant.id, body.form_schema, user_id=user.id
+            db, tenant.id, schema_in, user_id=user.id
         )
     except ValueError as exc:
         raise BadRequestException(str(exc)) from exc
