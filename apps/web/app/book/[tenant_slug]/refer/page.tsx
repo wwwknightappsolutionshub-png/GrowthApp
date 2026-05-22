@@ -42,7 +42,7 @@ export default function PublicReferPage() {
   const name = widget?.tenant_name || 'Our business'
 
   return (
-    <PublicBookShell tenantName={name} subtitle="Refer & Win" accent={accent}>
+    <PublicBookShell variant="refer" tenantName={name} subtitle="Refer a friend and earn rewards" accent={accent}>
       {done ? (
         <div className="text-center space-y-3 py-4">
           <Gift className="w-12 h-12 mx-auto text-emerald-700" />
@@ -52,6 +52,9 @@ export default function PublicReferPage() {
           </p>
         </div>
       ) : (
+        <p className="text-sm text-violet-900/80 bg-violet-50 border border-violet-100 rounded-lg px-3 py-2 mb-2">
+          Tell us about your referral — we&apos;ll add them to our pipeline as a new lead.
+        </p>
         <form
           className="space-y-4"
           onSubmit={(e) => {

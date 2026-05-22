@@ -75,3 +75,17 @@ def test_refer_win_body_validation():
 def test_booking_categories_list():
     assert "tradesman" in BOOKING_CATEGORIES
     assert "general" in BOOKING_CATEGORIES
+
+
+@pytest.mark.asyncio
+async def test_normalize_public_booking_requires_datetime(db_session):
+    import uuid as _uuid
+
+    from app.modules.booking.form_builder import normalize_public_booking_payload
+
+    with pytest.raises(ValueError, match="time"):
+        await normalize_public_booking_payload(
+            db_session,
+            _uuid.uuid4(),
+            {"customer_name": "Jane", "customer_email": "j@example.com"},
+        )

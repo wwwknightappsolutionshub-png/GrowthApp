@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { bookings, auth, tenants } from '@/lib/api-client'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { Copy, LayoutGrid, QrCode } from 'lucide-react'
+import { Copy, ExternalLink, LayoutGrid, Pencil, QrCode } from 'lucide-react'
 import { TenantWelcomeHeader } from '@/components/dashboard/TenantWelcomeHeader'
 
 function qrImageUrl(data: string, size = 220) {
@@ -76,9 +76,10 @@ export default function BookingWidgetPage() {
         </Link>
         <Link
           href="/dashboard/bookings/form-builder"
-          className="text-sm text-brand-teal-300 hover:text-white font-medium"
+          className="inline-flex items-center gap-1.5 text-sm text-brand-teal-300 hover:text-white font-medium"
         >
-          Edit booking form (QR A) →
+          <Pencil className="w-3.5 h-3.5" />
+          Booking form builder (QR A)
         </Link>
       </div>
 
@@ -145,13 +146,27 @@ export default function BookingWidgetPage() {
                 </div>
               )}
               {t.value ? (
-                <button
-                  type="button"
-                  onClick={() => copy(t.value, t.id)}
-                  className="mt-3 text-xs text-brand-teal-300 hover:underline"
-                >
-                  {copied === t.id ? 'Copied!' : 'Copy URL'}
-                </button>
+                <div className="mt-3 flex flex-col items-center gap-2">
+                  <p className="text-[10px] text-brand-teal-100/45 font-mono break-all line-clamp-2 px-1">
+                    {t.value}
+                  </p>
+                  <a
+                    href={t.value}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-white bg-brand-forest-700 hover:bg-brand-forest-600 px-3 py-1.5 rounded-lg"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    Open preview
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => copy(t.value, t.id)}
+                    className="text-xs text-brand-teal-300 hover:underline"
+                  >
+                    {copied === t.id ? 'Copied!' : 'Copy URL'}
+                  </button>
+                </div>
               ) : null}
             </div>
           ))}

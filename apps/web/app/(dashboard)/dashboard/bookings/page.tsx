@@ -79,8 +79,14 @@ export default function BookingsHubPage() {
   const gridCards: ModuleCardItem[] = [
     {
       title: 'Booking widget',
-      description: 'Embed the public booking form on your site or landing page.',
+      description: 'Three QR codes: book, refer & win, and Google review links.',
       href: '/dashboard/bookings/widget',
+      icon: LayoutGrid,
+    },
+    {
+      title: 'Booking form builder',
+      description: 'Customise fields on your public booking page (QR A).',
+      href: '/dashboard/bookings/form-builder',
       icon: LayoutGrid,
     },
     {

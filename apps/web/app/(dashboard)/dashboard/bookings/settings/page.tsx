@@ -123,11 +123,17 @@ export default function BookingSettingsPage() {
 
   return (
     <div className="space-y-6 max-w-3xl">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Link href="/dashboard/bookings" className="text-sm text-brand-teal-100/70 hover:text-white">
           ← Bookings
         </Link>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+        <Link href="/dashboard/bookings/widget" className="text-sm text-brand-teal-300 hover:text-white">
+          Widget & QR codes
+        </Link>
+        <Link href="/dashboard/bookings/form-builder" className="text-sm text-brand-teal-300 hover:text-white">
+          Form builder
+        </Link>
+        <h1 className="text-2xl font-bold text-white flex items-center gap-2 w-full sm:w-auto">
           <Bell className="w-6 h-6 text-brand-teal-300" />
           Client reminder management
         </h1>

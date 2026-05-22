@@ -186,6 +186,76 @@ async def resolve_tenant_booking_form(
     return merge_form_schemas(base, override if isinstance(override, dict) else None)
 
 
+async def normalize_public_booking_payload(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    body: dict[str, Any],
+) -> dict[str, Any]:
+    """Coerce widget submissions into PublicBookingCreate-compatible fields."""
+    from datetime import date as date_type
+
+    from app.modules.booking.models import AvailabilitySlot
+
+    out: dict[str, Any] = {}
+    for key, value in body.items():
+        if value is None or value == "":
+            continue
+        out[key] = value
+
+    slot_raw = out.get("slot_id")
+    if slot_raw:
+        try:
+            slot_uuid = uuid.UUID(str(slot_raw))
+        except ValueError:
+            out.pop("slot_id", None)
+        else:
+            slot = (
+                await db.execute(
+                    select(AvailabilitySlot).where(
+                        AvailabilitySlot.id == slot_uuid,
+                        AvailabilitySlot.tenant_id == tenant_id,
+                    )
+                )
+            ).scalar_one_or_none()
+            if not slot:
+                raise ValueError("Selected time slot is no longer available")
+            if slot.is_booked:
+                raise ValueError("This slot is already booked")
+            out["booking_date"] = slot.slot_date.isoformat()
+            out["start_time"] = slot.start_time.strftime("%H:%M:%S")
+            out["slot_id"] = str(slot.id)
+            if slot.staff_id and not out.get("staff_id"):
+                out["staff_id"] = str(slot.staff_id)
+            if slot.service_id and not out.get("service_id"):
+                out["service_id"] = str(slot.service_id)
+
+    for key in ("service_id", "staff_id", "location_id", "resource_id"):
+        if key not in out:
+            continue
+        try:
+            out[key] = str(uuid.UUID(str(out[key])))
+        except ValueError:
+            out.pop(key, None)
+
+    st = out.get("start_time")
+    if isinstance(st, str) and len(st) == 5 and ":" in st:
+        out["start_time"] = f"{st}:00"
+
+    bd = out.get("booking_date")
+    if isinstance(bd, str) and bd:
+        try:
+            date_type.fromisoformat(bd[:10])
+        except ValueError as exc:
+            raise ValueError("Invalid booking date") from exc
+
+    if not out.get("customer_name", "").strip():
+        raise ValueError("Your name is required")
+    if not out.get("booking_date") or not out.get("start_time"):
+        raise ValueError("Please select an available time or enter a preferred date and time")
+
+    return out
+
+
 def map_submission_to_booking(
     payload: dict[str, Any], schema: dict[str, Any]
 ) -> tuple[dict[str, Any], dict[str, Any]]:

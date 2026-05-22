@@ -51,6 +51,7 @@ const NAV_GROUPS = [
       { href: '/admin', label: 'Dashboard', icon: Activity, exact: true },
       { href: '/admin/tenants', label: 'Tenants', icon: Building2 },
       { href: '/admin/tenant-health', label: 'Tenant Pulse', icon: BellRing },
+      { href: '/admin/booking-forms', label: 'Booking Forms', icon: LayoutGrid },
     ],
   },
   {
@@ -87,7 +88,6 @@ const NAV_GROUPS = [
       { href: '/admin/marketing/adaptive-pages', label: 'Adaptive Pages', icon: Sparkles },
       { href: '/admin/reviews', label: 'Reviews', icon: Star },
       { href: '/admin/tool-configs', label: 'Module Visibility', icon: ToggleLeft },
-      { href: '/admin/booking-forms', label: 'Booking Forms', icon: LayoutGrid },
       { href: '/admin/operations', label: 'Operations', icon: Monitor },
       { href: '/admin/settings', label: 'Settings', icon: Settings },
       { href: '/admin/support', label: 'Support', icon: HeadphonesIcon },

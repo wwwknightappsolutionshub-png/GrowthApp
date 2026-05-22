@@ -62,7 +62,7 @@ class BookingSettingsResponse(BaseModel):
 
 class BookingFormSchemaResponse(BaseModel):
     category: str
-    form_schema: dict[str, Any] = Field(serialization_alias="schema")
+    form_schema: dict[str, Any] = Field(alias="schema")
     is_tenant_override: bool = False
 
     model_config = {"populate_by_name": True}
@@ -71,7 +71,7 @@ class BookingFormSchemaResponse(BaseModel):
 class BookingFormTemplateResponse(BaseModel):
     category: str
     name: str
-    form_schema: dict[str, Any] = Field(serialization_alias="schema")
+    form_schema: dict[str, Any] = Field(alias="schema")
     updated_at: datetime | None = None
 
     model_config = {"populate_by_name": True}
@@ -79,7 +79,7 @@ class BookingFormTemplateResponse(BaseModel):
 
 class BookingFormTemplateUpdate(BaseModel):
     name: str | None = None
-    form_schema: dict[str, Any] = Field(serialization_alias="schema")
+    form_schema: dict[str, Any] = Field(alias="schema")
 
     model_config = {"populate_by_name": True}
 

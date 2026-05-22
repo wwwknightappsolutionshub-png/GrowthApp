@@ -29,7 +29,8 @@ export default function PublicBookPage() {
       }
       if (data.manage_url) window.location.href = data.manage_url
     },
-    onError: () => toast.error('Could not complete booking'),
+    onError: (e: { response?: { data?: { detail?: string } } }) =>
+      toast.error(e.response?.data?.detail ?? 'Could not complete booking'),
   })
 
   const accent = widget?.widget_primary_color || '#166534'
@@ -37,6 +38,7 @@ export default function PublicBookPage() {
 
   return (
     <PublicBookShell
+      variant="booking"
       tenantName={widget?.tenant_name || 'Book online'}
       subtitle="Complete the form below to request your appointment."
       accent={accent}

@@ -133,16 +133,26 @@ async def create_public_booking(tenant_slug: str, request: Request, db: AsyncSes
     from app.modules.booking.schemas import PublicBookingCreate
     from app.modules.booking import service as booking_service
 
+    from app.core.exceptions import BadRequestException
+    from app.modules.booking.form_builder import normalize_public_booking_payload
+
     body = await request.json()
     result = await db.execute(select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True))
     tenant = result.scalar_one_or_none()
     if not tenant:
         from app.core.exceptions import NotFoundException
         raise NotFoundException("Tenant")
+    try:
+        normalized = await normalize_public_booking_payload(db, tenant.id, body)
+    except ValueError as exc:
+        raise BadRequestException(str(exc)) from exc
     schema = await resolve_tenant_booking_form(db, tenant)
-    booking_fields, extras = map_submission_to_booking(body, schema)
+    booking_fields, extras = map_submission_to_booking(normalized, schema)
     merged = {**booking_fields, **extras, "channel": body.get("channel") or "widget"}
-    data = PublicBookingCreate(**merged)
+    try:
+        data = PublicBookingCreate(**merged)
+    except Exception as exc:
+        raise BadRequestException(f"Invalid booking data: {exc}") from exc
     return await booking_service.create_public_booking(db=db, tenant=tenant, data=data)
 
 

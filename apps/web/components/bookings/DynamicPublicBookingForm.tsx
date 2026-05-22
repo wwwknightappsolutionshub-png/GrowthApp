@@ -69,10 +69,10 @@ export function DynamicPublicBookingForm({
       if (hidden(f) || f.type === 'slot' || f.type === 'service') continue
       if (f.required && !String(values[f.id] || '').trim()) return false
     }
-    if (fields.some((f) => f.type === 'slot' || f.id === 'slot_id') && !values.slot_id) {
-      const hasManual = values.booking_date && values.start_time
-      if (!hasManual && slots.length > 0) return false
-    }
+    const hasSlot = Boolean(values.slot_id)
+    const hasManual = Boolean(values.booking_date?.trim() && values.start_time?.trim())
+    if (slots.length > 0 && !hasSlot && !hasManual) return false
+    if (slots.length === 0 && !hasManual) return false
     return true
   }
 
@@ -139,8 +139,8 @@ export function DynamicPublicBookingForm({
           }
           return null
         }
-        if (f.id === 'booking_date' && slots.length > 0) return null
-        if (f.id === 'start_time' && slots.length > 0) return null
+        if (f.id === 'booking_date' && values.slot_id) return null
+        if (f.id === 'start_time' && values.slot_id) return null
 
         const common = {
           className: fieldClass,

@@ -42,7 +42,7 @@ export default function PublicRatePage() {
   const errDetail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail
 
   return (
-    <PublicBookShell tenantName={name} subtitle="Review & Comments" accent={accent}>
+    <PublicBookShell variant="review" tenantName={name} subtitle="Share your experience on Google" accent={accent}>
       <div className="text-center space-y-4 py-2">
         <Star className="w-12 h-12 mx-auto text-amber-500 fill-amber-400" />
         {isLoading && (
@@ -67,9 +67,11 @@ export default function PublicRatePage() {
             <p>{errDetail || 'This business must connect Google Business Profile in CustomerFlow before review QR works.'}</p>
           </div>
         )}
-        <Link href={`/book/${slug}`} className="text-sm text-emerald-800 hover:underline block">
-          ← Back to booking
-        </Link>
+        {!reviewUrl && !isLoading ? (
+          <Link href={`/book/${slug}`} className="text-sm text-amber-900 hover:underline block">
+            Book an appointment instead
+          </Link>
+        ) : null}
       </div>
     </PublicBookShell>
   )
