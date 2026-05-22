@@ -4,12 +4,25 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.database import get_db
+from app.core.database import get_db, set_rls_context
+from app.core.exceptions import NotFoundException
 from app.core.middleware import limiter
 from app.modules.auth.schemas import MessageResponse
 from app.modules.tenants.models import Tenant
 
 router = APIRouter(prefix="/public", tags=["Public"])
+
+
+async def _active_tenant_for_public(db: AsyncSession, tenant_slug: str) -> Tenant:
+    """Resolve tenant and set Postgres RLS for tenant-scoped writes (pool-safe)."""
+    result = await db.execute(
+        select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True)  # noqa: E712
+    )
+    tenant = result.scalar_one_or_none()
+    if not tenant:
+        raise NotFoundException("Tenant")
+    await set_rls_context(db, tenant.id)
+    return tenant
 
 
 @router.post("/leads/{tenant_slug}", response_model=MessageResponse, status_code=201)
@@ -26,11 +39,7 @@ async def capture_lead(
     body = await request.json()
     data = LeadCreate(**body)
 
-    result = await db.execute(select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True))
-    tenant = result.scalar_one_or_none()
-    if not tenant:
-        from app.core.exceptions import NotFoundException
-        raise NotFoundException("Tenant")
+    tenant = await _active_tenant_for_public(db, tenant_slug)
 
     ip = request.client.host if request.client else None
     lead = await leads_service.create_lead_public(db=db, tenant=tenant, data=data, ip_address=ip)
@@ -41,9 +50,9 @@ async def capture_lead(
 async def get_review_widget_data(tenant_slug: str, db: AsyncSession = Depends(get_db)):
     """Returns review data for embeddable JS widget."""
     from app.modules.reputation import service as rep_service
-    result = await db.execute(select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True))
-    tenant = result.scalar_one_or_none()
-    if not tenant:
+    try:
+        tenant = await _active_tenant_for_public(db, tenant_slug)
+    except NotFoundException:
         return {"reviews": [], "avg_rating": 0, "total": 0}
     return await rep_service.get_widget_data(db=db, tenant_id=tenant.id)
 
@@ -92,12 +101,7 @@ async def get_public_business_site(tenant_slug: str, db: AsyncSession = Depends(
 async def get_booking_widget_config(tenant_slug: str, request: Request, db: AsyncSession = Depends(get_db)):
     from app.modules.booking.public_service import get_widget_config
 
-    from app.core.exceptions import NotFoundException
-
-    result = await db.execute(select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True))
-    tenant = result.scalar_one_or_none()
-    if not tenant:
-        raise NotFoundException("Tenant")
+    tenant = await _active_tenant_for_public(db, tenant_slug)
     payload = await get_widget_config(db, tenant)
     return JSONResponse(
         content=payload.model_dump(mode="json"),
@@ -119,9 +123,9 @@ async def get_availability(
 
     from app.modules.booking import service as booking_service
 
-    result = await db.execute(select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True))
-    tenant = result.scalar_one_or_none()
-    if not tenant:
+    try:
+        tenant = await _active_tenant_for_public(db, tenant_slug)
+    except NotFoundException:
         return {"slots": [], "timezone": "Europe/London"}
     return await booking_service.get_available_slots(
         db=db,
@@ -143,11 +147,7 @@ async def create_public_booking(tenant_slug: str, request: Request, db: AsyncSes
     from app.modules.booking.form_builder import normalize_public_booking_payload
 
     body = await request.json()
-    result = await db.execute(select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True))
-    tenant = result.scalar_one_or_none()
-    if not tenant:
-        from app.core.exceptions import NotFoundException
-        raise NotFoundException("Tenant")
+    tenant = await _active_tenant_for_public(db, tenant_slug)
     try:
         normalized = await normalize_public_booking_payload(db, tenant.id, body)
     except ValueError as exc:
@@ -168,11 +168,7 @@ async def submit_public_refer_win(tenant_slug: str, request: Request, db: AsyncS
     from app.modules.booking.refer_win import ReferWinSubmitBody, submit_refer_win
 
     body = ReferWinSubmitBody(**(await request.json()))
-    result = await db.execute(select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True))
-    tenant = result.scalar_one_or_none()
-    if not tenant:
-        from app.core.exceptions import NotFoundException
-        raise NotFoundException("Tenant")
+    tenant = await _active_tenant_for_public(db, tenant_slug)
     return await submit_refer_win(db, tenant, body)
 
 
@@ -181,11 +177,7 @@ async def submit_public_refer_win(tenant_slug: str, request: Request, db: AsyncS
 async def get_public_review_url(tenant_slug: str, request: Request, db: AsyncSession = Depends(get_db)):
     from app.modules.booking.review_link import get_public_google_review_url
 
-    result = await db.execute(select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True))
-    tenant = result.scalar_one_or_none()
-    if not tenant:
-        from app.core.exceptions import NotFoundException
-        raise NotFoundException("Tenant")
+    tenant = await _active_tenant_for_public(db, tenant_slug)
     return await get_public_google_review_url(db, tenant)
 
 

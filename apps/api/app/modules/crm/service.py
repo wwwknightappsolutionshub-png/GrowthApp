@@ -24,6 +24,7 @@ async def create_customer(
     data: CustomerCreate,
     *,
     actor_user_id: uuid.UUID | None = None,
+    commit: bool = True,
 ) -> Customer:
     c = Customer(id=uuid.uuid4(), tenant_id=tenant_id, **data.model_dump())
     db.add(c)
@@ -36,7 +37,10 @@ async def create_customer(
         user_id=actor_user_id,
         metadata={"source": getattr(data, "source", None)},
     )
-    await db.commit()
+    if commit:
+        await db.commit()
+    else:
+        await db.flush()
     await db.refresh(c)
     return c
 

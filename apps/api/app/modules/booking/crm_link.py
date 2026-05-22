@@ -76,6 +76,7 @@ async def resolve_customer_for_booking(
             phone=customer_phone,
             source=channel or "booking",
         ),
+        commit=False,
     )
     return created.id
 
