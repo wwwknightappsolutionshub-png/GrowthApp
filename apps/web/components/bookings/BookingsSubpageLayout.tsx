@@ -3,16 +3,17 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
-import { LayoutGrid, Pencil, QrCode } from 'lucide-react'
+import { CalendarPlus, LayoutGrid, Pencil, QrCode } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TenantWelcomeHeader } from '@/components/dashboard/TenantWelcomeHeader'
 
-const TABS = [
+export const BOOKINGS_SUBNAV = [
+  { href: '/dashboard/bookings/new', label: 'New booking', icon: CalendarPlus },
   { href: '/dashboard/bookings/widget', label: 'Widget & QR', icon: QrCode },
   { href: '/dashboard/bookings/form-builder', label: 'Form builder', icon: Pencil },
 ] as const
 
-/** Shared max width for widget + form-builder (centered in dashboard main). */
+/** Shared max width for bookings subpages (centered in dashboard main). */
 export const BOOKINGS_TOOLS_MAX_W = 'max-w-3xl'
 
 type Props = {
@@ -68,7 +69,7 @@ export function BookingsSubpageLayout({ tenantName, userName, subtitle, children
               <LayoutGrid className="w-3.5 h-3.5" />
               Bookings hub
             </Link>
-            {TABS.map(({ href, label, icon: Icon }) => {
+            {BOOKINGS_SUBNAV.map(({ href, label, icon: Icon }) => {
               const active = pathname === href
               return (
                 <Link

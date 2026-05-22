@@ -1,13 +1,13 @@
 'use client'
 
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { bookings } from '@/lib/api-client'
+import { CalendarPlus } from 'lucide-react'
+import { auth, bookings, tenants } from '@/lib/api-client'
 import { BookingForm, type BookingFormValues } from '@/components/bookings/BookingForm'
-import { TenantWelcomeHeader } from '@/components/dashboard/TenantWelcomeHeader'
+import { BookingsPanel, BookingsSubpageLayout } from '@/components/bookings/BookingsSubpageLayout'
 
 const empty: BookingFormValues = {
   customer_name: '',
@@ -28,6 +28,15 @@ const empty: BookingFormValues = {
 export default function NewBookingPage() {
   const router = useRouter()
   const [form, setForm] = useState<BookingFormValues>(empty)
+
+  const { data: me } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => auth.me().then((r) => r.data as { full_name?: string }),
+  })
+  const { data: tenant } = useQuery({
+    queryKey: ['tenant'],
+    queryFn: () => tenants.get().then((r) => r.data as { name?: string }),
+  })
 
   const create = useMutation({
     mutationFn: () =>
@@ -53,22 +62,26 @@ export default function NewBookingPage() {
   })
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      <Link href="/dashboard/bookings" className="text-sm text-brand-teal-100/70 hover:text-white">
-        ← Bookings
-      </Link>
-      <TenantWelcomeHeader subtitle="Create a booking for a client — linked to CRM automatically" />
-      <div className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 p-6">
+    <BookingsSubpageLayout
+      tenantName={tenant?.name}
+      userName={me?.full_name}
+      subtitle="Create a booking for a client — linked to CRM automatically"
+    >
+      <BookingsPanel>
+        <h2 className="text-lg font-bold text-white flex items-center justify-center gap-2 mb-4">
+          <CalendarPlus className="w-5 h-5 text-brand-teal-300" />
+          New booking
+        </h2>
         <BookingForm values={form} onChange={setForm} />
         <button
           type="button"
           disabled={!form.customer_name || !form.booking_date || create.isPending}
           onClick={() => create.mutate()}
-          className="mt-6 w-full py-3 rounded-xl bg-brand-forest-700 text-white font-semibold text-sm disabled:opacity-50 hover:bg-brand-forest-600"
+          className="mt-6 w-full py-3 rounded-xl bg-brand-teal-600 hover:bg-brand-teal-500 text-white font-semibold text-sm disabled:opacity-50"
         >
           {create.isPending ? 'Saving…' : 'Create booking'}
         </button>
-      </div>
-    </div>
+      </BookingsPanel>
+    </BookingsSubpageLayout>
   )
 }
