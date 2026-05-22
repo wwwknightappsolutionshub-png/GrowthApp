@@ -1,7 +1,7 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Bot, Plus, Send, Sparkles, User } from 'lucide-react'
+import { Bot, Bookmark, Plus, Send, Sparkles, User } from 'lucide-react'
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 
@@ -17,6 +17,10 @@ type Thread = {
   last_message_at: string | null
   archived_at: string | null
   created_at: string
+  expires_at: string | null
+  saved_at: string | null
+  hours_until_expiry: number | null
+  save_warning: boolean
 }
 
 type Message = {
@@ -43,12 +47,17 @@ function ThreadList({
   activeId,
   onSelect,
   onCreate,
+  onSave,
+  saving,
 }: {
   threads: Thread[]
   activeId: string | null
   onSelect: (id: string) => void
   onCreate: () => void
+  onSave: (id: string) => void
+  saving: boolean
 }) {
+  const active = threads.find((t) => t.id === activeId)
   return (
     <aside className="flex h-60 w-full shrink-0 flex-col border-b border-brand-forest-800 bg-brand-forest-950 lg:h-full lg:w-64 lg:border-b-0 lg:border-r">
       <div className="p-3 border-b border-brand-forest-800 bg-brand-forest-900">
@@ -59,6 +68,20 @@ function ThreadList({
           <Plus className="w-4 h-4" />
           New conversation
         </button>
+        {active && !active.saved_at && (
+          <button
+            type="button"
+            onClick={() => onSave(active.id)}
+            disabled={saving}
+            className="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-medium text-brand-teal-100 border border-brand-teal-400/40 rounded-lg hover:bg-brand-forest-800 disabled:opacity-50"
+          >
+            <Bookmark className="w-4 h-4" />
+            {saving ? 'Saving…' : 'Save conversation'}
+          </button>
+        )}
+        {active?.saved_at && (
+          <p className="text-[10px] text-center text-brand-teal-300/80">Saved permanently</p>
+        )}
       </div>
       <ul className="flex-1 overflow-y-auto p-2 space-y-1">
         {threads.length === 0 && (
@@ -138,10 +161,12 @@ function ChatView({
   threadId,
   userName,
   onSendTopic,
+  threadMeta,
 }: {
   threadId: string | null
   userName: string
   onSendTopic: (text: string) => void
+  threadMeta: Thread | null
 }) {
   const qc = useQueryClient()
   const [input, setInput] = useState('')
@@ -196,6 +221,12 @@ function ChatView({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-brand-forest-950">
+      {threadMeta?.save_warning && !threadMeta.saved_at && (
+        <div className="mx-4 mt-3 sm:mx-6 rounded-xl border border-amber-500/40 bg-amber-950/30 px-4 py-3 text-sm text-amber-100">
+          This session will be cleared in about {Math.max(1, Math.round(threadMeta.hours_until_expiry ?? 1))}{' '}
+          hour{Math.round(threadMeta.hours_until_expiry ?? 1) === 1 ? '' : 's'} unless you save it from the sidebar.
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
         {isLoading && (
           <div className="flex items-center justify-center py-12">
@@ -319,6 +350,15 @@ function AssistantPageInner() {
     onError: () => toast.error('Failed to send message'),
   })
 
+  const saveMutation = useMutation({
+    mutationFn: (threadId: string) => aiAssistant.saveThread(threadId).then((r) => r.data),
+    onSuccess: () => {
+      toast.success('Conversation saved')
+      qc.invalidateQueries({ queryKey: ['assistant-threads'] })
+    },
+    onError: () => toast.error('Could not save conversation'),
+  })
+
   const startConversation = async (prompt?: string) => {
     const title = focus === 'crm' ? 'CRM coach' : 'Growth assistant'
     const thread = await createMutation.mutateAsync(title)
@@ -354,6 +394,7 @@ function AssistantPageInner() {
   }, [threads, activeId, focus, createMutation.isPending])
 
   const userName = me?.full_name ?? ''
+  const activeThread = (threads ?? []).find((t) => t.id === activeId) ?? null
 
   const handleTopic = async (text: string) => {
     if (!activeId) {
@@ -370,11 +411,14 @@ function AssistantPageInner() {
         activeId={activeId}
         onSelect={setActiveId}
         onCreate={() => void startConversation()}
+        onSave={(id) => saveMutation.mutate(id)}
+        saving={saveMutation.isPending}
       />
       <ChatView
         threadId={activeId}
         userName={userName}
         onSendTopic={handleTopic}
+        threadMeta={activeThread}
       />
     </div>
   )

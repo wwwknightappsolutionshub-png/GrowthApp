@@ -30,6 +30,9 @@ class AIAssistantThread(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     archived_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    saved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    save_reminder_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     messages: Mapped[list["AIAssistantMessage"]] = relationship(
         "AIAssistantMessage", back_populates="thread", cascade="all, delete-orphan",

@@ -598,6 +598,7 @@ export const aiAssistant = {
     apiClient.get('/ai/assistant/threads', { params }),
   createThread: (title?: string) =>
     apiClient.post('/ai/assistant/threads', title ? { title } : {}),
+  saveThread: (thread_id: string) => apiClient.post(`/ai/assistant/threads/${thread_id}/save`),
   listMessages: (thread_id: string) =>
     apiClient.get(`/ai/assistant/threads/${thread_id}/messages`),
   sendMessage: (thread_id: string, content: string) =>

@@ -14,6 +14,7 @@ from app.services.ai.providers.base import (
     PermanentProviderError,
     TransientProviderError,
 )
+from app.services.ai.providers.mock_provider import MockAIProvider
 from app.services.ai.providers.ollama_provider import OllamaProvider
 from app.services.ai.providers.openai_provider import OpenAIProvider
 from app.services.ai.types import AIMessage, AIResponse, AIRouterError
@@ -25,6 +26,7 @@ _PROVIDER_FACTORIES: dict[str, type[AIProvider]] = {
     "openai": OpenAIProvider,
     "anthropic": AnthropicProvider,
     "ollama": OllamaProvider,
+    "mock": MockAIProvider,
 }
 
 
@@ -198,6 +200,9 @@ class HybridAIRouter:
 @lru_cache
 def get_ai_router() -> HybridAIRouter:
     """Build a router from the configured provider order. Cached per process."""
+    if settings.AI_PROVIDER == "mock":
+        return HybridAIRouter([MockAIProvider()])
+
     providers: list[AIProvider] = []
     seen: set[str] = set()
     for name in settings.ai_provider_order_list:
@@ -210,8 +215,11 @@ def get_ai_router() -> HybridAIRouter:
             continue
         providers.append(factory())
 
-    # Always include Ollama as last-resort if nothing else is configured.
     if not providers:
         providers.append(OllamaProvider())
+
+    # Always keep mock last so assistant still works when API keys / Ollama are down.
+    if not any(isinstance(p, MockAIProvider) for p in providers):
+        providers.append(MockAIProvider())
 
     return HybridAIRouter(providers)

@@ -102,6 +102,8 @@ class Settings(BaseSettings):
     AI_PROVIDER_ORDER: str = "openai,ollama"
     AI_REQUEST_TIMEOUT_SECONDS: int = 30
     AI_MAX_RETRIES_PER_PROVIDER: int = 1
+    AI_ASSISTANT_SESSION_HOURS: int = 48
+    AI_ASSISTANT_SAVE_WARNING_HOURS: int = 6
 
     # Anthropic (Claude) — optional second-priority fallback.
     ANTHROPIC_API_KEY: str = ""
