@@ -11,6 +11,9 @@ import { NextRequest, NextResponse } from 'next/server'
  * We don't try to *verify* the JWT here: that would require the secret and
  * would duplicate API logic. We just gate on presence. The actual verification
  * happens on every API call.
+ *
+ * Matcher is intentionally narrow (dashboard/admin + tenant subdomains only) so
+ * WebSocket upgrade probes to `/` do not invoke middleware (Next.js #56368).
  */
 
 const PUBLIC_PREFIXES = [
@@ -30,7 +33,17 @@ const ADMIN_PREFIX = '/admin'
 const BUSINESS_SITE_BASE =
   process.env.BUSINESS_SITE_BASE_DOMAIN || 'customerflowai.online'
 
+const RESERVED_SUBDOMAINS = new Set(['www', 'api', 'app'])
+
+function isWebSocketUpgrade(request: NextRequest): boolean {
+  return request.headers.get('upgrade')?.toLowerCase() === 'websocket'
+}
+
 export function middleware(request: NextRequest) {
+  if (isWebSocketUpgrade(request)) {
+    return NextResponse.next()
+  }
+
   const { pathname } = request.nextUrl
   const host = (request.headers.get('host') || '').split(':')[0].toLowerCase()
 
@@ -38,8 +51,7 @@ export function middleware(request: NextRequest) {
   if (
     host.endsWith(`.${BUSINESS_SITE_BASE}`) &&
     host !== BUSINESS_SITE_BASE &&
-    host !== `www.${BUSINESS_SITE_BASE}` &&
-    host !== `api.${BUSINESS_SITE_BASE}`
+    !RESERVED_SUBDOMAINS.has(host.slice(0, -(BUSINESS_SITE_BASE.length + 1)))
   ) {
     const slug = host.slice(0, -(BUSINESS_SITE_BASE.length + 1))
     if (slug && !slug.includes('.')) {
@@ -87,7 +99,27 @@ export function middleware(request: NextRequest) {
   return NextResponse.next()
 }
 
+const BASE_ESC = (process.env.BUSINESS_SITE_BASE_DOMAIN || 'customerflowai.online').replace(
+  /\./g,
+  '\\.',
+)
+
 export const config = {
-  // Exclude webpack-hmr / upgrade requests — middleware must not run on them (Next.js #56368).
-  matcher: ['/((?!_next/static|_next/image|_next/webpack-hmr|favicon.ico).*)'],
+  matcher: [
+    '/dashboard/:path*',
+    '/admin/:path*',
+    {
+      source: '/:path*',
+      has: [{ type: 'host', value: `(?<tenant>[a-z0-9-]+)\\.${BASE_ESC}` }],
+      missing: [
+        { type: 'host', value: `app.${process.env.BUSINESS_SITE_BASE_DOMAIN || 'customerflowai.online'}` },
+        { type: 'host', value: `www.${process.env.BUSINESS_SITE_BASE_DOMAIN || 'customerflowai.online'}` },
+        { type: 'host', value: `api.${process.env.BUSINESS_SITE_BASE_DOMAIN || 'customerflowai.online'}` },
+        {
+          type: 'host',
+          value: process.env.BUSINESS_SITE_BASE_DOMAIN || 'customerflowai.online',
+        },
+      ],
+    },
+  ],
 }
