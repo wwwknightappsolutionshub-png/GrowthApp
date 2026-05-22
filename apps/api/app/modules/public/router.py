@@ -92,10 +92,12 @@ async def get_public_business_site(tenant_slug: str, db: AsyncSession = Depends(
 async def get_booking_widget_config(tenant_slug: str, request: Request, db: AsyncSession = Depends(get_db)):
     from app.modules.booking.public_service import get_widget_config
 
+    from app.core.exceptions import NotFoundException
+
     result = await db.execute(select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True))
     tenant = result.scalar_one_or_none()
     if not tenant:
-        return {"error": "not_found"}
+        raise NotFoundException("Tenant")
     return await get_widget_config(db, tenant)
 
 

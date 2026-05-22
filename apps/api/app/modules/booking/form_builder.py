@@ -160,20 +160,31 @@ async def get_template(db: AsyncSession, category: str) -> BookingFormTemplate |
     ).scalar_one_or_none()
 
 
+def ensure_booking_form_schema(schema: dict[str, Any] | None, category: str) -> dict[str, Any]:
+    """Never return an empty fields list — public booking must always be usable."""
+    default = default_schema_for_category(category)
+    if not schema or not isinstance(schema.get("fields"), list) or len(schema["fields"]) == 0:
+        return copy.deepcopy(default)
+    return schema
+
+
 async def get_or_seed_template(db: AsyncSession, category: str) -> dict[str, Any]:
     row = await get_template(db, category)
-    if row and row.schema:
-        return row.schema
-    schema = default_schema_for_category(category)
+    default = default_schema_for_category(category)
     if not row:
         row = BookingFormTemplate(
             category=category,
             name=f"{category.replace('_', ' ').title()} booking form",
-            schema=schema,
+            schema=default,
         )
         db.add(row)
         await db.commit()
-    return schema
+        return default
+    ensured = ensure_booking_form_schema(row.schema, category)
+    if not (row.schema or {}).get("fields"):
+        row.schema = ensured
+        await db.commit()
+    return ensured
 
 
 async def resolve_tenant_booking_form(
@@ -183,7 +194,8 @@ async def resolve_tenant_booking_form(
     base = await get_or_seed_template(db, category)
     settings = await get_or_create_settings(db, tenant.id)
     override = getattr(settings, "booking_form_override", None) or {}
-    return merge_form_schemas(base, override if isinstance(override, dict) else None)
+    merged = merge_form_schemas(base, override if isinstance(override, dict) else None)
+    return ensure_booking_form_schema(merged, category)
 
 
 async def normalize_public_booking_payload(

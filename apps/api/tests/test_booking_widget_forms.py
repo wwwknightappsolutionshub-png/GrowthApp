@@ -8,11 +8,17 @@ import pytest
 from app.modules.booking.form_builder import (
     BOOKING_CATEGORIES,
     default_schema_for_category,
+    ensure_booking_form_schema,
     merge_form_schemas,
     _validate_schema,
     map_submission_to_booking,
 )
 from app.modules.booking.refer_win import ReferWinSubmitBody
+
+
+def test_ensure_booking_form_schema_fills_empty():
+    empty = ensure_booking_form_schema({"version": 1, "fields": []}, "general")
+    assert len(empty["fields"]) >= 3
 
 
 def test_default_schema_has_system_fields():
