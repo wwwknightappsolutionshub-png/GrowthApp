@@ -88,5 +88,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  // Exclude webpack-hmr / upgrade requests — middleware must not run on them (Next.js #56368).
+  matcher: ['/((?!_next/static|_next/image|_next/webpack-hmr|favicon.ico).*)'],
 }
