@@ -21,9 +21,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from sqlalchemy import select
 
+# Register ORM relationships (User → TenantMember, etc.) before querying.
+from app.modules.auth.models import User  # noqa: F401
+from app.modules.tenants.models import Tenant, TenantMember  # noqa: F401
+
 from app.core.database import AsyncSessionLocal
 from app.core.security import hash_password
-from app.modules.auth.models import User
 
 
 async def main(email: str, password: str, full_name: str) -> None:
