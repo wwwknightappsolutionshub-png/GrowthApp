@@ -244,7 +244,7 @@ async def _issue_tokens(db: AsyncSession, user: User) -> dict:
     else:
         tenant_id = None
         role = None
-        if user.user_type == "tenant":
+        if user.user_type == "tenant" and not user.is_superadmin:
             raise UnauthorizedException(
                 "No business workspace is linked to this account. "
                 "If you recently registered, try completing signup again or contact support."
