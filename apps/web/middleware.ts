@@ -99,26 +99,19 @@ export function middleware(request: NextRequest) {
   return NextResponse.next()
 }
 
-const BASE_ESC = (process.env.BUSINESS_SITE_BASE_DOMAIN || 'customerflowai.online').replace(
-  /\./g,
-  '\\.',
-)
-
+// Matcher values must be static strings (no template literals) — Next.js analyzes at build time.
 export const config = {
   matcher: [
     '/dashboard/:path*',
     '/admin/:path*',
     {
       source: '/:path*',
-      has: [{ type: 'host', value: `(?<tenant>[a-z0-9-]+)\\.${BASE_ESC}` }],
+      has: [{ type: 'host', value: '(?<tenant>[a-z0-9-]+)\\.customerflowai\\.online' }],
       missing: [
-        { type: 'host', value: `app.${process.env.BUSINESS_SITE_BASE_DOMAIN || 'customerflowai.online'}` },
-        { type: 'host', value: `www.${process.env.BUSINESS_SITE_BASE_DOMAIN || 'customerflowai.online'}` },
-        { type: 'host', value: `api.${process.env.BUSINESS_SITE_BASE_DOMAIN || 'customerflowai.online'}` },
-        {
-          type: 'host',
-          value: process.env.BUSINESS_SITE_BASE_DOMAIN || 'customerflowai.online',
-        },
+        { type: 'host', value: 'app.customerflowai.online' },
+        { type: 'host', value: 'www.customerflowai.online' },
+        { type: 'host', value: 'api.customerflowai.online' },
+        { type: 'host', value: 'customerflowai.online' },
       ],
     },
   ],
