@@ -104,7 +104,20 @@ apiClient.interceptors.response.use(
     const url = originalRequest?.url || ''
     const isAuthEndpoint = url.startsWith('/auth/login') || url.startsWith('/auth/refresh') || url.startsWith('/auth/register')
 
-    if (error.response?.status === 401 && !originalRequest?._retry && !isAuthEndpoint) {
+    const detail =
+      error.response?.data &&
+      typeof error.response.data === 'object' &&
+      'detail' in error.response.data
+        ? String((error.response.data as { detail: unknown }).detail)
+        : ''
+
+    const missingTenantContext = detail.toLowerCase().includes('token missing tenant context')
+
+    if (
+      (error.response?.status === 401 || missingTenantContext) &&
+      !originalRequest?._retry &&
+      !isAuthEndpoint
+    ) {
       originalRequest._retry = true
       try {
         await _refresh()

@@ -21,6 +21,33 @@ def _slugify(name: str) -> str:
     return slug[:100]
 
 
+async def resolve_primary_tenant_membership(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    *,
+    prefer_freelancer_clients: bool = False,
+) -> tuple[TenantMember, Tenant] | None:
+    """Pick the user's primary active tenant membership for JWT / RLS context."""
+    order = [TenantMember.created_at]
+    if prefer_freelancer_clients:
+        order = [Tenant.is_managed_client.desc(), TenantMember.created_at]
+    row = (
+        await db.execute(
+            select(TenantMember, Tenant)
+            .join(Tenant, TenantMember.tenant_id == Tenant.id)
+            .where(
+                TenantMember.user_id == user_id,
+                Tenant.is_active == True,  # noqa: E712
+            )
+            .order_by(*order)
+            .limit(1)
+        )
+    ).first()
+    if not row:
+        return None
+    return row[0], row[1]
+
+
 async def update_tenant(
     db: AsyncSession,
     tenant: Tenant,

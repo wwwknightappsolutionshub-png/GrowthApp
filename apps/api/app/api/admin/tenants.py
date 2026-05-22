@@ -127,7 +127,11 @@ async def impersonate_tenant(tenant_id: uuid.UUID, admin: SuperAdmin, db: AsyncS
     if not t:
         raise HTTPException(404, "Tenant not found")
     from app.core.security import create_access_token
-    token = create_access_token({"sub": str(admin.id), "tid": str(t.id), "impersonated_by": str(admin.id)})
+    token = create_access_token(
+        subject=str(admin.id),
+        tenant_id=t.id,
+        role="owner",
+    )
     return {"access_token": token, "tenant_id": str(t.id), "tenant_name": t.name}
 
 

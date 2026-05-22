@@ -117,7 +117,7 @@ async def get_current_tenant(
         except JWTError:
             raise UnauthorizedException("Invalid or expired token")
 
-    if not user_id or not tenant_id:
+    if not user_id:
         raise UnauthorizedException("Token missing tenant context")
 
     # Fetch user
@@ -136,6 +136,21 @@ async def get_current_tenant(
             except ValueError:
                 raise ForbiddenException("Invalid freelancer client context")
 
+    # Backfill tenant id for access tokens issued without ``tid`` (legacy refresh).
+    if not tenant_id:
+        from app.modules.tenants.service import resolve_primary_tenant_membership
+
+        pair = await resolve_primary_tenant_membership(
+            db,
+            user.id,
+            prefer_freelancer_clients=user.user_type == "freelancer",
+        )
+        if pair:
+            tenant_id = str(pair[1].id)
+
+    if not tenant_id:
+        raise UnauthorizedException("Token missing tenant context")
+
     # Fetch tenant membership
     member_result = await db.execute(
         select(TenantMember, Tenant)
@@ -143,11 +158,23 @@ async def get_current_tenant(
         .where(
             TenantMember.user_id == UUID(user_id),
             TenantMember.tenant_id == UUID(tenant_id),
-            Tenant.is_active == True,
+            Tenant.is_active == True,  # noqa: E712
         )
     )
     row = member_result.first()
     if not row:
+        if user.is_superadmin:
+            tenant = (
+                await db.execute(
+                    select(Tenant).where(
+                        Tenant.id == UUID(tenant_id),
+                        Tenant.is_active == True,  # noqa: E712
+                    )
+                )
+            ).scalar_one_or_none()
+            if tenant:
+                await set_rls_context(db, tenant.id)
+                return user, tenant, "owner"
         raise ForbiddenException("Not a member of this tenant")
 
     member, tenant = row

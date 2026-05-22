@@ -227,25 +227,24 @@ async def _issue_tokens(db: AsyncSession, user: User) -> dict:
     soft-deactivated, so token tenant context must never point at an inactive
     tenant or every tenant-scoped module will 403 after login.
     """
-    from app.modules.tenants.models import Tenant, TenantMember
-    member = (
-        await db.execute(
-            select(TenantMember)
-            .join(Tenant, TenantMember.tenant_id == Tenant.id)
-            .where(
-                TenantMember.user_id == user.id,
-                Tenant.is_active == True,
-            )
-            .order_by(
-                # For freelancers, prefer active managed-client tenants first.
-                Tenant.is_managed_client.desc(),
-                TenantMember.created_at,
-            )
-        )
-    ).scalars().first()
+    from app.modules.tenants.service import resolve_primary_tenant_membership
 
-    tenant_id = member.tenant_id if member else None
-    role = member.role if member else None
+    pair = await resolve_primary_tenant_membership(
+        db,
+        user.id,
+        prefer_freelancer_clients=user.user_type == "freelancer",
+    )
+    if pair:
+        member, _tenant = pair
+        tenant_id = member.tenant_id
+        role = member.role
+    else:
+        tenant_id = None
+        role = None
+        if user.user_type == "tenant":
+            raise UnauthorizedException(
+                "No active business is linked to this account. Please contact support."
+            )
 
     access_token = create_access_token(subject=user.id, tenant_id=tenant_id, role=role)
     raw_refresh, hashed_refresh = create_refresh_token()
