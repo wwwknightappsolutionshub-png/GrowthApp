@@ -15,6 +15,37 @@ from app.modules.tenants.models import Tenant, TenantMember
 ARCHIVED_SLUG_MARKER = "-deleted-"
 
 
+def base_slug_from_archived(slug: str) -> str | None:
+    """Strip ``-deleted-{suffix}`` added by :func:`delete_tenant`."""
+    if ARCHIVED_SLUG_MARKER not in slug:
+        return None
+    base = slug.split(ARCHIVED_SLUG_MARKER, 1)[0].rstrip("-")
+    return base or None
+
+
+async def restore_archived_tenant_slug(db: AsyncSession, tenant: Tenant) -> str:
+    """Restore a clean public slug after archive/reactivate. Ensures uniqueness."""
+    base = base_slug_from_archived(tenant.slug)
+    if not base:
+        return tenant.slug
+
+    candidate = base
+    for n in range(0, 50):
+        probe = candidate if n == 0 else f"{base}-{n}"
+        taken = (
+            await db.execute(
+                select(Tenant.id).where(Tenant.slug == probe, Tenant.id != tenant.id)
+            )
+        ).scalar_one_or_none()
+        if not taken:
+            tenant.slug = probe
+            db.add(tenant)
+            await db.commit()
+            await db.refresh(tenant)
+            return probe
+    raise BadRequestException("Could not find a unique slug for this business")
+
+
 def active_users_filter():
     """SQLAlchemy criterion: user has not been soft-deleted."""
     return User.deleted_at.is_(None)

@@ -390,6 +390,7 @@ export const bookings = {
   delete: (id: string) => apiClient.delete(`/bookings/${id}`),
   upcoming: (limit?: number) => apiClient.get('/bookings/upcoming', { params: { limit } }),
   getLinks: () => apiClient.get('/bookings/links'),
+  restoreBookingSlug: () => apiClient.post('/bookings/links/restore-slug'),
   getForm: () => apiClient.get('/bookings/form'),
   updateForm: (data: { schema: object; name?: string }) => apiClient.put('/bookings/form', data),
   requestFeedback: (id: string, channels: string[]) =>

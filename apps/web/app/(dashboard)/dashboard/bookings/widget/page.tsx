@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { bookings, auth, tenants } from '@/lib/api-client'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
@@ -13,6 +13,7 @@ function qrImageUrl(data: string, size = 220) {
 }
 
 export default function BookingWidgetPage() {
+  const qc = useQueryClient()
   const { data: me } = useQuery({
     queryKey: ['me'],
     queryFn: () => auth.me().then((r) => r.data as { full_name?: string }),
@@ -23,12 +24,36 @@ export default function BookingWidgetPage() {
   })
   const { data: links } = useQuery({
     queryKey: ['bookings', 'links'],
-    queryFn: () => bookings.getLinks().then((r) => r.data),
+    queryFn: () =>
+      bookings.getLinks().then(
+        (r) =>
+          r.data as {
+            slug?: string
+            booking_url?: string
+            slug_archived?: boolean
+            refer_label?: string
+            booking_label?: string
+            review_label?: string
+            referral_url?: string
+            rate_url?: string
+          },
+      ),
+  })
+
+  const restoreSlug = useMutation({
+    mutationFn: () => bookings.restoreBookingSlug().then((r) => r.data),
+    onSuccess: () => {
+      toast.success('Booking URL restored — re-print your QR codes')
+      qc.invalidateQueries({ queryKey: ['bookings', 'links'] })
+    },
+    onError: (e: { response?: { data?: { detail?: string } } }) =>
+      toast.error(e.response?.data?.detail ?? 'Could not restore URL'),
   })
 
   const [copied, setCopied] = useState<string | null>(null)
   const bookUrl = links?.booking_url || ''
   const slug = links?.slug || 'your-slug'
+  const slugArchived = links?.slug_archived || slug.includes('-deleted-')
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   const embedCode = `<script src="${origin}/embed/booking-widget.js" data-tenant="${slug}" data-book-url="${bookUrl}"></script>`
 
@@ -82,6 +107,25 @@ export default function BookingWidgetPage() {
           Booking form builder (QR A)
         </Link>
       </div>
+
+      {slugArchived ? (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-950/40 px-4 py-3 text-sm text-amber-100">
+          <p className="font-semibold text-amber-50 mb-1">Archived booking URL detected</p>
+          <p className="text-amber-100/90 mb-3">
+            This workspace was previously deleted, so the public link still uses an archived slug (
+            <span className="font-mono text-xs">-deleted-…</span>). Customer QR codes will not work until
+            you restore a clean URL.
+          </p>
+          <button
+            type="button"
+            onClick={() => restoreSlug.mutate()}
+            disabled={restoreSlug.isPending}
+            className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold disabled:opacity-50"
+          >
+            {restoreSlug.isPending ? 'Restoring…' : 'Restore clean booking URL'}
+          </button>
+        </div>
+      ) : null}
 
       <div className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 p-6 space-y-4">
         <h2 className="text-lg font-bold text-white flex items-center gap-2">

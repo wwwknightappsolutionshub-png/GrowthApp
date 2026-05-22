@@ -17,6 +17,13 @@ from app.modules.booking.form_builder import (
 from app.modules.booking.refer_win import ReferWinSubmitBody
 
 
+def test_base_slug_from_archived():
+    from app.modules.admin.deletion import base_slug_from_archived
+
+    assert base_slug_from_archived("bethel-financial-services-deleted-a0020bb9") == "bethel-financial-services"
+    assert base_slug_from_archived("acme-co") is None
+
+
 def test_extract_schema_payload_accepts_wrapped_schema():
     inner = default_schema_for_category("general")
     wrapped = extract_schema_payload({"schema": inner, "name": "x"})

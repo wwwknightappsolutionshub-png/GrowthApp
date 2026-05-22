@@ -93,12 +93,9 @@ async def get_booking_link(ctx: CurrentTenantContext):
     return {"url": marketing.booking_link_for_tenant(tenant.slug), "slug": tenant.slug}
 
 
-@router.get("/links")
-async def get_booking_qr_links(ctx: CurrentTenantContext):
-    """Distinct public URLs for booking, referral, and rate-us QR codes."""
+def _booking_links_payload(tenant) -> dict:
     from app.modules.booking.feedback import refer_url_for_slug
 
-    _, tenant, _ = ctx
     base_book = marketing.booking_link_for_tenant(tenant.slug)
     return {
         "slug": tenant.slug,
@@ -108,7 +105,29 @@ async def get_booking_qr_links(ctx: CurrentTenantContext):
         "review_label": "Review & Comments (Google)",
         "refer_label": "Refer & Win",
         "booking_label": "Book appointment",
+        "slug_archived": "-deleted-" in (tenant.slug or ""),
     }
+
+
+@router.get("/links")
+async def get_booking_qr_links(ctx: CurrentTenantContext):
+    """Distinct public URLs for booking, referral, and rate-us QR codes."""
+    _, tenant, _ = ctx
+    return _booking_links_payload(tenant)
+
+
+@router.post("/links/restore-slug")
+async def restore_tenant_booking_slug(ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+    """Remove ``-deleted-{id}`` from slug so QR codes and public booking use a clean URL."""
+    from app.core.exceptions import BadRequestException
+    from app.modules.admin.deletion import ARCHIVED_SLUG_MARKER, restore_archived_tenant_slug
+
+    _, tenant, _ = ctx
+    if ARCHIVED_SLUG_MARKER not in tenant.slug:
+        raise BadRequestException("Booking URL slug is already active (no archived suffix).")
+    await restore_archived_tenant_slug(db, tenant)
+    await db.refresh(tenant)
+    return _booking_links_payload(tenant)
 
 
 @router.get("/form")

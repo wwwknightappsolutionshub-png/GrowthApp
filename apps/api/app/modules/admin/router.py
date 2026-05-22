@@ -264,10 +264,17 @@ async def reactivate_tenant(
     tenant = (await db.execute(select(Tenant).where(Tenant.id == tenant_id))).scalar_one_or_none()
     if not tenant:
         raise HTTPException(404, "Tenant not found")
+    from app.modules.admin.deletion import ARCHIVED_SLUG_MARKER, restore_archived_tenant_slug
+
     tenant.is_active = True
-    db.add(tenant)
-    await db.commit()
-    return TenantToggleResponse(id=tenant.id, is_active=True, message=f"{tenant.name} reactivated")
+    message = f"{tenant.name} reactivated"
+    if ARCHIVED_SLUG_MARKER in tenant.slug:
+        new_slug = await restore_archived_tenant_slug(db, tenant)
+        message = f"{tenant.name} reactivated. Public booking URL slug restored to «{new_slug}»."
+    else:
+        db.add(tenant)
+        await db.commit()
+    return TenantToggleResponse(id=tenant.id, is_active=True, message=message)
 
 
 @router.delete("/tenants/{tenant_id}", response_model=DeleteResponse)
