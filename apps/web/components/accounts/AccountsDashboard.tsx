@@ -23,7 +23,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { money } from '@/lib/api-client'
+import { accounts } from '@/lib/api-client'
+import type { AxiosError } from 'axios'
 import { formatCurrency } from '@/lib/utils'
 import { ModuleCardGrid, type ModuleCardItem } from '@/components/modules/ModuleCardGrid'
 import { TenantWelcomeHeader } from '@/components/dashboard/TenantWelcomeHeader'
@@ -53,10 +54,27 @@ export function AccountsDashboard() {
     queryFn: () => tenants.get().then((r) => r.data as { name?: string }),
   })
 
-  const { data, isLoading, isError, refetch } = useQuery<Dashboard>({
-    queryKey: ['money-dashboard', days],
-    queryFn: () => money.dashboard(days).then((r) => r.data),
+  const { data, isLoading, isError, error, refetch } = useQuery<Dashboard>({
+    queryKey: ['accounts-dashboard', days],
+    queryFn: async () => {
+      try {
+        return (await accounts.dashboard(days)).data
+      } catch (e) {
+        const err = e as AxiosError
+        if (err.response?.status === 404) {
+          const { money } = await import('@/lib/api-client')
+          return (await money.dashboard(days)).data
+        }
+        throw e
+      }
+    },
   })
+  const errorDetail = isError
+    ? String(
+        (error as AxiosError<{ detail?: string }>).response?.data?.detail ??
+          (error as AxiosError).message,
+      )
+    : null
 
   const h = data?.headline
   const cashIn = h?.revenue_30d_pence ?? 0
@@ -119,7 +137,9 @@ export function AccountsDashboard() {
     return (
       <div className="rounded-2xl border border-red-500/30 bg-red-950/20 p-8 text-center">
         <p className="text-white font-semibold">Could not load accounts</p>
-        <p className="text-sm text-brand-teal-100/70 mt-2">Check your connection and try again.</p>
+        <p className="text-sm text-brand-teal-100/70 mt-2">
+          {errorDetail || 'Check your connection and try again.'}
+        </p>
         <button
           type="button"
           onClick={() => refetch()}

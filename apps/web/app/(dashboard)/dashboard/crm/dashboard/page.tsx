@@ -5,6 +5,7 @@ import { crm } from '@/lib/api-client'
 import { formatCurrency } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { TrendingUp, Users, Target, BarChart3 } from 'lucide-react'
+import { CrmDetailShell } from '@/components/crm/CrmDetailShell'
 
 export default function CrmDashboardPage() {
   const { data, isLoading } = useQuery({
@@ -45,12 +46,7 @@ export default function CrmDashboardPage() {
   ]
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">CRM Dashboard</h1>
-        <p className="text-sm text-muted-foreground">Performance at a glance</p>
-      </div>
-
+    <CrmDetailShell title="CRM dashboard" subtitle="Performance at a glance">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {widgets.map((w) => (
           <Card key={w.title}>
@@ -94,6 +90,6 @@ export default function CrmDashboardPage() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </CrmDetailShell>
   )
 }

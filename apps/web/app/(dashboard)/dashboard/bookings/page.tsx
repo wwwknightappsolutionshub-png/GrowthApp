@@ -12,7 +12,6 @@ import {
   ChevronRight,
   Filter,
   LayoutGrid,
-  Settings,
   Users,
 } from 'lucide-react'
 import { bookings, auth, tenants } from '@/lib/api-client'
@@ -97,16 +96,10 @@ export default function BookingsHubPage() {
     },
     {
       title: 'Booking reminders',
-      description: 'Automated SMS/email reminders for customers and your team.',
+      description: 'Client SMS/email reminders, schedule, and upcoming sessions.',
       href: '/dashboard/bookings/settings',
       icon: Bell,
       badge: 'Settings',
-    },
-    {
-      title: 'Services & packages',
-      description: 'Catalogue, pricing, and enterprise booking rules.',
-      href: '/dashboard/bookings/settings',
-      icon: Settings,
     },
     {
       title: 'Reports',

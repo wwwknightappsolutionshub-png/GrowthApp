@@ -28,10 +28,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { motion } from 'framer-motion'
-import { TenantWelcomeHeader } from '@/components/dashboard/TenantWelcomeHeader'
-import { CrossModuleCharts } from '@/components/dashboard/CrossModuleCharts'
-import { LandingPagePromptBanner } from '@/components/dashboard/LandingPagePrompt'
-import { tenants } from '@/lib/api-client'
+import { TenantDashboardShell } from '@/components/dashboard/TenantDashboardShell'
 
 type RbacMe = { role: string; permissions: string[] }
 type MeForDashboard = { user_type?: 'tenant' | 'freelancer'; full_name?: string }
@@ -76,14 +73,6 @@ export default function DashboardPage() {
 /* ── Owner / Admin dashboard ─────────────────────────────────────────────── */
 
 function OwnerDashboard({ role }: { role: string }) {
-  const { data: me } = useQuery({
-    queryKey: ['me'],
-    queryFn: () => auth.me().then((r) => r.data as { full_name?: string }),
-  })
-  const { data: tenant } = useQuery({
-    queryKey: ['tenant'],
-    queryFn: () => tenants.get().then((r) => r.data as { name?: string }),
-  })
   const { data: repData } = useQuery({
     queryKey: ['reputation-dashboard'],
     queryFn: () => reputation.dashboard().then((r) => r.data),
@@ -108,21 +97,7 @@ function OwnerDashboard({ role }: { role: string }) {
   const outstanding = moneyData?.headline?.outstanding_pence ?? 0
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-end justify-between flex-wrap gap-3">
-        <div className="flex-1 min-w-0">
-          <TenantWelcomeHeader
-            tenantName={tenant?.name}
-            userName={me?.full_name}
-          />
-        </div>
-        <Badge variant="secondary" className="capitalize shrink-0">{role}</Badge>
-      </div>
-
-      <LandingPagePromptBanner />
-
-      <CrossModuleCharts />
-
+    <TenantDashboardShell roleLabel={role}>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           title="Revenue (30d)"
@@ -243,7 +218,7 @@ function OwnerDashboard({ role }: { role: string }) {
           { href: '/dashboard/settings/usage', label: 'AI usage', desc: 'Track AI spend & quota', tone: 'primary' },
         ]}
       />
-    </div>
+    </TenantDashboardShell>
   )
 }
 
@@ -260,17 +235,7 @@ function ManagerDashboard() {
   })
 
   return (
-    <div className="space-y-6">
-      <header className="flex items-end justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Manager dashboard</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Pipeline health, team workload, and today's leads.
-          </p>
-        </div>
-        <Badge variant="secondary">Manager</Badge>
-      </header>
-
+    <TenantDashboardShell roleLabel="manager">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
           title="Open deals"
@@ -314,7 +279,7 @@ function ManagerDashboard() {
           { href: '/dashboard/auto-replies', label: 'AI replies', desc: 'Approve drafts' },
         ]}
       />
-    </div>
+    </TenantDashboardShell>
   )
 }
 
@@ -341,17 +306,7 @@ function StaffDashboard() {
   const doing = board.filter((t) => t.status === 'doing')
 
   return (
-    <div className="space-y-6">
-      <header className="flex items-end justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold">Today's work</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Tasks assigned to you. Tick them off as you go.
-          </p>
-        </div>
-        <Badge variant="secondary">Staff</Badge>
-      </header>
-
+    <TenantDashboardShell roleLabel="staff">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <StatCard title="To do" value={todo.length} icon={ListTodo} tone="primary" />
         <StatCard title="In progress" value={doing.length} icon={Sparkles} tone="info" />
@@ -392,7 +347,7 @@ function StaffDashboard() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </TenantDashboardShell>
   )
 }
 

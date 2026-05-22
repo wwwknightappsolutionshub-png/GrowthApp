@@ -10,6 +10,10 @@ from pydantic import BaseModel, Field, field_validator
 
 # ── Settings ──────────────────────────────────────────────────────────────────
 
+class ClientReminderRequest(BaseModel):
+    channel: Literal["email", "sms"] = "email"
+
+
 class BookingSettingsUpdate(BaseModel):
     timezone: str | None = None
     default_duration_minutes: int | None = Field(None, ge=15, le=480)
@@ -113,6 +117,8 @@ class StaffCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     email: str | None = None
     phone: str | None = None
+    address: str | None = None
+    joined_at: datetime | None = None
     user_id: UUID | None = None
     role: str = "staff"
     permissions: dict[str, Any] = Field(default_factory=dict)
@@ -124,6 +130,8 @@ class StaffUpdate(BaseModel):
     name: str | None = None
     email: str | None = None
     phone: str | None = None
+    address: str | None = None
+    joined_at: datetime | None = None
     is_active: bool | None = None
     role: str | None = None
     permissions: dict[str, Any] | None = None
@@ -138,11 +146,14 @@ class StaffResponse(BaseModel):
     name: str
     email: str | None
     phone: str | None
+    address: str | None = None
+    joined_at: datetime | None = None
     is_active: bool
     role: str
     permissions: dict[str, Any]
     location_ids: list
     working_hours: dict[str, Any]
+    created_at: datetime | None = None
 
 
 class StaffShiftCreate(BaseModel):

@@ -36,6 +36,7 @@ from app.modules.booking.enterprise_schemas import (
     BookingServiceUpdate,
     BookingSettingsResponse,
     BookingSettingsUpdate,
+    ClientReminderRequest,
     CalendarConnectionCreate,
     CalendarSyncResponse,
     SlotGenerateRequest,
@@ -68,6 +69,19 @@ async def patch_booking_settings(
 ):
     user, tenant, _ = ctx
     return await settings_svc.update_settings(db, tenant.id, body, user_id=user.id)
+
+
+@router.post("/{booking_id}/remind")
+async def send_booking_client_reminder(
+    booking_id: UUID,
+    body: ClientReminderRequest,
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+):
+    _, tenant, _ = ctx
+    return await automation.send_immediate_client_reminder(
+        db, tenant.id, booking_id, channel=body.channel
+    )
 
 
 @router.get("/link")

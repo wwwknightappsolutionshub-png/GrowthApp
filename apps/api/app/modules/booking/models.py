@@ -36,6 +36,8 @@ class Staff(Base):
     role: Mapped[str] = mapped_column(String(30), default="staff")
     permissions: Mapped[dict] = mapped_column(JSONBType, default=dict)
     location_ids: Mapped[list] = mapped_column(JSONBType, default=list)
+    address: Mapped[str | None] = mapped_column(Text, nullable=True)
+    joined_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

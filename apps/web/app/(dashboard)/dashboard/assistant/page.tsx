@@ -284,7 +284,7 @@ function AssistantPageInner() {
   const searchParams = useSearchParams()
   const focus = searchParams.get('focus')
   const [activeId, setActiveId] = useState<string | null>(null)
-  const [started, setStarted] = useState(false)
+  const autoStartRef = useRef(false)
 
   const { data: me } = useQuery({
     queryKey: ['me'],
@@ -303,7 +303,10 @@ function AssistantPageInner() {
       setActiveId(data.id)
       return data
     },
-    onError: () => toast.error('Failed to create conversation'),
+    onError: (err: { response?: { data?: { detail?: string } } }) => {
+      const detail = err.response?.data?.detail
+      toast.error(typeof detail === 'string' ? detail : 'Failed to create conversation')
+    },
   })
 
   const sendMutation = useMutation({
@@ -319,10 +322,10 @@ function AssistantPageInner() {
   const startConversation = async (prompt?: string) => {
     const title = focus === 'crm' ? 'CRM coach' : 'Growth assistant'
     const thread = await createMutation.mutateAsync(title)
+    if (thread?.id) setActiveId(thread.id)
     if (prompt && thread?.id) {
       await sendMutation.mutateAsync({ threadId: thread.id, content: prompt })
     }
-    setStarted(true)
   }
 
   useEffect(() => {
@@ -332,16 +335,23 @@ function AssistantPageInner() {
   }, [activeId, threads])
 
   useEffect(() => {
-    if (threads === undefined || started || activeId) return
+    if (threads === undefined || autoStartRef.current || activeId) return
     if (threads.length === 0 && !createMutation.isPending) {
-      setStarted(true)
-      if (focus === 'crm') {
-        startConversation(CRM_EDUCATOR_PROMPTS.pipeline)
-      } else {
-        startConversation('Growth assistant')
+      autoStartRef.current = true
+      const run = async () => {
+        try {
+          if (focus === 'crm') {
+            await startConversation(CRM_EDUCATOR_PROMPTS.pipeline)
+          } else {
+            await startConversation()
+          }
+        } catch {
+          autoStartRef.current = false
+        }
       }
+      void run()
     }
-  }, [threads, started, activeId, focus])
+  }, [threads, activeId, focus, createMutation.isPending])
 
   const userName = me?.full_name ?? ''
 
@@ -359,7 +369,7 @@ function AssistantPageInner() {
         threads={threads ?? []}
         activeId={activeId}
         onSelect={setActiveId}
-        onCreate={() => startConversation()}
+        onCreate={() => void startConversation()}
       />
       <ChatView
         threadId={activeId}

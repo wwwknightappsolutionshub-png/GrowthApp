@@ -156,6 +156,54 @@ async def _queue(
     db.add(row)
 
 
+async def send_immediate_client_reminder(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    booking_id: uuid.UUID,
+    *,
+    channel: str,
+) -> dict:
+    """Send a one-off SMS or email reminder to the customer for an upcoming booking."""
+    from app.core.exceptions import BadRequestException, NotFoundException
+
+    booking = (
+        await db.execute(
+            select(Booking).where(Booking.id == booking_id, Booking.tenant_id == tenant_id)
+        )
+    ).scalar_one_or_none()
+    if not booking:
+        raise NotFoundException("Booking")
+    if channel == "email":
+        if not booking.customer_email:
+            raise BadRequestException("Booking has no customer email")
+        recipient = booking.customer_email
+    elif channel == "sms":
+        if not booking.customer_phone:
+            raise BadRequestException("Booking has no customer phone")
+        recipient = booking.customer_phone
+    else:
+        raise BadRequestException("channel must be email or sms")
+
+    row = BookingNotificationQueue(
+        id=uuid.uuid4(),
+        tenant_id=tenant_id,
+        booking_id=booking.id,
+        channel=channel,
+        notification_type="booking.reminder",
+        recipient=recipient,
+        payload={"manual": True},
+        scheduled_for=datetime.now(timezone.utc),
+        status="pending",
+    )
+    db.add(row)
+    await db.flush()
+    await _deliver_notification(db, row)
+    row.status = "sent"
+    row.sent_at = datetime.now(timezone.utc)
+    await db.commit()
+    return {"sent": True, "channel": channel, "booking_id": str(booking_id)}
+
+
 async def process_due_notifications(db: AsyncSession, *, limit: int = 50) -> dict:
     """Worker: send due queued notifications."""
     now = datetime.now(timezone.utc)

@@ -392,6 +392,8 @@ export const bookings = {
   createPackage: (data: object) => apiClient.post('/bookings/packages', data),
   createPromo: (data: object) => apiClient.post('/bookings/promo-codes', data),
   exportIcal: () => apiClient.get('/bookings/export/ical', { responseType: 'text' }),
+  sendClientReminder: (bookingId: string, channel: 'email' | 'sms') =>
+    apiClient.post(`/bookings/${bookingId}/remind`, { channel }),
 }
 
 export const publicBooking = {
@@ -591,6 +593,10 @@ export const aiAssistant = {
 
 export const money = {
   dashboard: (days?: number) => apiClient.get('/money/dashboard', { params: { days } }),
+}
+
+export const accounts = {
+  dashboard: (days?: number) => apiClient.get('/accounts/dashboard', { params: { days } }),
 }
 
 export const segments = {

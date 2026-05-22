@@ -30,10 +30,22 @@ async def list_staff(db: AsyncSession, tenant_id: uuid.UUID) -> list[Staff]:
     )
 
 
+def _staff_payload(data: StaffCreate | StaffUpdate) -> dict:
+    payload = (
+        data.model_dump(exclude_none=True)
+        if isinstance(data, StaffUpdate)
+        else data.model_dump()
+    )
+    for key in ("email", "phone", "address"):
+        if payload.get(key) == "":
+            payload[key] = None
+    return payload
+
+
 async def create_staff(
     db: AsyncSession, tenant_id: uuid.UUID, data: StaffCreate, *, user_id: uuid.UUID | None = None
 ) -> Staff:
-    row = Staff(id=uuid.uuid4(), tenant_id=tenant_id, **data.model_dump())
+    row = Staff(id=uuid.uuid4(), tenant_id=tenant_id, **_staff_payload(data))
     db.add(row)
     await db.flush()
     await log_action(db, "booking.staff.create", "staff", row.id, tenant_id=tenant_id, user_id=user_id)
@@ -51,7 +63,7 @@ async def update_staff(
     user_id: uuid.UUID | None = None,
 ) -> Staff:
     row = await _get_staff(db, tenant_id, staff_id)
-    for field, value in data.model_dump(exclude_none=True).items():
+    for field, value in _staff_payload(data).items():
         setattr(row, field, value)
     db.add(row)
     await db.commit()

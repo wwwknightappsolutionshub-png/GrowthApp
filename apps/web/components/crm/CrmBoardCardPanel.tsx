@@ -8,12 +8,14 @@ import { toast } from 'sonner'
 import { crm, leads } from '@/lib/api-client'
 import { formatDate } from '@/lib/utils'
 import { CrmEntityTimeline } from '@/components/crm/CrmEntityTimeline'
+import { PipelineOutreachPanel } from '@/components/crm/PipelineOutreachPanel'
 
 type BoardCard = {
   card_type: 'lead' | 'deal'
   id: string
   title: string
   email?: string | null
+  phone?: string | null
   customer_name?: string | null
 }
 
@@ -125,6 +127,16 @@ export function CrmBoardCardPanel({
           >
             View customer <ExternalLink className="h-3.5 w-3.5" />
           </Link>
+        )}
+
+        {!isLead && (
+          <PipelineOutreachPanel
+            card={{
+              ...card,
+              email: card.email ?? leadDetail?.email ?? dealDetail?.email,
+              phone: card.phone ?? leadDetail?.phone,
+            }}
+          />
         )}
 
         <div>

@@ -19,6 +19,13 @@ from app.modules.crm.models import Customer, Deal
 from app.modules.quotes_invoices.models import Invoice, Payment
 
 router = APIRouter(prefix="/money", tags=["Money"])
+accounts_router = APIRouter(prefix="/accounts", tags=["Accounts"])
+
+
+def _coerce_date_key(value: date | str) -> date:
+    if isinstance(value, date):
+        return value
+    return date.fromisoformat(str(value)[:10])
 
 
 class MoneyHeadline(BaseModel):
@@ -116,8 +123,9 @@ async def get_money_dashboard(
     )
 
     # ── Daily cashflow over `days` ───────────────────────────────────────
-    payments_by_day = dict(
-        (
+    payments_by_day = {
+        _coerce_date_key(k): int(v)
+        for k, v in (
             await db.execute(
                 select(func.date(Payment.created_at), func.coalesce(func.sum(Payment.amount_pence), 0))
                 .where(
@@ -128,9 +136,10 @@ async def get_money_dashboard(
                 .group_by(func.date(Payment.created_at))
             )
         ).all()
-    )
-    invoiced_by_day = dict(
-        (
+    }
+    invoiced_by_day = {
+        _coerce_date_key(k): int(v)
+        for k, v in (
             await db.execute(
                 select(func.date(Invoice.created_at), func.coalesce(func.sum(Invoice.total_pence), 0))
                 .where(
@@ -140,7 +149,7 @@ async def get_money_dashboard(
                 .group_by(func.date(Invoice.created_at))
             )
         ).all()
-    )
+    }
 
     cashflow_daily: list[CashflowPoint] = []
     d = start_90
@@ -203,3 +212,13 @@ async def get_money_dashboard(
         cashflow_daily=cashflow_daily,
         upsell_suggestions=suggestions,
     )
+
+
+@accounts_router.get("/dashboard", response_model=MoneyDashboardResponse)
+async def get_accounts_dashboard(
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+    days: int = 90,
+):
+    """Alias for money dashboard — used by Accounts module UI."""
+    return await get_money_dashboard(ctx, db, days=days)
