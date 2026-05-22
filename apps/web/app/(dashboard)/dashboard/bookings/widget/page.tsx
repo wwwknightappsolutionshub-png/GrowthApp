@@ -1,12 +1,11 @@
 'use client'
 
-import Link from 'next/link'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { bookings, auth, tenants } from '@/lib/api-client'
 import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Copy, ExternalLink, LayoutGrid, QrCode } from 'lucide-react'
-import { BookingsSubpageLayout } from '@/components/bookings/BookingsSubpageLayout'
+import { BookingsPanel, BookingsSubpageLayout } from '@/components/bookings/BookingsSubpageLayout'
 
 function qrImageUrl(data: string, size = 220) {
   return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}`
@@ -95,27 +94,20 @@ export default function BookingWidgetPage() {
       tenantName={tenant?.name}
       userName={me?.full_name}
       subtitle="Widget embed & QR codes for booking, referrals, and feedback"
-      maxWidth="xl"
     >
       {needsPublicBookingFix ? (
-        <div className="rounded-xl border border-amber-500/40 bg-amber-950/40 px-4 py-3 text-sm text-amber-100">
+        <div className="w-full rounded-xl border border-amber-500/40 bg-amber-950/40 px-4 py-3 text-sm text-amber-100 text-center">
           <p className="font-semibold text-amber-50 mb-1">
             {slugArchived ? 'Archived booking URL detected' : 'Public booking is disabled'}
           </p>
           <p className="text-amber-100/90 mb-3">
             {slugArchived ? (
               <>
-                This workspace was previously deleted, so the public link may still use an archived slug (
-                <span className="font-mono text-xs">-deleted-…</span>). QR codes and{' '}
-                <span className="font-mono text-xs">/book/{slug}</span> will show &quot;Booking unavailable&quot;
-                until you fix it below.
+                Public link may use an archived slug (<span className="font-mono text-xs">-deleted-…</span>).
+                Fix below, then re-print QR codes.
               </>
             ) : (
-              <>
-                The booking URL <span className="font-mono text-xs">/book/{slug}</span> is correct, but this
-                workspace is still marked inactive. Enable public booking below (or Super Admin → Tenants →
-                Reactivate).
-              </>
+              <>Workspace inactive — enable public booking below or reactivate in Super Admin.</>
             )}
           </p>
           <button
@@ -133,50 +125,54 @@ export default function BookingWidgetPage() {
         </div>
       ) : null}
 
-      <div className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 p-6 space-y-5">
-        <h2 className="text-lg font-bold text-white flex items-center gap-2">
+      <BookingsPanel className="space-y-5">
+        <h2 className="text-lg font-bold text-white flex items-center justify-center gap-2">
           <LayoutGrid className="w-5 h-5 text-brand-teal-300" />
           Website embed
         </h2>
         <div>
-          <p className="text-sm text-brand-teal-100/70 mb-1">Public booking link</p>
+          <p className="text-sm text-brand-teal-100/70 mb-1 text-center">Public booking link</p>
           <p className="text-white font-mono text-sm break-all bg-brand-forest-900/80 rounded-lg px-3 py-2 border border-brand-forest-700">
             {bookUrl || '…'}
           </p>
-          <button
-            type="button"
-            onClick={() => bookUrl && copy(bookUrl, 'link')}
-            className="mt-2 inline-flex items-center gap-1.5 text-xs text-brand-teal-300 hover:underline"
-          >
-            <Copy className="w-3.5 h-3.5" />
-            {copied === 'link' ? 'Copied!' : 'Copy link'}
-          </button>
+          <div className="mt-2 flex justify-center">
+            <button
+              type="button"
+              onClick={() => bookUrl && copy(bookUrl, 'link')}
+              className="inline-flex items-center gap-1.5 text-xs text-brand-teal-300 hover:underline"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              {copied === 'link' ? 'Copied!' : 'Copy link'}
+            </button>
+          </div>
         </div>
         <div>
-          <p className="text-sm text-brand-teal-100/70 mb-2">Embed snippet</p>
-          <pre className="text-xs bg-brand-forest-900 p-4 rounded-lg overflow-x-auto text-brand-teal-100/90 border border-brand-forest-700">
+          <p className="text-sm text-brand-teal-100/70 mb-2 text-center">Embed snippet</p>
+          <pre className="text-xs bg-brand-forest-900 p-4 rounded-lg overflow-x-auto text-brand-teal-100/90 border border-brand-forest-700 text-left">
             {embedCode}
           </pre>
-          <button
-            type="button"
-            onClick={() => copy(embedCode, 'embed')}
-            className="mt-2 inline-flex items-center gap-1.5 text-xs text-brand-teal-300 hover:underline"
-          >
-            <Copy className="w-3.5 h-3.5" />
-            {copied === 'embed' ? 'Copied!' : 'Copy embed code'}
-          </button>
+          <div className="mt-2 flex justify-center">
+            <button
+              type="button"
+              onClick={() => copy(embedCode, 'embed')}
+              className="inline-flex items-center gap-1.5 text-xs text-brand-teal-300 hover:underline"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              {copied === 'embed' ? 'Copied!' : 'Copy embed code'}
+            </button>
+          </div>
         </div>
-      </div>
+      </BookingsPanel>
 
-      <section className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 p-6">
-        <h2 className="text-lg font-bold text-white flex items-center gap-2 mb-1">
+      <BookingsPanel>
+        <h2 className="text-lg font-bold text-white flex items-center justify-center gap-2 mb-1">
           <QrCode className="w-5 h-5 text-brand-teal-300" />
           Three QR use cases
         </h2>
-        <p className="text-sm text-brand-teal-100/65 mb-6 max-w-2xl mx-auto text-center">
+        <p className="text-sm text-brand-teal-100/65 mb-6 text-center">
           Print or share — each code opens a distinct customer journey.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           {qrTargets.map((t) => (
             <div
               key={t.id}
@@ -223,7 +219,7 @@ export default function BookingWidgetPage() {
             </div>
           ))}
         </div>
-      </section>
+      </BookingsPanel>
     </BookingsSubpageLayout>
   )
 }
