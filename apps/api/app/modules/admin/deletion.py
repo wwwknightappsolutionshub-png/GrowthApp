@@ -76,9 +76,11 @@ async def delete_tenant(
 
 async def _purge_tenant_data(db: AsyncSession, tenant_id: uuid.UUID) -> None:
     """Delete tenant-scoped application data (order: dependents first)."""
+    from app.modules.ai_assistant.models import AIAssistantMessage, AIAssistantThread
     from app.modules.audit.models import AuditLog
-    from app.modules.automation.models import Automation, AutomationRun, MessageTemplate
-    from app.modules.auto_replies.models import AutoReplyRule
+    from app.modules.auth.models import ApiKey
+    from app.modules.automation.models import Automation, AutomationRun, AutomationStep, MessageTemplate
+    from app.modules.auto_replies.models import AutoReply
     from app.modules.billing.models import BillingInvoice, Subscription
     from app.modules.booking.models import AvailabilitySlot, Booking, Staff
     from app.modules.booking.enterprise_models import (
@@ -95,9 +97,25 @@ async def _purge_tenant_data(db: AsyncSession, tenant_id: uuid.UUID) -> None:
         StaffShift,
     )
     from app.modules.crm.models import Customer, Deal, DealActivity
+    from app.modules.crm.pipeline_models import (
+        CrmActivity,
+        CrmAssignment,
+        CrmAttachment,
+        CrmCustomFieldDefinition,
+        CrmCustomFieldValue,
+        CrmDuplicateCandidate,
+        CrmImportJob,
+        CrmPipeline,
+        CrmSavedFilter,
+        CrmScoreRule,
+        CrmStage,
+        CrmTag,
+        CrmTagAssignment,
+    )
     from app.modules.gdpr.models import GdprRequest
     from app.modules.integrations.models import GoogleBusinessReview, TenantGoogleConnection
     from app.modules.landing_pages.models import LandingPage
+    from app.modules.lead_marketplace.trial_models import TrialLeadDelivery
     from app.modules.leads.models import Lead, LeadRequest, LeadSource
     from app.modules.marketer.models import (
         AudienceResearchReport,
@@ -108,9 +126,17 @@ async def _purge_tenant_data(db: AsyncSession, tenant_id: uuid.UUID) -> None:
     from app.modules.messaging.models import Conversation, Message
     from app.modules.notifications.models import Notification, NotificationPreference, PushSubscription
     from app.modules.outreach.models import OutreachCampaign, OutreachEnrolment, OutreachSend
-    from app.modules.quotes_invoices.models import Invoice, InvoiceItem, Payment, Quote, QuoteItem
+    from app.modules.quotes_invoices.models import (
+        Invoice,
+        InvoiceItem,
+        Payment,
+        Quote,
+        QuoteItem,
+        QuoteTemplate,
+    )
+    from app.modules.rbac.models import TenantPermissionOverride
     from app.modules.reputation.models import Review, ReviewRequest
-    from app.modules.segments.models import Segment
+    from app.modules.segments.models import CustomerSegment
     from app.modules.social.models import (
         SocialAccount,
         SocialApprovalQueue,
@@ -123,25 +149,45 @@ async def _purge_tenant_data(db: AsyncSession, tenant_id: uuid.UUID) -> None:
     )
     from app.modules.tasks.models import Task
     from app.modules.tenants.models import Location
+    from app.services.ai.models import AIUsageEvent
 
     tid = tenant_id
+    automation_ids = select(Automation.id).where(Automation.tenant_id == tid)
+    await db.execute(delete(AutomationStep).where(AutomationStep.automation_id.in_(automation_ids)))
+
     ordered_models = [
         Message,
+        AutoReply,
         Conversation,
         OutreachSend,
         OutreachEnrolment,
         OutreachCampaign,
+        AIAssistantMessage,
+        AIAssistantThread,
+        CrmCustomFieldValue,
+        CrmTagAssignment,
+        CrmAttachment,
+        CrmActivity,
+        CrmAssignment,
+        CrmSavedFilter,
+        CrmImportJob,
+        CrmDuplicateCandidate,
+        CrmCustomFieldDefinition,
+        CrmTag,
+        CrmScoreRule,
+        CrmStage,
+        CrmPipeline,
         DealActivity,
         Deal,
+        TrialLeadDelivery,
         Lead,
         LeadRequest,
         LeadSource,
         Customer,
         Payment,
-        InvoiceItem,
         Invoice,
-        QuoteItem,
         Quote,
+        QuoteTemplate,
         Task,
         BookingNotificationQueue,
         BookingAbandonedSession,
@@ -160,7 +206,6 @@ async def _purge_tenant_data(db: AsyncSession, tenant_id: uuid.UUID) -> None:
         AutomationRun,
         Automation,
         MessageTemplate,
-        AutoReplyRule,
         ReviewRequest,
         Review,
         SocialPost,
@@ -171,7 +216,7 @@ async def _purge_tenant_data(db: AsyncSession, tenant_id: uuid.UUID) -> None:
         SocialPostingPreferences,
         SocialBrandIdentity,
         SocialAccount,
-        Segment,
+        CustomerSegment,
         LandingPage,
         CompetitorIntelligenceReport,
         AudienceResearchReport,
@@ -185,6 +230,9 @@ async def _purge_tenant_data(db: AsyncSession, tenant_id: uuid.UUID) -> None:
         GdprRequest,
         GoogleBusinessReview,
         TenantGoogleConnection,
+        ApiKey,
+        TenantPermissionOverride,
+        AIUsageEvent,
         AuditLog,
         Location,
     ]
@@ -269,7 +317,16 @@ async def permanently_delete_platform_user(db: AsyncSession, user_id: uuid.UUID)
     from app.modules.auth.otp_models import PendingSignup
     from app.modules.billing.models import FreelancerBilling
 
+    from app.modules.ai_assistant.models import AIAssistantThread
+    from app.modules.auth.models import ApiKey, MagicLinkToken
+
     await db.execute(delete(FreelancerBilling).where(FreelancerBilling.user_id == user.id))
+    await db.execute(delete(ApiKey).where(ApiKey.user_id == user.id))
+    await db.execute(delete(MagicLinkToken).where(MagicLinkToken.email == email))
+    await db.execute(delete(AIAssistantThread).where(AIAssistantThread.user_id == user.id))
+    await db.execute(
+        update(Tenant).where(Tenant.owner_user_id == user.id).values(owner_user_id=None)
+    )
     await _revoke_user_sessions(db, user.id)
     await db.execute(delete(RefreshToken).where(RefreshToken.user_id == user.id))
     await db.execute(delete(TenantMember).where(TenantMember.user_id == user.id))

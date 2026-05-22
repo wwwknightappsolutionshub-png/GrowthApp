@@ -213,7 +213,16 @@ function DeleteUserModal({ user, onClose }: { user: AdminUser; onClose: () => vo
       qc.invalidateQueries({ queryKey: ['admin', 'stats'] })
       onClose()
     },
-    onError: (e: any) => toast.error(e?.response?.data?.detail || 'Delete failed'),
+    onError: (e: any) => {
+      const detail = e?.response?.data?.detail
+      const msg =
+        typeof detail === 'string'
+          ? detail
+          : Array.isArray(detail)
+            ? detail.map((d: { msg?: string }) => d?.msg).filter(Boolean).join('; ')
+            : 'Delete failed'
+      toast.error(msg || 'Delete failed')
+    },
   })
 
   return (
