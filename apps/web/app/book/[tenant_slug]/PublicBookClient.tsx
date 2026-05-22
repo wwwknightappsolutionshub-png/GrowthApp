@@ -35,13 +35,12 @@ function UnavailablePanel({ slug, detail }: { slug: string; detail: string }) {
 }
 
 export function PublicBookClient({ slug, initialWidget, loadStatus }: Props) {
-  const skipClientFetch = loadStatus === 'not_found'
-
   const {
     data: widget,
     isPending,
     isError,
     error,
+    isFetched,
   } = useQuery({
     queryKey: ['public-booking-widget', slug],
     queryFn: async () => {
@@ -53,10 +52,10 @@ export function PublicBookClient({ slug, initialWidget, loadStatus }: Props) {
       return data
     },
     initialData: loadStatus === 'ok' && initialWidget ? initialWidget : undefined,
-    enabled: !!slug && !skipClientFetch,
+    enabled: !!slug,
     retry: 1,
     staleTime: 30_000,
-    refetchOnMount: loadStatus === 'skipped',
+    refetchOnMount: true,
   })
 
   const bookMutation = useMutation({
@@ -86,7 +85,13 @@ export function PublicBookClient({ slug, initialWidget, loadStatus }: Props) {
     (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
     (error as Error | undefined)?.message
 
-  if (loadStatus === 'not_found' || (skipClientFetch && !active)) {
+  const showLoading = (isPending || (!isFetched && !active)) && !isError
+
+  if ((isError || (isFetched && !active)) && !showLoading) {
+    const inactiveHint =
+      loadStatus === 'not_found' && !slug.includes('deleted')
+        ? 'The booking URL looks correct, but this workspace may still be archived. In Super Admin, open Tenants → Reactivate, or in Bookings → Widget use “Restore clean booking URL”.'
+        : 'This business is inactive or the booking link is outdated.'
     return (
       <PublicBookShell
         variant="booking"
@@ -94,15 +99,10 @@ export function PublicBookClient({ slug, initialWidget, loadStatus }: Props) {
         subtitle="This business is not accepting online bookings."
         accent={accent}
       >
-        <UnavailablePanel
-          slug={slug}
-          detail="This business is inactive or the booking link is outdated."
-        />
+        <UnavailablePanel slug={slug} detail={errDetail || inactiveHint} />
       </PublicBookShell>
     )
   }
-
-  const showLoading = isPending && !active && !isError
 
   if (showLoading) {
     return (
@@ -113,22 +113,6 @@ export function PublicBookClient({ slug, initialWidget, loadStatus }: Props) {
           <div className="h-10 bg-slate-100 rounded-lg" />
           <div className="h-24 bg-slate-100 rounded-lg" />
         </div>
-      </PublicBookShell>
-    )
-  }
-
-  if (isError && !active) {
-    return (
-      <PublicBookShell
-        variant="booking"
-        tenantName="Booking unavailable"
-        subtitle="This business page could not be loaded."
-        accent={accent}
-      >
-        <UnavailablePanel
-          slug={slug}
-          detail={errDetail || 'Could not load booking settings. Try again later.'}
-        />
       </PublicBookShell>
     )
   }

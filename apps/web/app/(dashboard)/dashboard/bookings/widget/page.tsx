@@ -20,7 +20,7 @@ export default function BookingWidgetPage() {
   })
   const { data: tenant } = useQuery({
     queryKey: ['tenant'],
-    queryFn: () => tenants.get().then((r) => r.data as { name?: string }),
+    queryFn: () => tenants.get().then((r) => r.data as { name?: string; is_active?: boolean }),
   })
   const { data: links } = useQuery({
     queryKey: ['bookings', 'links'],
@@ -54,6 +54,8 @@ export default function BookingWidgetPage() {
   const bookUrl = links?.booking_url || ''
   const slug = links?.slug || 'your-slug'
   const slugArchived = links?.slug_archived || slug.includes('-deleted-')
+  const workspaceInactive = tenant?.is_active === false
+  const needsPublicBookingFix = slugArchived || workspaceInactive
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   const embedCode = `<script src="${origin}/embed/booking-widget.js" data-tenant="${slug}" data-book-url="${bookUrl}"></script>`
 
@@ -108,13 +110,26 @@ export default function BookingWidgetPage() {
         </Link>
       </div>
 
-      {slugArchived ? (
+      {needsPublicBookingFix ? (
         <div className="rounded-xl border border-amber-500/40 bg-amber-950/40 px-4 py-3 text-sm text-amber-100">
-          <p className="font-semibold text-amber-50 mb-1">Archived booking URL detected</p>
+          <p className="font-semibold text-amber-50 mb-1">
+            {slugArchived ? 'Archived booking URL detected' : 'Public booking is disabled'}
+          </p>
           <p className="text-amber-100/90 mb-3">
-            This workspace was previously deleted, so the public link still uses an archived slug (
-            <span className="font-mono text-xs">-deleted-…</span>). Customer QR codes will not work until
-            you restore a clean URL.
+            {slugArchived ? (
+              <>
+                This workspace was previously deleted, so the public link may still use an archived slug (
+                <span className="font-mono text-xs">-deleted-…</span>). QR codes and{' '}
+                <span className="font-mono text-xs">/book/{slug}</span> will show &quot;Booking unavailable&quot;
+                until you fix it below.
+              </>
+            ) : (
+              <>
+                The booking URL <span className="font-mono text-xs">/book/{slug}</span> is correct, but this
+                workspace is still marked inactive after a prior delete. Enable public booking below (or Super
+                Admin → Tenants → Reactivate).
+              </>
+            )}
           </p>
           <button
             type="button"
@@ -122,7 +137,11 @@ export default function BookingWidgetPage() {
             disabled={restoreSlug.isPending}
             className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold disabled:opacity-50"
           >
-            {restoreSlug.isPending ? 'Restoring…' : 'Restore clean booking URL'}
+            {restoreSlug.isPending
+              ? 'Enabling…'
+              : slugArchived
+                ? 'Restore clean booking URL'
+                : 'Enable public booking'}
           </button>
         </div>
       ) : null}

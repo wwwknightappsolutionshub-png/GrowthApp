@@ -118,14 +118,21 @@ async def get_booking_qr_links(ctx: CurrentTenantContext):
 
 @router.post("/links/restore-slug")
 async def restore_tenant_booking_slug(ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
-    """Remove ``-deleted-{id}`` from slug so QR codes and public booking use a clean URL."""
+    """Restore clean slug and re-enable public booking (sets ``is_active``)."""
     from app.core.exceptions import BadRequestException
     from app.modules.admin.deletion import ARCHIVED_SLUG_MARKER, restore_archived_tenant_slug
 
     _, tenant, _ = ctx
-    if ARCHIVED_SLUG_MARKER not in tenant.slug:
+    slug_archived = ARCHIVED_SLUG_MARKER in tenant.slug
+    if not slug_archived and tenant.is_active:
         raise BadRequestException("Booking URL slug is already active (no archived suffix).")
-    await restore_archived_tenant_slug(db, tenant)
+
+    tenant.is_active = True
+    if slug_archived:
+        await restore_archived_tenant_slug(db, tenant)
+    else:
+        db.add(tenant)
+        await db.commit()
     await db.refresh(tenant)
     return _booking_links_payload(tenant)
 
