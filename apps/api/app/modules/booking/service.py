@@ -155,10 +155,6 @@ async def create_booking(db: AsyncSession, tenant_id: uuid.UUID, data: BookingCr
     await db.commit()
     await db.refresh(booking)
 
-    from app.modules.referrals.service import on_booking_created
-
-    await on_booking_created(db, tenant_id=tenant_id, booking=booking)
-
     await schedule_booking_notifications(db, booking)
 
     from app.workers.queue import enqueue
@@ -270,10 +266,8 @@ async def update_booking(
     await db.refresh(b)
 
     if b.status == "completed" and old_status != "completed":
-        from app.modules.referrals.service import on_booking_completed
         from app.modules.accounting.hooks import maybe_auto_invoice_booking
 
-        await on_booking_completed(db, tenant_id=tenant_id, booking=b)
         await maybe_auto_invoice_booking(db, tenant_id=tenant_id, booking=b)
         from app.modules.membership_rewards.hooks import on_booking_completed as mr_booking_points
 

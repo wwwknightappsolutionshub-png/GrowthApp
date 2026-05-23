@@ -452,10 +452,6 @@ async def apply_invoice_payment(
     await db.commit()
     await db.refresh(inv)
 
-    if inv.status == "paid":
-        from app.modules.referrals.service import on_invoice_paid
-
-        await on_invoice_paid(db, tenant_id=tenant_id, invoice_id=invoice_id)
     return inv
 
 

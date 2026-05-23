@@ -42,10 +42,6 @@ async def create_customer(
     else:
         await db.flush()
     await db.refresh(c)
-    if commit and c.referral_program_id:
-        from app.modules.membership_rewards.hooks import on_customer_created
-
-        await on_customer_created(db, tenant_id=tenant_id, customer_id=c.id)
     return c
 
 

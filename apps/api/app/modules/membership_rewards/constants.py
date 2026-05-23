@@ -23,8 +23,7 @@ DEFAULT_EARN_RULES: dict = {
     "booking_completed": 50,
     "purchase_per_pound": 10,
     "membership_signup": 200,
-    "referral_signup": 100,
-    "referral_booking": 150,
+    "refer_win": 100,
     "review_left": 75,
 }
 
@@ -33,7 +32,7 @@ POINT_SOURCES = frozenset(
         "booking",
         "purchase",
         "membership",
-        "referral",
+        "refer_win",
         "review",
         "milestone",
         "redeem",

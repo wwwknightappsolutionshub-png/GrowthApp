@@ -1,4 +1,4 @@
-"""Event hooks — award loyalty points (separate from referral cash payouts)."""
+"""Event hooks — award loyalty points via Membership & Rewards."""
 
 from __future__ import annotations
 
@@ -9,7 +9,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.booking.models import Booking
-from app.modules.crm.models import Customer
 from app.modules.membership_rewards.entitlement import tenant_has_membership_rewards
 from app.modules.membership_rewards.models import MrPointsLedger
 from app.modules.membership_rewards import service
@@ -95,17 +94,6 @@ async def on_booking_completed(
             reference_id=booking.id,
             description="Booking completed",
         )
-        cust = await db.get(Customer, booking.customer_id)
-        if cust and cust.referral_program_id:
-            await _award_referrer_for_customer_event(
-                db,
-                tenant_id=tenant_id,
-                referred_customer=cust,
-                rule_key="referral_booking",
-                reference_type="referral_booking",
-                reference_id=booking.id,
-                description="Referral booking completed",
-            )
     except Exception:  # noqa: BLE001
         logger.exception("Membership points booking hook failed tenant=%s booking=%s", tenant_id, booking.id)
 
@@ -200,70 +188,34 @@ async def on_review_submitted(
         logger.exception("Membership points review hook failed tenant=%s review=%s", tenant_id, review_id)
 
 
-async def on_customer_created(
-    db: AsyncSession, *, tenant_id: uuid.UUID, customer_id: uuid.UUID
-) -> None:
-    """Award referrer when a referred customer is added to CRM."""
-    cust = await db.get(Customer, customer_id)
-    if not cust or not cust.referral_program_id:
-        return
-    if not await tenant_has_membership_rewards(db, tenant_id):
-        return
-    try:
-        await _award_referrer_for_customer_event(
-            db,
-            tenant_id=tenant_id,
-            referred_customer=cust,
-            rule_key="referral_signup",
-            reference_type="referral_signup",
-            reference_id=customer_id,
-            description="Referral signup",
-        )
-    except Exception:  # noqa: BLE001
-        logger.exception("Membership points customer hook failed tenant=%s customer=%s", tenant_id, customer_id)
-
-
-async def _award_referrer_for_customer_event(
+async def on_refer_win_submitted(
     db: AsyncSession,
     *,
     tenant_id: uuid.UUID,
-    referred_customer: Customer,
-    rule_key: str,
-    reference_type: str,
-    reference_id: uuid.UUID,
-    description: str,
+    referrer_customer_id: uuid.UUID,
+    lead_id: uuid.UUID,
 ) -> None:
-    """Best-effort: find referrer CRM customer via referral program owner email."""
-    from app.modules.referrals.models import ReferralProgram
-    from app.modules.auth.models import User
-
-    prog = await db.get(ReferralProgram, referred_customer.referral_program_id)
-    if not prog or not prog.owner_id:
+    """Award loyalty points to the referrer when Refer & Win creates a lead."""
+    if not await tenant_has_membership_rewards(db, tenant_id):
         return
-    owner = await db.get(User, prog.owner_id)
-    if not owner or not owner.email:
-        return
-    referrer = (
-        await db.execute(
-            select(Customer).where(
-                Customer.tenant_id == tenant_id,
-                Customer.email.ilike(owner.email),
-            )
+    try:
+        pts = await _earn_rule_amount(db, tenant_id, "refer_win")
+        await _award_if_new(
+            db,
+            tenant_id,
+            referrer_customer_id,
+            pts,
+            source="refer_win",
+            reference_type="refer_win_lead",
+            reference_id=lead_id,
+            description="Refer & Win submission",
         )
-    ).scalar_one_or_none()
-    if not referrer:
-        return
-    pts = await _earn_rule_amount(db, tenant_id, rule_key)
-    await _award_if_new(
-        db,
-        tenant_id,
-        referrer.id,
-        pts,
-        source="referral",
-        reference_type=reference_type,
-        reference_id=reference_id,
-        description=description,
-    )
+    except Exception:  # noqa: BLE001
+        logger.exception(
+            "Membership points refer-win hook failed tenant=%s lead=%s",
+            tenant_id,
+            lead_id,
+        )
 
 
 async def on_tenant_signup(db: AsyncSession, tenant_id: uuid.UUID) -> None:

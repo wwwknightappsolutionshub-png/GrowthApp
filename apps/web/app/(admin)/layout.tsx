@@ -75,7 +75,6 @@ const NAV_GROUPS = [
   {
     label: 'Platform',
     items: [
-      { href: '/admin/referrals', label: 'Referrals', icon: TrendingUp },
       { href: '/admin/billing', label: 'Billing', icon: CreditCard },
       { href: '/admin/users', label: 'Users & Roles', icon: Users },
       { href: '/admin/communications', label: 'Communications', icon: Mail },

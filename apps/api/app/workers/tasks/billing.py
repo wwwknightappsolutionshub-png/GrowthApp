@@ -38,13 +38,6 @@ async def sync_stripe_subscription(ctx: dict, *, stripe_subscription_id: str):
         db.add(db_sub)
         await db.commit()
         logger.info("Subscription %s synced: status=%s", stripe_subscription_id, sub.status)
-        if db_sub.status in ("active", "trialing"):
-            from app.modules.referrals.service import on_subscription_active_for_tenant
-
-            await on_subscription_active_for_tenant(
-                db, tenant_id=db_sub.tenant_id, stripe_status=str(db_sub.status)
-            )
-
         from app.modules.membership_rewards.billing import sync_addon_from_stripe_subscription
 
         stripe_sub_dict = sub.to_dict() if hasattr(sub, "to_dict") else dict(sub)

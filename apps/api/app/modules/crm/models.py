@@ -35,12 +35,6 @@ class Customer(Base):
         UUIDType, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
     )
     ref_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False, server_default="0")
-    referral_program_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUIDType, ForeignKey("referral_programs.id", ondelete="SET NULL"), nullable=True, index=True
-    )
-    reward_amount: Mapped[float | None] = mapped_column(Numeric(14, 2), nullable=True)
-    reward_type: Mapped[str | None] = mapped_column(String(30), nullable=True)
-    reward_delivery_method: Mapped[str | None] = mapped_column(String(30), nullable=True)
     service_recurrency: Mapped[str | None] = mapped_column(String(30), nullable=True)
     service_renewal_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     service_renewal_invoice_id: Mapped[uuid.UUID | None] = mapped_column(UUIDType, nullable=True)

@@ -132,9 +132,9 @@ const TOOL_TILES: ToolTile[] = [
     icon: Star,
   },
   {
-    href: '/dashboard/referrals',
-    label: 'Referrals',
-    description: 'Reward referrers',
+    href: '/dashboard/membership-rewards',
+    label: 'Membership & Rewards',
+    description: 'Loyalty points and memberships',
     icon: TrendingUp,
   },
   {

@@ -101,7 +101,7 @@ python -m pytest \
 ## Regression
 
 - [ ] Salon industry `POST /addons/billing/memberships` still works (different tables)
-- [ ] Referrals module unchanged; referral cash not written to `mr_points_ledger`
+- [ ] Legacy referrals module removed; loyalty points only via `mr_points_ledger`
 - [ ] Accounting add-on `tenant_addons` rows independent of `membership_rewards`
 - [ ] Tenant isolation: user A cannot read tenant B membership data
 

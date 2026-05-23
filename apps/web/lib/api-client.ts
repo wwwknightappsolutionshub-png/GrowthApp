@@ -32,12 +32,6 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
-export const referralsClient: AxiosInstance = axios.create({
-  baseURL: `${API_BASE}/api/referrals`,
-  headers: { 'Content-Type': 'application/json' },
-  withCredentials: true,
-})
-
 // AI Scraper is mounted at `/api/superadmin/ai-scraper` (outside /api/v1),
 // so it needs a dedicated client that points to `/api` with that suffix.
 export const aiScraperClient: AxiosInstance = axios.create({
@@ -129,29 +123,6 @@ apiClient.interceptors.response.use(
       try {
         await _refresh()
         return apiClient(originalRequest!)
-      } catch {
-        if (typeof window !== 'undefined') {
-          window.location.href = '/login'
-        }
-      }
-    }
-    return Promise.reject(normalizeApiError(error))
-  },
-)
-
-referralsClient.interceptors.response.use(
-  (res) => res,
-  async (error: AxiosError) => {
-    const originalRequest = error.config as typeof error.config & { _retry?: boolean }
-    const url = originalRequest?.url || ''
-    const isAuthEndpoint =
-      url.includes('/auth/login') || url.includes('/auth/refresh') || url.includes('/auth/register')
-
-    if (error.response?.status === 401 && !originalRequest?._retry && !isAuthEndpoint) {
-      originalRequest._retry = true
-      try {
-        await _refresh()
-        return referralsClient(originalRequest!)
       } catch {
         if (typeof window !== 'undefined') {
           window.location.href = '/login'
@@ -1215,26 +1186,6 @@ export const aiScraper = {
     }),
 }
 
-// ── Referrals (/api/referrals) --------------------------------------------
-
-export const referrals = {
-  createProgram: (body: object) => referralsClient.post('/programs/create', body),
-  getProgram: (id: string) => referralsClient.get(`/programs/${id}`),
-  submitProgram: (id: string) => referralsClient.post(`/programs/${id}/submit_for_approval`),
-  approveProgram: (id: string, body: object) => referralsClient.post(`/programs/${id}/approve`, body),
-  rejectProgram: (id: string, body: object) => referralsClient.post(`/programs/${id}/reject`, body),
-  generateLink: (body: { program_id: string }) => referralsClient.post('/links/generate', body),
-  listLinks: (userId: string) => referralsClient.get(`/links/${userId}`),
-  logEvent: (body: { ref_code: string }) => referralsClient.post('/events/log', body),
-  updateEventStatus: (body: { event_id: string; status: string }) =>
-    referralsClient.post('/events/update_status', body),
-  rewardEvent: (body: { event_id: string }) => referralsClient.post('/events/reward', body),
-  dashboard: (referrerId: string) => referralsClient.get(`/referrer/${referrerId}/dashboard`),
-  requestPayout: (body: { event_id: string; amount: number; payout_method: string }) =>
-    referralsClient.post('/payouts/request', body),
-  getPayout: (id: string) => referralsClient.get(`/payouts/${id}`),
-}
-
 // ── Tenant-scoped marketing / templates -----------------------------------
 
 export const marketingTemplates = {
@@ -1438,15 +1389,6 @@ export const adminApi = {
   getFraudConfig: () => adminApiClient.get('/ai_engine/fraud'),
   updateFraudConfig: (body: object) => adminApiClient.put('/ai_engine/fraud', body),
   testScore: (body: object) => adminApiClient.post('/ai_engine/test-score', body),
-
-  // Referrals
-  listReferralPrograms: (p?: object) => adminApiClient.get('/referrals/programs', { params: p }),
-  createReferralProgram: (body: object) => adminApiClient.post('/referrals/programs', body),
-  updateReferralProgram: (id: string, body: object) => adminApiClient.put(`/referrals/programs/${id}`, body),
-  deleteReferralProgram: (id: string) => adminApiClient.delete(`/referrals/programs/${id}`),
-  listReferralEvents: (p?: object) => adminApiClient.get('/referrals/events', { params: p }),
-  listReferralPayouts: (p?: object) => adminApiClient.get('/referrals/payouts', { params: p }),
-  approvePayout: (id: string) => adminApiClient.post(`/referrals/payouts/${id}/approve`),
 
   // Billing
   listBillingPlans: () => adminApiClient.get<AdminBillingPlan[]>('/billing/plans'),

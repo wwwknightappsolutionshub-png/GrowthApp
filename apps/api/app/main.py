@@ -69,12 +69,10 @@ from app.modules.auto_replies import models as _auto_replies_models  # noqa: F40
 from app.modules.outreach import models as _outreach_models  # noqa: F401
 from app.modules.landing_pages import models as _landing_pages_models  # noqa: F401
 from app.modules.marketing import models as _marketing_models  # noqa: F401
-from app.modules.referrals import models as _referrals_models  # noqa: F401
 from app.modules.marketer import models as _marketer_models  # noqa: F401
 from app.modules.auth import models as _auth_models  # noqa: F401
 from app.modules.auth import otp_models as _auth_otp_models  # noqa: F401
 from app.modules.tenants import models as _tenant_models  # noqa: F401
-from app.modules.referrals.router import router as referrals_router
 from app.modules.ai_scraper import models as _ai_scraper_models  # noqa: F401
 from app.modules.ai_scraper.router import router as ai_scraper_router
 # Force-load business category config model
@@ -92,7 +90,6 @@ from app.api.admin.scraper_sources import router as admin_scraper_sources_router
 from app.api.admin.scraper_tasks import router as admin_scraper_tasks_router
 from app.api.admin.scraper_results import router as admin_scraper_results_router
 from app.api.admin.ai_engine import router as admin_ai_engine_router
-from app.api.admin.referrals import router as admin_referrals_router
 from app.api.admin.billing import router as admin_billing_router
 from app.api.admin.users import router as admin_users_router
 from app.api.admin.communications import router as admin_comms_router
@@ -183,7 +180,6 @@ def create_app() -> FastAPI:
     app.include_router(marketing_admin_router, prefix=API_PREFIX)
     app.include_router(marketing_tenant_router, prefix=API_PREFIX)
     app.include_router(marketing_public_router, prefix=API_PREFIX)
-    app.include_router(referrals_router, prefix="/api")
     app.include_router(ai_scraper_router, prefix="/api")
     app.include_router(lead_marketplace_router, prefix="/api")
     # Super Admin API — /api/admin/
@@ -194,7 +190,6 @@ def create_app() -> FastAPI:
     app.include_router(admin_scraper_tasks_router)
     app.include_router(admin_scraper_results_router)
     app.include_router(admin_ai_engine_router)
-    app.include_router(admin_referrals_router)
     app.include_router(admin_billing_router)
     app.include_router(admin_users_router)
     app.include_router(admin_comms_router)

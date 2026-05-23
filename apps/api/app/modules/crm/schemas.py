@@ -70,10 +70,6 @@ class CustomerResponse(BaseModel):
     service_renewal_date: date | None = None
     service_renewal_invoice_id: UUID | None = None
     ref_count: int = 0
-    referral_program_id: UUID | None = None
-    reward_amount: float | None = None
-    reward_type: str | None = None
-    reward_delivery_method: str | None = None
     created_at: datetime
 
 

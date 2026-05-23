@@ -46,7 +46,7 @@ export default function PublicReferPage() {
           <Gift className="w-12 h-12 mx-auto text-violet-700" />
           <h2 className="text-xl font-bold text-slate-900">Thank you!</h2>
           <p className="text-sm text-slate-600">
-            Your referral has been added to our pipeline. Rewards apply per active referral program rules.
+            Your referral has been added to our pipeline. Loyalty points may apply if the business uses Membership & Rewards.
           </p>
         </div>
       ) : (

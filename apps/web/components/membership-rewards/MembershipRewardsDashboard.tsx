@@ -44,8 +44,7 @@ const EARN_RULE_LABELS: Record<string, string> = {
   booking_completed: 'Booking completed',
   purchase_per_pound: 'Points per £1 spent',
   membership_signup: 'Membership signup',
-  referral_signup: 'Referral signup (referrer)',
-  referral_booking: 'Referral booking (referrer)',
+  refer_win: 'Refer & Win submission',
   review_left: 'Review submitted',
 }
 
@@ -123,7 +122,7 @@ export function MembershipRewardsDashboard() {
       <TenantWelcomeHeader
         tenantName={tenant?.name}
         userName={me?.full_name}
-        subtitle="Membership plans, loyalty points, and rewards — separate from referral cash payouts"
+        subtitle="Membership plans, loyalty points, tiers, and your public memberships page"
       />
 
       {trial && <MembershipTrialBanner trial={trial} />}

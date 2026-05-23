@@ -357,7 +357,7 @@ const TOOL_GRID: ToolDef[] = [
   { href: '/dashboard/landing-pages', label: 'Landing Pages', description: 'AI-generated pages', icon: Globe },
   { href: '/dashboard/automations', label: 'Automations', description: 'Trigger workflows', icon: Zap },
   { href: '/dashboard/reviews', label: 'Reviews', description: 'Request + reply', icon: Star },
-  { href: '/dashboard/referrals', label: 'Referrals', description: 'Reward referrers', icon: TrendingUp },
+  { href: '/dashboard/membership-rewards', label: 'Membership & Rewards', description: 'Loyalty points and memberships', icon: TrendingUp },
   { href: '/dashboard/marketer/audience', label: 'Audience Research', description: 'Demographics + insights', icon: Users },
   { href: '/dashboard/marketer/competitor', label: 'Competitor Scanner', description: 'Spy on rival sites', icon: Radar },
   { href: '/dashboard/marketer/funnel', label: 'Funnel Builder', description: '5-stage funnels', icon: GitBranch },

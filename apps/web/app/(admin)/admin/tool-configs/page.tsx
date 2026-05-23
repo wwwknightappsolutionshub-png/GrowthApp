@@ -31,7 +31,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   '/dashboard/seo':          SearchIcon,
   '/dashboard/automations':  Zap,
   '/dashboard/reviews':      Star,
-  '/dashboard/referrals':    TrendingUp,
+  '/dashboard/membership-rewards': TrendingUp,
   '/dashboard/settings':     Settings,
 }
 

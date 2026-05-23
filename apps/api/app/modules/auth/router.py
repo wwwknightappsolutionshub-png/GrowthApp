@@ -93,14 +93,9 @@ async def register(
     data: RegisterRequest,
     response: Response,
     db: AsyncSession = Depends(get_db),
-    ref: str | None = Query(default=None, max_length=64),
 ):
     """Legacy direct registration (no OTP). Retained for compatibility."""
     user, tokens = await service.register(db, data)
-    if ref:
-        from app.modules.referrals.service import on_user_signup_with_ref
-
-        await on_user_signup_with_ref(db, new_user_id=user.id, ref_code=ref)
     _set_auth_cookies(response, tokens["access_token"], tokens["refresh_token"])
     return TokenResponse(access_token=tokens["access_token"], expires_in=tokens["expires_in"])
 
@@ -124,14 +119,9 @@ async def signup_verify(
     data: SignupVerifyRequest,
     response: Response,
     db: AsyncSession = Depends(get_db),
-    ref: str | None = Query(default=None, max_length=64),
 ):
     """Step 2 of OTP signup — validate email code, create account, issue tokens."""
     user, tokens = await signup_otp_service.verify_and_complete(db, data)
-    if ref:
-        from app.modules.referrals.service import on_user_signup_with_ref
-
-        await on_user_signup_with_ref(db, new_user_id=user.id, ref_code=ref)
     _set_auth_cookies(response, tokens["access_token"], tokens["refresh_token"])
     return TokenResponse(access_token=tokens["access_token"], expires_in=tokens["expires_in"])
 

@@ -1,11 +1,11 @@
-"""Public Refer & Win submissions — CRM leads, customers, referral rewards."""
+"""Public Refer & Win — CRM lead capture (loyalty points via Membership & Rewards)."""
 from __future__ import annotations
 
 import uuid
 from typing import Any
 
 from pydantic import BaseModel, Field
-from sqlalchemy import desc, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import log_action
@@ -14,7 +14,6 @@ from app.modules.booking.crm_link import resolve_customer_for_booking
 from app.modules.crm.models import Customer
 from app.modules.crm.pipeline_service import ensure_default_pipeline
 from app.modules.leads.models import Lead
-from app.modules.referrals.models import ReferralProgram
 from app.modules.tenants.models import Tenant
 
 
@@ -24,29 +23,6 @@ class ReferWinSubmitBody(BaseModel):
     referred_phone: str = Field(min_length=3, max_length=50)
     referred_email: str | None = None
     referral_reason: str = Field(min_length=1, max_length=2000)
-
-
-async def resolve_active_tenant_referral_program(
-    db: AsyncSession, tenant_id: uuid.UUID
-) -> ReferralProgram | None:
-    programs = (
-        await db.execute(
-            select(ReferralProgram)
-            .where(
-                ReferralProgram.type == "tradesman",
-                ReferralProgram.status == "approved",
-            )
-            .order_by(desc(ReferralProgram.created_at))
-        )
-    ).scalars().all()
-    for prog in programs:
-        rules = prog.rules or {}
-        if str(rules.get("tenant_id")) != str(tenant_id):
-            continue
-        if rules.get("activation_status") == "inactive":
-            continue
-        return prog
-    return None
 
 
 def _split_referred_name(email: str | None, phone: str) -> tuple[str, str | None]:
@@ -108,13 +84,7 @@ async def submit_refer_win(
     )
     db.add(lead)
 
-    program = await resolve_active_tenant_referral_program(db, tenant.id)
     referrer.ref_count = int(getattr(referrer, "ref_count", 0) or 0) + 1
-    if program:
-        referrer.referral_program_id = program.id
-        referrer.reward_amount = float(program.reward_amount)
-        referrer.reward_type = program.reward_type
-        referrer.reward_delivery_method = program.reward_delivery_method
     db.add(referrer)
 
     await log_action(
@@ -123,10 +93,7 @@ async def submit_refer_win(
         resource="lead",
         resource_id=lead.id,
         tenant_id=tenant.id,
-        metadata={
-            "referrer_customer_id": str(referrer_id),
-            "referral_program_id": str(program.id) if program else None,
-        },
+        metadata={"referrer_customer_id": str(referrer_id)},
     )
     await db.commit()
     await db.refresh(lead)
@@ -141,17 +108,18 @@ async def submit_refer_win(
         entity_type="lead",
     )
 
+    from app.modules.membership_rewards.hooks import on_refer_win_submitted
+
+    await on_refer_win_submitted(
+        db,
+        tenant_id=tenant.id,
+        referrer_customer_id=referrer_id,
+        lead_id=lead.id,
+    )
+
     return {
         "lead_id": str(lead.id),
         "referrer_customer_id": str(referrer_id),
         "ref_count": referrer.ref_count,
-        "reward": {
-            "program_id": str(program.id),
-            "amount": float(referrer.reward_amount) if referrer.reward_amount is not None else None,
-            "type": referrer.reward_type,
-            "delivery_method": referrer.reward_delivery_method,
-        }
-        if program
-        else None,
         "message": "Thank you — your referral has been received.",
     }

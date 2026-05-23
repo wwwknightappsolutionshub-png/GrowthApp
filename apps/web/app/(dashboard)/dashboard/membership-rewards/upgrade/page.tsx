@@ -9,11 +9,11 @@ import { membershipRewards } from '@/lib/api-client'
 
 const FEATURES = [
   'Tenant-level membership plans (parallel to salon industry memberships)',
-  'Points ledger separate from referral cash payouts',
+  'Dedicated points ledger for loyalty rewards',
   'Bronze → Platinum loyalty tiers',
   'Rewards catalog and redemptions',
   'Public page at /p/your-business/memberships',
-  'Auto points on bookings, invoices, reviews, and referrals',
+  'Auto points on bookings, invoices, reviews, and Refer & Win',
 ]
 
 export default function MembershipRewardsUpgradePage() {

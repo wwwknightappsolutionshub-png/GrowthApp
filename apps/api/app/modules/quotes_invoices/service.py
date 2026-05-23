@@ -683,7 +683,7 @@ async def record_invoice_paid(
     *,
     payment_channel: str = "cash_deposit",
 ) -> Invoice:
-    """Mark CRM invoice paid and trigger referral automation (invoice paid → eligible)."""
+    """Mark CRM invoice paid and award loyalty points when applicable."""
     inv = await get_invoice(db, tenant_id, invoice_id)
     if inv.status == "paid":
         return inv
@@ -711,9 +711,6 @@ async def record_invoice_paid(
     if inv.recurrency and inv.renewal_due_date:
         await sync_customer_service_renewal(db, tenant_id, inv)
         await db.commit()
-    from app.modules.referrals.service import on_invoice_paid
-
-    await on_invoice_paid(db, tenant_id=tenant_id, invoice_id=invoice_id)
     from app.modules.membership_rewards.hooks import on_invoice_paid as mr_invoice_points
 
     await mr_invoice_points(db, tenant_id=tenant_id, invoice_id=invoice_id)
