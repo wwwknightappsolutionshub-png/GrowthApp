@@ -43,7 +43,6 @@ const GROUPS: Array<{ label: string; hrefs: string[] }> = [
   {
     label: 'Growth',
     hrefs: [
-      '/dashboard/landing-pages',
       '/dashboard/ads',
       '/dashboard/seo',
       '/dashboard/automations',

@@ -135,7 +135,7 @@ async def bootstrap_business_site(
         db, tenant, user.id, template_slug=template_slug
     )
     status = await site_service.get_site_status(db, tenant)
-    return {**status, "redirect_to": f"/dashboard/landing-pages/{page.id}"}
+    return {**status, "redirect_to": "/dashboard/site-builder"}
 
 
 @router.post("/me/business-site/publish")

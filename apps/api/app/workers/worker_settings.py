@@ -24,7 +24,6 @@ from app.workers.tasks.ai_scraper_scheduler import enqueue_due_scraper_tasks
 from app.services.ai_scraper.task_runner import run_crawler_task
 from app.workers.tasks.ai_social import run_ai_social_scheduler
 from app.workers.tasks.google_integrations import sync_all_google_reviews
-from app.workers.tasks.trial_leads import assign_daily_trial_leads, send_trial_lead_ending_reminders
 from app.workers.tasks.booking_notifications import process_booking_notification_queue
 from app.workers.tasks.accounting import run_accounting_recurring, sweep_invoice_reminders
 from app.workers.tasks.industry import process_industry_rebook_reminders, refresh_maintenance_prediction_alerts
@@ -59,8 +58,6 @@ class WorkerSettings:
         run_crawler_task,
         enqueue_due_scraper_tasks,
         run_ai_social_scheduler,
-        assign_daily_trial_leads,
-        send_trial_lead_ending_reminders,
         process_booking_notification_queue,
         run_accounting_recurring,
         sweep_invoice_reminders,
@@ -81,8 +78,6 @@ class WorkerSettings:
         cron(run_ai_social_scheduler, minute=set(range(60))),
         cron(enqueue_due_scraper_tasks, minute={0, 15, 30, 45}),
         cron(sync_all_google_reviews, minute={5, 35}),
-        cron(assign_daily_trial_leads, hour={6}, minute={0}),
-        cron(send_trial_lead_ending_reminders, hour={9}, minute={0}),
         cron(process_booking_notification_queue, minute={0, 10, 20, 30, 40, 50}),
         cron(run_accounting_recurring, hour={6}, minute={30}),
         cron(sweep_invoice_reminders, hour={8}, minute={0}),

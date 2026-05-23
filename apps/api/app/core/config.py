@@ -149,8 +149,8 @@ class Settings(BaseSettings):
 
     # Lead factory: scraped leads land on this tenant before marketplace + trial delivery
     MARKETPLACE_POOL_TENANT_SLUG: str = "lead-pool-system"
-    TRIAL_LEAD_DAYS: int = 7
-    TRIAL_LEADS_PER_DAY: int = 2
+    TRIAL_LEAD_DAYS: int = 0
+    TRIAL_LEADS_PER_DAY: int = 0
 
     # Sentry
     SENTRY_DSN: str = ""

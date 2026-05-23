@@ -238,14 +238,14 @@ const MODULES: ModuleCard[] = [
   // ── Growth ────────────────────────────────────────────────────────────
   {
     group: 'Growth',
-    title: 'Landing Pages',
+    title: 'Business Page',
     icon: Globe,
     what:
-      'AI-generated service landing pages, ranked locally, designed to convert visitors into leads.',
+      'Your branded lead page with subdomain URL and QR code — designed to convert visitors into enquiries.',
     how: [
-      'Tell the AI which service you want to promote (e.g. "Emergency boiler repairs")',
-      'It writes copy, picks images, and publishes a live page in seconds',
-      'Every lead from that page lands straight in your inbox',
+      'Use the site builder to add your services and contact details',
+      'Publish to get a live URL and downloadable QR code',
+      'Every enquiry from that page lands straight in your Leads inbox',
     ],
     ideal_for: ['tenant', 'freelancer'],
   },

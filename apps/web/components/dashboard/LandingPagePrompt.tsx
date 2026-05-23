@@ -59,18 +59,17 @@ export function LandingPagePromptBanner({ variant = 'dashboard' }: { variant?: '
             <Sparkles className="w-3.5 h-3.5" />
             Your #1 lead channel
           </p>
-          <h3 className="mt-1 text-lg font-bold text-white">Launch your landing page in minutes</h3>
+          <h3 className="mt-1 text-lg font-bold text-white">Publish your business page</h3>
           <p className="mt-2 text-sm text-brand-teal-100/75 leading-relaxed">
-            A live CustomerFlow AI page is your primary funnel for new leads — it captures enquiries
-            24/7 while you work jobs. Publishing takes only a few clicks: pick a template, add your
-            services, and go live.
+            Your branded business page is your primary funnel for new leads — it captures enquiries
+            24/7 while you work jobs. Set it up in the site builder and share your QR code.
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link
-              href="/dashboard/landing-pages"
+              href="/dashboard/site-builder"
               className="inline-flex items-center rounded-lg bg-brand-teal-400 px-4 py-2 text-sm font-bold text-brand-forest-950 hover:bg-brand-teal-300"
             >
-              Create my landing page
+              Open site builder
             </Link>
             <button
               type="button"

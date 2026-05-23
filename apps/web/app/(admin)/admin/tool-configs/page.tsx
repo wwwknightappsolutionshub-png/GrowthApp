@@ -26,7 +26,6 @@ const ICON_MAP: Record<string, LucideIcon> = {
   '/dashboard/whatsapp':     PhoneCall,
   '/dashboard/auto-replies': Inbox,
   '/dashboard/outreach':     Megaphone,
-  '/dashboard/landing-pages':Globe,
   '/dashboard/ads':          Megaphone,
   '/dashboard/seo':          SearchIcon,
   '/dashboard/automations':  Zap,

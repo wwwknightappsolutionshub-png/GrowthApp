@@ -354,7 +354,6 @@ const TOOL_GRID: ToolDef[] = [
   { href: '/dashboard/ai-social/drafts', label: 'AI Social', description: 'AI-generated posts', icon: Sparkles },
   { href: '/dashboard/ai-social/brand-identity', label: 'Brand Identity', description: 'Colours, tone, logo', icon: Palette },
   { href: '/dashboard/ai-social/calendar', label: 'Social Calendar', description: 'Scheduled posts', icon: Calendar },
-  { href: '/dashboard/landing-pages', label: 'Landing Pages', description: 'AI-generated pages', icon: Globe },
   { href: '/dashboard/automations', label: 'Automations', description: 'Trigger workflows', icon: Zap },
   { href: '/dashboard/reviews', label: 'Reviews', description: 'Request + reply', icon: Star },
   { href: '/dashboard/membership-rewards', label: 'Membership & Rewards', description: 'Loyalty points and memberships', icon: TrendingUp },

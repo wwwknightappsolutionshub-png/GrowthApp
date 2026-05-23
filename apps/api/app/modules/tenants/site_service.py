@@ -75,7 +75,7 @@ async def get_site_status(db: AsyncSession, tenant: Tenant) -> dict:
         "primary_page_title": page.title if page else None,
         "page_is_published": page.is_published if page else False,
         "qr_png_base64": qr_b64,
-        "edit_url": f"/dashboard/landing-pages/{page.id}" if page else None,
+        "edit_url": "/dashboard/site-builder" if page else None,
     }
 
 

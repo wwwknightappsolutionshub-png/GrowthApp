@@ -183,7 +183,7 @@ async def verify_and_complete(
     if pending.user_type == "tenant":
         try:
             from app.modules.tenants.models import Tenant, TenantMember
-            from app.modules.lead_marketplace.trial_assignment import assign_trial_leads_for_tenant
+            from app.modules.membership_rewards.hooks import on_tenant_signup
 
             tenant_row = (
                 await db.execute(
@@ -193,12 +193,9 @@ async def verify_and_complete(
                 )
             ).scalar_one_or_none()
             if tenant_row:
-                await assign_trial_leads_for_tenant(db, tenant_row)
-                from app.modules.membership_rewards.hooks import on_tenant_signup
-
                 await on_tenant_signup(db, tenant_row.id)
         except Exception:  # noqa: BLE001
-            log.exception("Post-signup trial lead assignment failed for user %s", user.id)
+            log.exception("Post-signup membership trial start failed for user %s", user.id)
 
     return user, tokens
 

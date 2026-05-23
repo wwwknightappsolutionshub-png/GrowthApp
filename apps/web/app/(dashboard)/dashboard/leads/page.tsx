@@ -6,7 +6,6 @@ import {
   leads,
   type LeadQuota,
   type LeadRequestItem,
-  type TrialLeadStatus,
   type LeadSourceCatalog,
 } from '@/lib/api-client'
 import { formatDate } from '@/lib/utils'
@@ -262,27 +261,6 @@ function RequestHistory({ requests }: { requests: LeadRequestItem[] }) {
   )
 }
 
-function TrialLeadsBanner({ trial }: { trial: TrialLeadStatus }) {
-  if (!trial.in_trial) return null
-  return (
-    <div className="rounded-xl border border-brand-teal-400/30 bg-brand-teal-400/10 p-4">
-      <p className="text-sm font-semibold text-white">
-        Free lead trial — day {trial.trial_day} of {trial.trial_days_total}
-      </p>
-      <p className="mt-1 text-xs text-brand-teal-100/80">
-        We auto-assign up to {trial.leads_per_day} leads per day matched to your trade and postcode.
-        Today: {trial.delivered_today}/{trial.leads_per_day} delivered ({trial.remaining_today} remaining).
-        Ends {new Date(trial.trial_ends_at).toLocaleDateString('en-GB')}.
-      </p>
-      {trial.trial_day >= 6 && (
-        <p className="mt-2 text-xs text-amber-200">
-          Auto-assignment ends soon. Upgrade to keep daily matched leads — check your email for details.
-        </p>
-      )}
-    </div>
-  )
-}
-
 function LeadSourcesCatalog({ catalog }: { catalog: LeadSourceCatalog }) {
   if (!catalog.sources?.length) return null
   return (
@@ -371,7 +349,6 @@ export default function LeadsPage() {
         <span className="text-sm text-muted-foreground">{data?.total ?? 0} total</span>
       </div>
 
-      {trial && <TrialLeadsBanner trial={trial} />}
       {catalog && <LeadSourcesCatalog catalog={catalog} />}
 
       {/* Quota banner */}

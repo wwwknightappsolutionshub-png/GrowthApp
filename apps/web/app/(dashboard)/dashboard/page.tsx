@@ -204,7 +204,7 @@ function OwnerDashboard({ role }: { role: string }) {
             </ul>
             <div className="border-t border-border mt-4 pt-3 space-y-2">
               <ActionLink href="/dashboard/outreach">Build outreach campaign</ActionLink>
-              <ActionLink href="/dashboard/landing-pages/new">Generate landing page</ActionLink>
+              <ActionLink href="/dashboard/site-builder">Open business page</ActionLink>
               <ActionLink href="/dashboard/assistant">Ask the AI Assistant</ActionLink>
             </div>
           </CardContent>

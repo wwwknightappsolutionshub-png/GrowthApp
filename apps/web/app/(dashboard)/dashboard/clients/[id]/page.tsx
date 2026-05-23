@@ -114,8 +114,8 @@ const TOOL_TILES: ToolTile[] = [
     icon: Calendar,
   },
   {
-    href: '/dashboard/landing-pages',
-    label: 'Landing Pages',
+    href: '/dashboard/site-builder',
+    label: 'Business Page',
     description: 'AI-generated pages',
     icon: Globe,
   },

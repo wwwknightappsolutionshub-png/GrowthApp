@@ -275,7 +275,7 @@ async def apply_landing_template(
         "id": str(page.id),
         "slug": page.slug,
         "title": page.title,
-        "redirect_to": f"/dashboard/landing-pages/{page.id}",
+        "redirect_to": "/dashboard/site-builder",
     }
 
 

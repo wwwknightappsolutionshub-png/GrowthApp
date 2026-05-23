@@ -126,7 +126,7 @@ export default function AdminTemplatesPage() {
               <div className="mt-4 flex items-center justify-between border-t border-gray-800 pt-3">
                 <span className="font-mono text-[10px] text-gray-600">{t.slug}</span>
                 <Link
-                  href={`/dashboard/landing-pages/new?template=${encodeURIComponent(
+                  href={`/dashboard/site-builder?template=${encodeURIComponent(
                     t.slug,
                   )}`}
                   className="inline-flex items-center gap-1 text-xs font-semibold text-amber-300 hover:text-amber-200"

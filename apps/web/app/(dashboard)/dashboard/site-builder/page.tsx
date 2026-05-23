@@ -241,11 +241,7 @@ export default function SiteBuilderPage() {
       )}
 
       <p className="text-xs text-muted-foreground">
-        Need more pages later? Use{' '}
-        <Link href="/dashboard/landing-pages" className="text-brand-teal-300 hover:underline">
-          Landing Pages
-        </Link>{' '}
-        for campaigns and seasonal offers.
+        Use Membership &amp; Rewards for a public memberships page and loyalty offers.
       </p>
     </div>
   )
