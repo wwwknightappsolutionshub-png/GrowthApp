@@ -179,10 +179,35 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
         await _record_stripe_invoice(db, data_obj, status_override="payment_failed")
 
     elif event_type == "checkout.session.completed":
-        # Customer just completed checkout — sync the linked subscription.
-        sub_id = data_obj.get("subscription")
-        if sub_id:
-            await enqueue("sync_stripe_subscription", stripe_subscription_id=sub_id)
+        metadata = data_obj.get("metadata") or {}
+        if metadata.get("feature_code") == "accounting" and metadata.get("tenant_id"):
+            import uuid as _uuid
+            from app.modules.accounting import service as accounting_service
+
+            await accounting_service.activate_from_checkout_metadata(
+                db,
+                tenant_id=_uuid.UUID(metadata["tenant_id"]),
+                checkout_session_id=data_obj.get("id"),
+            )
+        else:
+            sub_id = data_obj.get("subscription")
+            if sub_id:
+                await enqueue("sync_stripe_subscription", stripe_subscription_id=sub_id)
+
+    elif event_type == "payment_intent.succeeded":
+        meta = data_obj.get("metadata") or {}
+        if meta.get("purpose") == "invoice_payment" and meta.get("invoice_id") and meta.get("tenant_id"):
+            import uuid as _uuid
+            from app.modules.accounting import service as accounting_service
+
+            await accounting_service.apply_invoice_payment(
+                db,
+                tenant_id=_uuid.UUID(meta["tenant_id"]),
+                invoice_id=_uuid.UUID(meta["invoice_id"]),
+                amount_pence=int(data_obj.get("amount_received") or data_obj.get("amount") or 0),
+                method="stripe",
+                stripe_payment_intent_id=data_obj.get("id"),
+            )
 
     return {"received": True}
 

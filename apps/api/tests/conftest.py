@@ -9,6 +9,7 @@ from app.core.database import Base, get_db
 from app.core.middleware import limiter
 from app.main import app
 from app.modules.crm import pipeline_models as _crm_pipeline_models  # noqa: F401 — CRM enterprise tables
+from app.modules.accounting import models as _accounting_models  # noqa: F401
 
 
 def _derive_test_db_url() -> str:

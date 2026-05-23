@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { FileText, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { crm, invoices } from '@/lib/api-client'
+import { accounting, crm, invoices } from '@/lib/api-client'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -66,6 +66,20 @@ export function AccountsInvoicesPanel() {
     },
     onError: (e: { response?: { data?: { detail?: string } } }) =>
       toast.error(e.response?.data?.detail ?? 'Delete failed'),
+  })
+
+  const { data: acctStatus } = useQuery({
+    queryKey: ['accounting-status'],
+    queryFn: () => accounting.status().then((r) => r.data as { has_accounting: boolean }),
+  })
+
+  const sendInv = useMutation({
+    mutationFn: (id: string) => accounting.sendInvoice(id),
+    onSuccess: () => {
+      toast.success('Invoice sent')
+      qc.invalidateQueries({ queryKey: ['invoices'] })
+    },
+    onError: () => toast.error('Send failed — upgrade Accounting or check customer email'),
   })
 
   const recordPay = useMutation({
@@ -172,6 +186,15 @@ export function AccountsInvoicesPanel() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right space-x-2">
+                      {acctStatus?.has_accounting && inv.status === 'draft' && (
+                        <button
+                          type="button"
+                          onClick={() => sendInv.mutate(inv.id)}
+                          className="text-xs text-brand-teal-300 hover:underline"
+                        >
+                          Send
+                        </button>
+                      )}
                       {inv.status !== 'paid' && (
                         <button
                           type="button"

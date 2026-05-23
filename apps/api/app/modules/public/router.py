@@ -88,6 +88,23 @@ async def respond_to_quote(public_token: str, request: Request, db: AsyncSession
     return await qi_service.respond_to_quote(db=db, public_token=public_token, accepted=body.get("accepted", True))
 
 
+@router.get("/invoice/{public_token}")
+async def get_public_invoice(public_token: str, db: AsyncSession = Depends(get_db)):
+    from app.modules.accounting import service as accounting_service
+
+    return await accounting_service.get_public_invoice(db, public_token)
+
+
+@router.post("/invoice/{public_token}/payment-intent")
+@limiter.limit("20/minute")
+async def create_public_invoice_payment_intent(
+    public_token: str, request: Request, db: AsyncSession = Depends(get_db)
+):
+    from app.modules.accounting import service as accounting_service
+
+    return await accounting_service.create_invoice_payment_intent(db, public_token)
+
+
 @router.get("/site/{tenant_slug}")
 async def get_public_business_site(tenant_slug: str, db: AsyncSession = Depends(get_db)):
     """Published tenant business site (subdomain + path)."""

@@ -439,6 +439,8 @@ export const quotes = {
   list: () => apiClient.get('/quotes'),
   create: (data: object) => apiClient.post('/quotes', data),
   get: (id: string) => apiClient.get(`/quotes/${id}`),
+  update: (id: string, data: object) => apiClient.patch(`/quotes/${id}`, data),
+  delete: (id: string) => apiClient.delete(`/quotes/${id}`),
   send: (id: string) => apiClient.post(`/quotes/${id}/send`),
 }
 
@@ -446,6 +448,7 @@ export const invoices = {
   list: () => apiClient.get('/invoices'),
   create: (data: object) => apiClient.post('/invoices', data),
   get: (id: string) => apiClient.get(`/invoices/${id}`),
+  update: (id: string, data: object) => apiClient.patch(`/invoices/${id}`, data),
   recordPayment: (id: string) => apiClient.post(`/invoices/${id}/record-payment`),
   delete: (id: string) => apiClient.delete(`/invoices/${id}`),
 }
@@ -636,6 +639,26 @@ export const money = {
 
 export const accounts = {
   dashboard: (days?: number) => apiClient.get('/accounts/dashboard', { params: { days } }),
+}
+
+export const accounting = {
+  status: () => apiClient.get('/accounting/status'),
+  checkout: (data: { success_url: string; cancel_url: string }) =>
+    apiClient.post('/accounting/checkout', data),
+  settings: () => apiClient.get('/accounting/settings'),
+  updateSettings: (data: object) => apiClient.patch('/accounting/settings', data),
+  sendInvoice: (id: string) => apiClient.post(`/accounting/invoices/${id}/send`),
+  listExpenses: (page = 1) => apiClient.get('/accounting/expenses', { params: { page } }),
+  createExpense: (data: object) => apiClient.post('/accounting/expenses', data),
+  deleteExpense: (id: string) => apiClient.delete(`/accounting/expenses/${id}`),
+  listRecurring: () => apiClient.get('/accounting/recurring'),
+  createRecurring: (data: object) => apiClient.post('/accounting/recurring', data),
+  deleteRecurring: (id: string) => apiClient.delete(`/accounting/recurring/${id}`),
+  taxSummary: (year?: number) => apiClient.get('/accounting/tax-summary', { params: { year } }),
+  exportAccountantPack: (year?: number) =>
+    apiClient.get('/accounting/export/accountant-pack', { params: { year }, responseType: 'blob' }),
+  customerFinancials: (customerId: string) =>
+    apiClient.get(`/accounting/customers/${customerId}/financials`),
 }
 
 export const segments = {

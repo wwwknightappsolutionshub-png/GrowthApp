@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.dependencies import CurrentTenantContext
 from app.modules.crm.models import Customer, Deal
+from app.modules.accounting.models import Expense
 from app.modules.quotes_invoices.models import Invoice, Payment
 
 router = APIRouter(prefix="/money", tags=["Money"])
@@ -32,9 +33,13 @@ class MoneyHeadline(BaseModel):
     revenue_30d_pence: int
     revenue_90d_pence: int
     revenue_ytd_pence: int
+    expenses_30d_pence: int = 0
+    expenses_ytd_pence: int = 0
+    net_cashflow_30d_pence: int = 0
     outstanding_pence: int
     overdue_pence: int
     deals_open_pence: int
+    has_accounting: bool = False
 
 
 class CashflowPoint(BaseModel):
@@ -86,11 +91,30 @@ async def get_money_dashboard(
     rev_90 = await _sum_payments(start_90)
     rev_ytd = await _sum_payments(ytd_start)
 
+    async def _sum_expenses(since: date) -> int:
+        return int(
+            (
+                await db.execute(
+                    select(func.coalesce(func.sum(Expense.amount_pence), 0)).where(
+                        Expense.tenant_id == tenant.id,
+                        Expense.expense_date >= since,
+                    )
+                )
+            ).scalar_one()
+        )
+
+    exp_30 = await _sum_expenses(start_30)
+    exp_ytd = await _sum_expenses(ytd_start)
+
+    from app.modules.accounting.entitlement import tenant_has_accounting
+
+    has_acct = await tenant_has_accounting(db, tenant.id)
+
     outstanding = (await db.execute(
         select(func.coalesce(func.sum(Invoice.total_pence - Invoice.paid_pence), 0))
         .where(
             Invoice.tenant_id == tenant.id,
-            Invoice.status.in_(("sent", "overdue", "partial")),
+            Invoice.status.in_(("sent", "viewed", "overdue", "partial")),
         )
     )).scalar_one()
 
@@ -98,7 +122,7 @@ async def get_money_dashboard(
         select(func.coalesce(func.sum(Invoice.total_pence - Invoice.paid_pence), 0))
         .where(
             Invoice.tenant_id == tenant.id,
-            Invoice.status.in_(("sent", "overdue", "partial")),
+            Invoice.status.in_(("sent", "viewed", "overdue", "partial")),
             Invoice.due_date.is_not(None),
             Invoice.due_date < today,
         )
@@ -117,9 +141,13 @@ async def get_money_dashboard(
         revenue_30d_pence=rev_30,
         revenue_90d_pence=rev_90,
         revenue_ytd_pence=rev_ytd,
+        expenses_30d_pence=exp_30,
+        expenses_ytd_pence=exp_ytd,
+        net_cashflow_30d_pence=rev_30 - exp_30,
         outstanding_pence=int(outstanding),
         overdue_pence=int(overdue),
         deals_open_pence=int(deals_open),
+        has_accounting=has_acct,
     )
 
     # ── Daily cashflow over `days` ───────────────────────────────────────

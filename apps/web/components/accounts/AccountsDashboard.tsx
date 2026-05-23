@@ -29,6 +29,8 @@ import { formatCurrency } from '@/lib/utils'
 import { ModuleCardGrid, type ModuleCardItem } from '@/components/modules/ModuleCardGrid'
 import { TenantWelcomeHeader } from '@/components/dashboard/TenantWelcomeHeader'
 import { AccountsInvoicesPanel } from '@/components/accounts/AccountsInvoicesPanel'
+import { AccountingPanels, AccountingUpgradeBanner } from '@/components/accounts/AccountingPanels'
+import { accounting } from '@/lib/api-client'
 import { auth, tenants } from '@/lib/api-client'
 
 type Dashboard = {
@@ -36,9 +38,12 @@ type Dashboard = {
     revenue_30d_pence: number
     revenue_90d_pence: number
     revenue_ytd_pence: number
+    expenses_30d_pence?: number
+    net_cashflow_30d_pence?: number
     outstanding_pence: number
     overdue_pence: number
     deals_open_pence: number
+    has_accounting?: boolean
   }
   cashflow_daily: { date: string; paid_pence: number; invoiced_pence: number }[]
   upsell_suggestions: unknown[]
@@ -53,6 +58,11 @@ export function AccountsDashboard() {
   const { data: tenant } = useQuery({
     queryKey: ['tenant'],
     queryFn: () => tenants.get().then((r) => r.data as { name?: string }),
+  })
+
+  const { data: acctStatus } = useQuery({
+    queryKey: ['accounting-status'],
+    queryFn: () => accounting.status().then((r) => r.data as { has_accounting: boolean }),
   })
 
   const { data, isLoading, isError, error, refetch } = useQuery<Dashboard>({
@@ -160,6 +170,8 @@ export function AccountsDashboard() {
         subtitle="Accounts — cash position, collections, and reporting"
       />
 
+      {!acctStatus?.has_accounting && !h?.has_accounting && <AccountingUpgradeBanner />}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-bold text-white">Accounts overview</h2>
         <select
@@ -206,6 +218,14 @@ export function AccountsDashboard() {
 
       <ModuleCardGrid items={cards} />
 
+      {(h?.has_accounting || acctStatus?.has_accounting) && (h?.expenses_30d_pence ?? 0) > 0 && (
+        <p className="text-sm text-brand-teal-100/70">
+          Net cashflow (30d):{' '}
+          <span className="font-semibold text-white">{formatCurrency(h?.net_cashflow_30d_pence ?? 0)}</span>
+          {' · '}Expenses: {formatCurrency(h?.expenses_30d_pence ?? 0)}
+        </p>
+      )}
+
       {(h?.overdue_pence ?? 0) > 0 && (
         <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-950/20 p-4">
           <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
@@ -221,6 +241,12 @@ export function AccountsDashboard() {
       <section className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 p-6">
         <AccountsInvoicesPanel />
       </section>
+
+      {(acctStatus?.has_accounting || h?.has_accounting) && (
+        <section className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 p-6">
+          <AccountingPanels />
+        </section>
+      )}
     </div>
   )
 }

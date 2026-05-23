@@ -1,7 +1,10 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { invoices } from '@/lib/api-client'
+import { DraftDocumentCreatePanel, DraftRowActions } from '@/components/quotes/DraftDocumentActions'
+import { toast } from 'sonner'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { FileText, CheckCircle, Clock, AlertCircle } from 'lucide-react'
 
@@ -21,6 +24,7 @@ const STATUS_ICONS: Record<string, any> = {
 }
 
 export default function InvoicesPage() {
+  const qc = useQueryClient()
   const { data, isLoading } = useQuery({
     queryKey: ['invoices'],
     queryFn: () => invoices.list().then(r => r.data),
@@ -28,6 +32,16 @@ export default function InvoicesPage() {
 
   const totalPaid = data?.items?.filter((i: any) => i.status === 'paid').reduce((sum: number, i: any) => sum + i.total_pence, 0) ?? 0
   const totalOutstanding = data?.items?.filter((i: any) => i.status !== 'paid').reduce((sum: number, i: any) => sum + (i.total_pence - i.paid_pence), 0) ?? 0
+
+  const recordPay = useMutation({
+    mutationFn: (id: string) => invoices.recordPayment(id),
+    onSuccess: () => {
+      toast.success('Payment recorded')
+      qc.invalidateQueries({ queryKey: ['invoices'] })
+      qc.invalidateQueries({ queryKey: ['accounts-dashboard'] })
+    },
+    onError: () => toast.error('Could not record payment'),
+  })
 
   return (
     <div className="space-y-6">
@@ -106,15 +120,27 @@ export default function InvoicesPage() {
                     )}
                   </div>
                 </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <DraftRowActions id={invoice.id} status={invoice.status} title={invoice.title} kind="invoice" api={invoices} listQueryKey={['invoices']} />
+                  {invoice.status !== 'paid' && (
+                    <button
+                      type="button"
+                      onClick={() => recordPay.mutate(invoice.id)}
+                      className="text-xs text-brand-teal-300 hover:underline"
+                    >
+                      Mark paid
+                    </button>
+                  )}
+                </div>
               </article>
             )
           })}
         </div>
         <div className="hidden overflow-x-auto rounded-xl border border-brand-forest-800 bg-brand-forest-950 shadow-sm md:block">
-          <table className="min-w-[780px] w-full text-sm">
+          <table className="min-w-[880px] w-full text-sm">
             <thead className="bg-brand-forest-900 border-b border-brand-forest-800">
               <tr>
-                {['Invoice #', 'Title', 'Total', 'Paid', 'Status', 'Due Date', 'Payment Link'].map(h => (
+                {['Invoice #', 'Title', 'Total', 'Paid', 'Status', 'Due Date', 'Payment Link', 'Actions'].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-medium text-brand-teal-100/75 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -122,7 +148,7 @@ export default function InvoicesPage() {
             <tbody className="divide-y divide-brand-forest-800">
               {data?.items?.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center">
+                  <td colSpan={8} className="px-4 py-12 text-center">
                     <FileText className="w-8 h-8 mx-auto mb-2 text-brand-teal-300/70" />
                     <p className="text-brand-teal-100/60">No invoices yet. Accept a quote to auto-generate the first invoice.</p>
                   </td>
@@ -154,6 +180,20 @@ export default function InvoicesPage() {
                           Pay now
                         </a>
                       )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-1 items-start">
+                        <DraftRowActions id={invoice.id} status={invoice.status} title={invoice.title} kind="invoice" api={invoices} listQueryKey={['invoices']} />
+                        {invoice.status !== 'paid' && (
+                          <button
+                            type="button"
+                            onClick={() => recordPay.mutate(invoice.id)}
+                            className="text-xs text-brand-teal-300 hover:underline"
+                          >
+                            Mark paid
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )

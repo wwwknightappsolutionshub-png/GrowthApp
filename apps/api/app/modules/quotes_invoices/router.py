@@ -5,10 +5,9 @@ from app.core.database import get_db
 from app.core.dependencies import CurrentTenantContext
 from app.modules.quotes_invoices import service
 from app.modules.quotes_invoices.schemas import (
-    QuoteCreate, QuoteResponse, QuoteListResponse,
-    InvoiceCreate, InvoiceResponse, InvoiceListResponse,
+    QuoteCreate, QuoteUpdate, QuoteResponse, QuoteListResponse,
+    InvoiceCreate, InvoiceUpdate, InvoiceResponse, InvoiceListResponse,
 )
-from app.modules.auth.schemas import MessageResponse
 
 router = APIRouter(tags=["Quotes & Invoices"])
 
@@ -30,6 +29,18 @@ async def create_quote(data: QuoteCreate, ctx: CurrentTenantContext, db: AsyncSe
 async def get_quote(quote_id: UUID, ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
     _, tenant, _ = ctx
     return await service.get_quote(db, tenant.id, quote_id)
+
+
+@router.patch("/quotes/{quote_id}", response_model=QuoteResponse)
+async def update_quote(quote_id: UUID, data: QuoteUpdate, ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+    user, tenant, _ = ctx
+    return await service.update_quote(db, tenant.id, quote_id, data, actor_user_id=user.id)
+
+
+@router.delete("/quotes/{quote_id}", status_code=204)
+async def delete_quote(quote_id: UUID, ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+    user, tenant, _ = ctx
+    await service.delete_quote(db, tenant.id, quote_id, actor_user_id=user.id)
 
 
 @router.post("/quotes/{quote_id}/send", response_model=QuoteResponse)
@@ -55,6 +66,12 @@ async def create_invoice(data: InvoiceCreate, ctx: CurrentTenantContext, db: Asy
 async def get_invoice(invoice_id: UUID, ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
     _, tenant, _ = ctx
     return await service.get_invoice(db, tenant.id, invoice_id)
+
+
+@router.patch("/invoices/{invoice_id}", response_model=InvoiceResponse)
+async def update_invoice(invoice_id: UUID, data: InvoiceUpdate, ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+    user, tenant, _ = ctx
+    return await service.update_invoice(db, tenant.id, invoice_id, data, actor_user_id=user.id)
 
 
 @router.post("/invoices/{invoice_id}/record-payment", response_model=InvoiceResponse)

@@ -26,6 +26,14 @@ class QuoteCreate(BaseModel):
     items: list[QuoteItemIn] = []
 
 
+class QuoteUpdate(BaseModel):
+    title: str | None = None
+    notes: str | None = None
+    valid_until: date | None = None
+    deal_id: UUID | None = None
+    items: list[QuoteItemIn] | None = None
+
+
 class QuoteResponse(BaseModel):
     model_config = {"from_attributes": True}
     id: UUID
@@ -60,6 +68,14 @@ class InvoiceCreate(BaseModel):
     notes: str | None = None
     due_date: date | None = None
     items: list[QuoteItemIn] = []
+
+
+class InvoiceUpdate(BaseModel):
+    title: str | None = None
+    notes: str | None = None
+    due_date: date | None = None
+    deal_id: UUID | None = None
+    items: list[QuoteItemIn] | None = None
 
 
 class InvoiceResponse(BaseModel):

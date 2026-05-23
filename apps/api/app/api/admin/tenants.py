@@ -135,6 +135,29 @@ async def impersonate_tenant(tenant_id: uuid.UUID, admin: SuperAdmin, db: AsyncS
     return {"access_token": token, "tenant_id": str(t.id), "tenant_name": t.name}
 
 
+@router.post("/{tenant_id}/addons/accounting")
+async def set_accounting_addon(
+    tenant_id: uuid.UUID,
+    body: dict,
+    admin: SuperAdmin,
+    db: AsyncSession = Depends(get_db),
+):
+    """Manually grant or revoke the Accounting add-on for a tenant."""
+    from app.modules.accounting import service as accounting_service
+    from app.modules.accounting.schemas import AdminAddonAction
+
+    payload = AdminAddonAction(**body)
+    if payload.action == "grant":
+        row = await accounting_service.grant_addon(
+            db, tenant_id, granted_by=admin.id, expires_at=payload.expires_at
+        )
+        return {"ok": True, "status": row.status, "feature_code": row.feature_code}
+    if payload.action == "revoke":
+        await accounting_service.revoke_addon(db, tenant_id)
+        return {"ok": True, "status": "canceled"}
+    raise HTTPException(422, "action must be grant or revoke")
+
+
 @router.post("/{tenant_id}/toggle-active")
 async def toggle_active(tenant_id: uuid.UUID, _: SuperAdmin, db: AsyncSession = Depends(get_db)):
     t = (await db.execute(select(Tenant).where(Tenant.id == tenant_id))).scalar_one_or_none()

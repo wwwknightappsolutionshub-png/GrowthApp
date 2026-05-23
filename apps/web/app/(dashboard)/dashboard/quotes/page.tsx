@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { quotes } from '@/lib/api-client'
+import { DraftDocumentCreatePanel, DraftRowActions } from '@/components/quotes/DraftDocumentActions'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { toast } from 'sonner'
 import { FileText, Send, CheckCircle, XCircle, Clock } from 'lucide-react'
@@ -9,6 +10,7 @@ import { FileText, Send, CheckCircle, XCircle, Clock } from 'lucide-react'
 const STATUS_COLORS: Record<string, string> = {
   draft: 'bg-brand-forest-800 text-brand-teal-100/70',
   sent: 'bg-brand-teal-400/20 text-brand-teal-100 ring-1 ring-brand-teal-300/30',
+  viewed: 'bg-brand-teal-400/10 text-brand-teal-100 ring-1 ring-brand-teal-400/20',
   accepted: 'bg-green-400/20 text-green-100 ring-1 ring-green-300/30',
   declined: 'bg-red-400/20 text-red-100 ring-1 ring-red-300/30',
 }
@@ -46,6 +48,8 @@ export default function QuotesPage() {
         </div>
         <span className="text-sm text-muted-foreground">{data?.total ?? 0} total</span>
       </div>
+
+      <DraftDocumentCreatePanel kind="quote" api={quotes} listQueryKey={['quotes']} />
 
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
@@ -89,13 +93,16 @@ export default function QuotesPage() {
                   </div>
                 </div>
                 {quote.status === 'draft' && (
-                  <button
-                    onClick={() => sendMutation.mutate(quote.id)}
-                    disabled={sendMutation.isPending}
-                    className="mt-4 flex w-full items-center justify-center gap-1 rounded-lg bg-brand-forest-700 px-3 py-2 text-xs font-semibold text-brand-forest-foreground hover:bg-brand-forest-800 disabled:opacity-50"
-                  >
-                    <Send className="w-3 h-3" /> Send
-                  </button>
+                  <div className="mt-4 flex flex-col gap-2">
+                    <DraftRowActions id={quote.id} status={quote.status} title={quote.title} kind="quote" api={quotes} listQueryKey={['quotes']} />
+                    <button
+                      onClick={() => sendMutation.mutate(quote.id)}
+                      disabled={sendMutation.isPending}
+                      className="flex w-full items-center justify-center gap-1 rounded-lg bg-brand-forest-700 px-3 py-2 text-xs font-semibold text-brand-forest-foreground hover:bg-brand-forest-800 disabled:opacity-50"
+                    >
+                      <Send className="w-3 h-3" /> Send
+                    </button>
+                  </div>
                 )}
               </article>
             )
@@ -135,15 +142,18 @@ export default function QuotesPage() {
                     <td className="px-4 py-3 text-brand-teal-100/70">{quote.valid_until ? formatDate(quote.valid_until) : '—'}</td>
                     <td className="px-4 py-3 text-brand-teal-100/70">{quote.sent_at ? formatDate(quote.sent_at) : '—'}</td>
                     <td className="px-4 py-3">
-                      {quote.status === 'draft' && (
-                        <button
-                          onClick={() => sendMutation.mutate(quote.id)}
-                          disabled={sendMutation.isPending}
-                          className="text-xs bg-brand-forest-700 text-brand-forest-foreground px-3 py-1.5 rounded-lg hover:bg-brand-forest-800 disabled:opacity-50 flex items-center gap-1"
-                        >
-                          <Send className="w-3 h-3" /> Send
-                        </button>
-                      )}
+                      <div className="flex flex-col gap-1.5 items-start">
+                        <DraftRowActions id={quote.id} status={quote.status} title={quote.title} kind="quote" api={quotes} listQueryKey={['quotes']} />
+                        {quote.status === 'draft' && (
+                          <button
+                            onClick={() => sendMutation.mutate(quote.id)}
+                            disabled={sendMutation.isPending}
+                            className="text-xs bg-brand-forest-700 text-brand-forest-foreground px-3 py-1.5 rounded-lg hover:bg-brand-forest-800 disabled:opacity-50 flex items-center gap-1"
+                          >
+                            <Send className="w-3 h-3" /> Send
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 )

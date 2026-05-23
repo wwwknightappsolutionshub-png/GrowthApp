@@ -86,6 +86,8 @@ class Settings(BaseSettings):
     STRIPE_PRICE_STARTER: str = ""
     STRIPE_PRICE_GROWTH: str = ""
     STRIPE_PRICE_PRO: str = ""
+    # Optional Stripe Price for the Accounting add-on (GBP subscription).
+    STRIPE_PRICE_ACCOUNTING: str = ""
 
     # Cookies (used for httpOnly access + refresh tokens)
     COOKIE_DOMAIN: str = ""

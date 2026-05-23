@@ -1,19 +1,55 @@
 import uuid
 import secrets
 from datetime import datetime, timezone
-from sqlalchemy import select, func, text
+from sqlalchemy import delete, select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from app.core.audit import log_action
 from app.core.exceptions import NotFoundException, BadRequestException
 from app.modules.quotes_invoices.models import Quote, QuoteItem, Invoice, InvoiceItem, Payment
-from app.modules.quotes_invoices.schemas import QuoteCreate, InvoiceCreate, QuoteItemIn
+from app.modules.quotes_invoices.schemas import QuoteCreate, QuoteUpdate, InvoiceCreate, InvoiceUpdate, QuoteItemIn
 
 
 def _calc_totals(items: list[QuoteItemIn]) -> tuple[int, int, int]:
     subtotal = sum(i.unit_price_pence * i.quantity for i in items)
     vat = sum(int(i.unit_price_pence * i.quantity * i.vat_rate / 100) for i in items)
     return subtotal, vat, subtotal + vat
+
+
+def _line_total_pence(item: QuoteItemIn) -> int:
+    return item.unit_price_pence * item.quantity
+
+
+async def _replace_quote_items(db: AsyncSession, quote_id: uuid.UUID, items: list[QuoteItemIn]) -> None:
+    await db.execute(delete(QuoteItem).where(QuoteItem.quote_id == quote_id))
+    await db.flush()
+    for i, item_data in enumerate(items):
+        line_total = _line_total_pence(item_data)
+        db.add(
+            QuoteItem(
+                id=uuid.uuid4(),
+                quote_id=quote_id,
+                line_total_pence=line_total,
+                sort_order=i,
+                **item_data.model_dump(exclude={"sort_order"}),
+            )
+        )
+
+
+async def _replace_invoice_items(db: AsyncSession, invoice_id: uuid.UUID, items: list[QuoteItemIn]) -> None:
+    await db.execute(delete(InvoiceItem).where(InvoiceItem.invoice_id == invoice_id))
+    await db.flush()
+    for i, item_data in enumerate(items):
+        line_total = _line_total_pence(item_data)
+        db.add(
+            InvoiceItem(
+                id=uuid.uuid4(),
+                invoice_id=invoice_id,
+                line_total_pence=line_total,
+                sort_order=i,
+                **item_data.model_dump(exclude={"sort_order"}),
+            )
+        )
 
 
 async def _allocate_number(db: AsyncSession, tenant_id: uuid.UUID, kind: str) -> int:
@@ -97,6 +133,9 @@ async def get_public_quote(db: AsyncSession, public_token: str) -> dict:
     q = result.scalar_one_or_none()
     if not q:
         raise NotFoundException("Quote")
+    from app.modules.accounting.service import mark_quote_viewed
+
+    await mark_quote_viewed(db, q)
     return {"id": str(q.id), "title": q.title, "status": q.status, "total_pence": q.total_pence, "items": q.items, "valid_until": q.valid_until}
 
 
@@ -114,6 +153,9 @@ async def respond_to_quote(db: AsyncSession, public_token: str, accepted: bool) 
         db.add(q)
         await db.flush()
         invoice = await create_invoice_from_quote(db, q.tenant_id, q)
+        from app.modules.accounting.service import move_deal_on_quote_accept
+
+        await move_deal_on_quote_accept(db, q.tenant_id, q)
         await log_action(
             db,
             action="quote.accepted",
@@ -157,6 +199,71 @@ async def create_invoice_from_quote(db: AsyncSession, tenant_id: uuid.UUID, quot
         db.add(ii)
     await db.commit()
     return await get_invoice(db, tenant_id, inv.id)
+
+
+async def update_quote(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    quote_id: uuid.UUID,
+    data: QuoteUpdate,
+    *,
+    actor_user_id: uuid.UUID | None = None,
+) -> Quote:
+    q = await get_quote(db, tenant_id, quote_id)
+    if q.status not in ("draft", "sent"):
+        raise BadRequestException("Only draft or sent quotes can be edited.")
+    if data.items is not None and q.status != "draft":
+        raise BadRequestException("Line items can only be changed on draft quotes.")
+
+    if data.title is not None:
+        q.title = data.title
+    if data.notes is not None:
+        q.notes = data.notes
+    if data.valid_until is not None:
+        q.valid_until = data.valid_until
+    if data.deal_id is not None:
+        q.deal_id = data.deal_id
+    if data.items is not None:
+        await _replace_quote_items(db, q.id, data.items)
+        subtotal, vat, total = _calc_totals(data.items)
+        q.subtotal_pence = subtotal
+        q.vat_pence = vat
+        q.total_pence = total
+
+    await log_action(
+        db,
+        action="quote.updated",
+        resource="quote",
+        resource_id=q.id,
+        tenant_id=tenant_id,
+        user_id=actor_user_id,
+        metadata={"quote_number": q.quote_number},
+    )
+    await db.commit()
+    return await get_quote(db, tenant_id, quote_id)
+
+
+async def delete_quote(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    quote_id: uuid.UUID,
+    *,
+    actor_user_id: uuid.UUID | None = None,
+) -> None:
+    q = await get_quote(db, tenant_id, quote_id)
+    if q.status != "draft":
+        raise BadRequestException("Only draft quotes can be deleted.")
+    await log_action(
+        db,
+        action="quote.deleted",
+        resource="quote",
+        resource_id=quote_id,
+        tenant_id=tenant_id,
+        user_id=actor_user_id,
+        metadata={"quote_number": q.quote_number},
+    )
+    await db.delete(q)
+    await db.commit()
 
 
 async def send_quote(
@@ -236,16 +343,67 @@ async def list_invoices(db: AsyncSession, tenant_id: uuid.UUID, page: int = 1, p
     return list(items), total
 
 
+async def update_invoice(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    invoice_id: uuid.UUID,
+    data: InvoiceUpdate,
+    *,
+    actor_user_id: uuid.UUID | None = None,
+) -> Invoice:
+    inv = await get_invoice(db, tenant_id, invoice_id)
+    if inv.status != "draft":
+        raise BadRequestException("Only draft invoices can be edited.")
+    if data.title is not None:
+        inv.title = data.title
+    if data.notes is not None:
+        inv.notes = data.notes
+    if data.due_date is not None:
+        inv.due_date = data.due_date
+    if data.deal_id is not None:
+        inv.deal_id = data.deal_id
+    if data.items is not None:
+        await _replace_invoice_items(db, inv.id, data.items)
+        subtotal, vat, total = _calc_totals(data.items)
+        inv.subtotal_pence = subtotal
+        inv.vat_pence = vat
+        inv.total_pence = total
+
+    await log_action(
+        db,
+        action="invoice.updated",
+        resource="invoice",
+        resource_id=inv.id,
+        tenant_id=tenant_id,
+        user_id=actor_user_id,
+        metadata={"invoice_number": inv.invoice_number},
+    )
+    await db.commit()
+    return await get_invoice(db, tenant_id, invoice_id)
+
+
 async def record_invoice_paid(db: AsyncSession, tenant_id: uuid.UUID, invoice_id: uuid.UUID) -> Invoice:
     """Mark CRM invoice paid and trigger referral automation (invoice paid → eligible)."""
     inv = await get_invoice(db, tenant_id, invoice_id)
     if inv.status == "paid":
         return inv
     now = datetime.now(timezone.utc)
+    amount_due = max(0, inv.total_pence - inv.paid_pence)
     inv.status = "paid"
     inv.paid_pence = inv.total_pence
     inv.paid_at = now
     db.add(inv)
+    if amount_due > 0:
+        db.add(
+            Payment(
+                id=uuid.uuid4(),
+                tenant_id=tenant_id,
+                invoice_id=invoice_id,
+                amount_pence=amount_due,
+                method="manual",
+                status="succeeded",
+            )
+        )
     await db.commit()
     await db.refresh(inv)
     from app.modules.referrals.service import on_invoice_paid
