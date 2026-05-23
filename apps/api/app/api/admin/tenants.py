@@ -158,6 +158,29 @@ async def set_accounting_addon(
     raise HTTPException(422, "action must be grant or revoke")
 
 
+@router.post("/{tenant_id}/addons/membership-rewards")
+async def set_membership_rewards_addon(
+    tenant_id: uuid.UUID,
+    body: dict,
+    admin: SuperAdmin,
+    db: AsyncSession = Depends(get_db),
+):
+    """Manually grant or revoke the Membership & Rewards add-on for a tenant."""
+    from app.modules.accounting.schemas import AdminAddonAction
+    from app.modules.membership_rewards import service as mr_service
+
+    payload = AdminAddonAction(**body)
+    if payload.action == "grant":
+        row = await mr_service.grant_addon(
+            db, tenant_id, granted_by=admin.id, expires_at=payload.expires_at
+        )
+        return {"ok": True, "status": row.status, "feature_code": row.feature_code}
+    if payload.action == "revoke":
+        await mr_service.revoke_addon(db, tenant_id)
+        return {"ok": True, "status": "canceled"}
+    raise HTTPException(422, "action must be grant or revoke")
+
+
 @router.post("/{tenant_id}/addons/industry/{feature_code}")
 async def set_industry_addon(
     tenant_id: uuid.UUID,

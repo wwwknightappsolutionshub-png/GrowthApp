@@ -1,0 +1,26 @@
+{% extends "emails/base.html" %}
+
+{% block header_eyebrow %}
+<p class="eyebrow">We miss you — special offer</p>
+{% endblock %}
+
+{% block content %}
+<h1>{{ discount_percent | default(50) }}% off Membership &amp; Rewards, {{ first_name | default('there') }}</h1>
+
+<p>
+  Your trial for <strong>{{ business_name }}</strong> ended a while ago. We'd love to have you back —
+  here's <strong>{{ discount_percent | default(50) }}% off</strong> your first paid month when you resubscribe.
+</p>
+
+<p style="text-align:center;">
+  <a href="{{ upgrade_url | default('https://app.customerflow.ai/dashboard/membership-rewards/upgrade') }}" class="btn btn-accent">
+    Claim {{ discount_percent | default(50) }}% off →
+  </a>
+</p>
+
+<div class="divider"></div>
+
+<p style="font-size:14px; color:#6b7280;">
+  Offer applies to Membership &amp; Rewards add-on. Reply if you have questions.
+</p>
+{% endblock %}

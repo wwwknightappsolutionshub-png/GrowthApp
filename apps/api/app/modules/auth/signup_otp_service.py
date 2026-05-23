@@ -194,6 +194,9 @@ async def verify_and_complete(
             ).scalar_one_or_none()
             if tenant_row:
                 await assign_trial_leads_for_tenant(db, tenant_row)
+                from app.modules.membership_rewards.hooks import on_tenant_signup
+
+                await on_tenant_signup(db, tenant_row.id)
         except Exception:  # noqa: BLE001
             log.exception("Post-signup trial lead assignment failed for user %s", user.id)
 

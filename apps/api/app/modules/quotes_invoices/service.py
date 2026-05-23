@@ -714,6 +714,9 @@ async def record_invoice_paid(
     from app.modules.referrals.service import on_invoice_paid
 
     await on_invoice_paid(db, tenant_id=tenant_id, invoice_id=invoice_id)
+    from app.modules.membership_rewards.hooks import on_invoice_paid as mr_invoice_points
+
+    await mr_invoice_points(db, tenant_id=tenant_id, invoice_id=invoice_id)
     return inv
 
 

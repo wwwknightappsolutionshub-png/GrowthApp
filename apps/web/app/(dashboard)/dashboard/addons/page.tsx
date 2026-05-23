@@ -30,12 +30,19 @@ const CARDS = [
   },
 ]
 
+const MEMBERSHIP_CARD = {
+  title: 'Membership & Rewards',
+  href: '/dashboard/membership-rewards',
+  desc: 'Cross-niche membership plans, loyalty points, tiers, and /memberships landing page.',
+}
+
 export default function IndustryAddonsHubPage() {
   const q = useQuery({
     queryKey: ['addons', 'status'],
     queryFn: async () => (await industryAddons.status()).data,
   })
   const vertical = q.data?.vertical ?? 'salon'
+  const membershipActive = q.data?.membership_rewards ?? false
 
   return (
     <div className="space-y-8 p-6">
@@ -47,6 +54,27 @@ export default function IndustryAddonsHubPage() {
         </p>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
+        <div className="rounded-xl border border-brand-teal-500/30 bg-brand-teal-600/10 p-5 flex flex-col md:col-span-3">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-semibold text-white">{MEMBERSHIP_CARD.title}</h2>
+            <span
+              className={
+                membershipActive
+                  ? 'rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-200'
+                  : 'rounded-full bg-slate-500/20 px-2 py-0.5 text-xs text-slate-300'
+              }
+            >
+              {membershipActive ? 'Active' : 'Trial / upgrade'}
+            </span>
+          </div>
+          <p className="mt-2 flex-1 text-sm text-slate-400">{MEMBERSHIP_CARD.desc}</p>
+          <Link
+            href={MEMBERSHIP_CARD.href}
+            className="mt-4 text-sm font-medium text-brand-teal-300 hover:text-brand-teal-200"
+          >
+            Open Membership &amp; Rewards →
+          </Link>
+        </div>
         {CARDS.map((card) => {
           const active = q.data?.[card.flag] ?? false
           return (

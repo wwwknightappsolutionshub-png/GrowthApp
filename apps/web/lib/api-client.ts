@@ -652,6 +652,7 @@ export type AddonStatusResponse = {
   industry_booking: boolean
   industry_billing: boolean
   industry_crm: boolean
+  membership_rewards: boolean
   items: { feature_code: string; active: boolean }[]
 }
 
@@ -659,6 +660,183 @@ export const industryAddons = {
   status: () => apiClient.get<AddonStatusResponse>('/addons/status'),
   setVertical: (vertical: 'salon' | 'realtor' | 'garage') =>
     apiClient.patch<AddonStatusResponse>('/addons/vertical', { vertical }),
+}
+
+export type MembershipTrialStatus = {
+  on_trial: boolean
+  trial_expired: boolean
+  converted: boolean
+  days_remaining: number
+  trial_ends_at: string | null
+  trial_started_at: string | null
+  show_urgency_modal: boolean
+  show_winback_banner: boolean
+  winback_discount_percent: number
+  upgrade_url: string
+  setup_url: string
+  reminders: Record<string, string | null>
+}
+
+export type MembershipRewardsStatus = {
+  has_membership_rewards: boolean
+  feature_code: string
+  status: string | null
+  expires_at: string | null
+  trial_ends_at: string | null
+  landing_url: string | null
+  trial?: MembershipTrialStatus | null
+  stripe_configured?: boolean
+  is_trial?: boolean
+  is_paid?: boolean
+  billing_source?: 'trial' | 'stripe' | 'grant' | null
+}
+
+export type MembershipPlan = {
+  id: string
+  tenant_id: string
+  name: string
+  description: string | null
+  billing_cycle: string
+  price_pence: number
+  included_services: string[]
+  discount_percent: number
+  rollover_enabled: boolean
+  rollover_max_periods: number
+  cancellation_notice_days: number
+  is_active: boolean
+  sort_order: number
+}
+
+export type MembershipSubscription = {
+  id: string
+  tenant_id: string
+  customer_id: string
+  plan_id: string
+  status: string
+  started_at: string | null
+  current_period_end: string | null
+  canceled_at: string | null
+}
+
+export type RewardCatalogItem = {
+  id: string
+  name: string
+  description: string | null
+  points_cost: number
+  reward_type: string
+  config: Record<string, unknown>
+  is_active: boolean
+  stock_remaining: number | null
+}
+
+export type MembershipTierSummary = {
+  code: string
+  name: string
+  min_points_lifetime: number
+  benefits: unknown[]
+}
+
+export type MembershipLandingConfig = {
+  title: string
+  meta_description: string | null
+  hero: Record<string, unknown>
+  benefits: { title?: string; body?: string }[]
+  cta_label: string
+  cta_href: string | null
+  published: boolean
+  auto_generated?: boolean
+  public_url?: string | null
+  preview_path?: string | null
+  booking_cta_url?: string | null
+  plans: MembershipPlan[]
+  tiers?: MembershipTierSummary[]
+}
+
+export const membershipRewards = {
+  status: () => apiClient.get<MembershipRewardsStatus>('/membership-rewards/status'),
+  trialStatus: () => apiClient.get<MembershipTrialStatus>('/membership-rewards/trial'),
+  checkout: (data: { success_url: string; cancel_url: string }) =>
+    apiClient.post<{ checkout_url: string }>('/membership-rewards/checkout', data),
+  dashboard: () =>
+    apiClient.get<{
+      active_subscriptions: number
+      members_with_points: number
+      points_issued_lifetime: number
+      redemptions_count: number
+      active_plans: number
+      landing_published: boolean
+    }>('/membership-rewards/dashboard'),
+  leaderboard: (limit = 20) =>
+    apiClient.get<{
+      items: {
+        customer_id: string
+        customer_name: string | null
+        points_balance: number
+        points_lifetime: number
+        tier_code: string
+      }[]
+    }>('/membership-rewards/loyalty/leaderboard', { params: { limit } }),
+  settings: () => apiClient.get('/membership-rewards/settings'),
+  updateSettings: (data: { earn_rules?: Record<string, number>; points_expire_days?: number | null }) =>
+    apiClient.patch('/membership-rewards/settings', data),
+  listPlans: (activeOnly = false) =>
+    apiClient.get<{ items: MembershipPlan[] }>('/membership-rewards/plans', {
+      params: { active_only: activeOnly },
+    }),
+  createPlan: (data: object) => apiClient.post<MembershipPlan>('/membership-rewards/plans', data),
+  updatePlan: (id: string, data: object) =>
+    apiClient.patch<MembershipPlan>(`/membership-rewards/plans/${id}`, data),
+  listSubscriptions: (params?: { customer_id?: string; status?: string }) =>
+    apiClient.get<{ items: MembershipSubscription[] }>('/membership-rewards/subscriptions', { params }),
+  createSubscription: (data: { customer_id: string; plan_id: string; started_at?: string }) =>
+    apiClient.post<MembershipSubscription>('/membership-rewards/subscriptions', data),
+  cancelSubscription: (id: string) =>
+    apiClient.post<MembershipSubscription>(`/membership-rewards/subscriptions/${id}/cancel`),
+  listCatalog: () => apiClient.get<{ items: RewardCatalogItem[] }>('/membership-rewards/catalog'),
+  createCatalogItem: (data: object) =>
+    apiClient.post<RewardCatalogItem>('/membership-rewards/catalog', data),
+  customerLoyalty: (customerId: string) =>
+    apiClient.get<{
+      customer_id: string
+      points_balance: number
+      points_lifetime: number
+      tier_code: string
+    }>(`/membership-rewards/customers/${customerId}/loyalty`),
+  customerLedger: (customerId: string, limit = 50) =>
+    apiClient.get<
+      {
+        id: string
+        amount: number
+        balance_after: number
+        source: string
+        description: string | null
+        created_at: string
+      }[]
+    >(`/membership-rewards/customers/${customerId}/ledger`, { params: { limit } }),
+  adjustPoints: (data: {
+    customer_id: string
+    amount: number
+    source?: string
+    description?: string
+  }) => apiClient.post('/membership-rewards/points/adjust', data),
+  redeemReward: (customerId: string, catalogItemId: string) =>
+    apiClient.post(`/membership-rewards/customers/${customerId}/redeem/${catalogItemId}`),
+  getLanding: () => apiClient.get<MembershipLandingConfig>('/membership-rewards/landing'),
+  updateLanding: (data: object) => apiClient.patch<MembershipLandingConfig>('/membership-rewards/landing', data),
+  publishLanding: () => apiClient.post<MembershipLandingConfig>('/membership-rewards/landing/publish'),
+  regenerateLanding: () =>
+    apiClient.post<MembershipLandingConfig>('/membership-rewards/landing/regenerate'),
+  submitInterest: (
+    tenantSlug: string,
+    data: {
+      first_name: string
+      last_name?: string
+      email?: string
+      phone?: string
+      message?: string
+      plan_id?: string
+    },
+  ) => publicApiClient.post(`/public/memberships/${tenantSlug}/interest`, data),
 }
 
 export const accounting = {

@@ -270,6 +270,42 @@ async def get_public_landing_page(
     }
 
 
+@router.get("/memberships/{tenant_slug}")
+async def get_public_memberships_page(tenant_slug: str, db: AsyncSession = Depends(get_db)):
+    """Published membership & rewards landing for /p/{tenant}/memberships."""
+    from app.modules.membership_rewards import service as mr_service
+
+    return await mr_service.get_public_memberships_page(db, tenant_slug)
+
+
+@router.post("/memberships/{tenant_slug}/interest", response_model=MessageResponse, status_code=201)
+@limiter.limit("10/minute")
+async def submit_membership_interest(
+    tenant_slug: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    """Capture membership enquiry from public /p/{tenant}/memberships page."""
+    from app.modules.membership_rewards.schemas import MembershipInterestRequest
+    from app.modules.membership_rewards import service as mr_service
+
+    body = await request.json()
+    data = MembershipInterestRequest(**body)
+    ip = request.client.host if request.client else None
+    await mr_service.submit_membership_interest(
+        db,
+        tenant_slug,
+        first_name=data.first_name,
+        last_name=data.last_name,
+        email=data.email,
+        phone=data.phone,
+        message=data.message,
+        plan_id=data.plan_id,
+        ip_address=ip,
+    )
+    return MessageResponse(message="Thanks! We'll be in touch about membership shortly.")
+
+
 @router.get("/widget.js", response_class=PlainTextResponse)
 async def widget_js(request: Request):
     """Tenant-agnostic loader script.

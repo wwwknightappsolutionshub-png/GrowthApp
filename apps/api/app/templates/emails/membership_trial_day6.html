@@ -1,0 +1,33 @@
+{% extends "emails/base.html" %}
+
+{% block header_eyebrow %}
+<p class="eyebrow">Trial ending soon</p>
+{% endblock %}
+
+{% block content %}
+<h1>Your Membership &amp; Rewards trial ends {{ trial_ends_at | default('soon') }}, {{ first_name | default('there') }}</h1>
+
+<p>
+  You have <strong>1 day left</strong> on your free trial for <strong>{{ business_name }}</strong>.
+  Publish your membership landing page and create at least one plan before it ends.
+</p>
+
+<div class="alert-warning">
+  <p>
+    After your trial, loyalty points, tiers, and your public <code>/memberships</code> page
+    will be paused until you subscribe.
+  </p>
+</div>
+
+<p style="text-align:center;">
+  <a href="{{ upgrade_url | default('https://app.customerflow.ai/dashboard/membership-rewards/upgrade') }}" class="btn btn-accent">
+    Keep Membership &amp; Rewards →
+  </a>
+</p>
+
+<div class="divider"></div>
+
+<p style="font-size:14px; color:#6b7280;">
+  Need more time? Reply to this email and we can extend your trial.
+</p>
+{% endblock %}

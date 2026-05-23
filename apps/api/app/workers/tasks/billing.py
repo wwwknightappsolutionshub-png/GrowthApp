@@ -44,3 +44,10 @@ async def sync_stripe_subscription(ctx: dict, *, stripe_subscription_id: str):
             await on_subscription_active_for_tenant(
                 db, tenant_id=db_sub.tenant_id, stripe_status=str(db_sub.status)
             )
+
+        from app.modules.membership_rewards.billing import sync_addon_from_stripe_subscription
+
+        stripe_sub_dict = sub.to_dict() if hasattr(sub, "to_dict") else dict(sub)
+        await sync_addon_from_stripe_subscription(
+            db, stripe_subscription_id=stripe_subscription_id, stripe_sub=stripe_sub_dict
+        )

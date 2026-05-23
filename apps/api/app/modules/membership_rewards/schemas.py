@@ -1,0 +1,267 @@
+from __future__ import annotations
+
+import uuid
+from datetime import date, datetime
+
+from pydantic import BaseModel, Field
+
+
+class TrialReminderState(BaseModel):
+    day3_email_at: str | None = None
+    day6_email_at: str | None = None
+    day6_modal_at: str | None = None
+    day15_winback_at: str | None = None
+
+
+class TrialStatusResponse(BaseModel):
+    on_trial: bool
+    trial_expired: bool
+    converted: bool
+    days_remaining: int
+    trial_ends_at: str | None = None
+    trial_started_at: str | None = None
+    show_urgency_modal: bool
+    show_winback_banner: bool
+    winback_discount_percent: int
+    upgrade_url: str
+    setup_url: str
+    reminders: TrialReminderState | dict = Field(default_factory=dict)
+
+
+class MembershipStatusResponse(BaseModel):
+    has_membership_rewards: bool
+    feature_code: str
+    status: str | None = None
+    expires_at: datetime | None = None
+    trial_ends_at: datetime | None = None
+    landing_url: str | None = None
+    trial: TrialStatusResponse | None = None
+    stripe_configured: bool = False
+    is_trial: bool = False
+    is_paid: bool = False
+    billing_source: str | None = None
+
+
+class EarnRulesUpdate(BaseModel):
+    earn_rules: dict[str, int] = Field(default_factory=dict)
+    points_expire_days: int | None = None
+
+
+class SettingsResponse(BaseModel):
+    tenant_id: uuid.UUID
+    earn_rules: dict
+    points_expire_days: int | None
+    landing_slug: str
+    landing_published: bool
+
+
+class PlanCreate(BaseModel):
+    name: str
+    description: str | None = None
+    billing_cycle: str = "monthly"
+    price_pence: int = 0
+    included_services: list = Field(default_factory=list)
+    discount_percent: int = 0
+    rollover_enabled: bool = False
+    rollover_max_periods: int = 1
+    cancellation_notice_days: int = 30
+    is_active: bool = True
+    sort_order: int = 0
+
+
+class PlanUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    billing_cycle: str | None = None
+    price_pence: int | None = None
+    included_services: list | None = None
+    discount_percent: int | None = None
+    rollover_enabled: bool | None = None
+    rollover_max_periods: int | None = None
+    cancellation_notice_days: int | None = None
+    is_active: bool | None = None
+    sort_order: int | None = None
+
+
+class PlanResponse(BaseModel):
+    id: uuid.UUID
+    tenant_id: uuid.UUID
+    name: str
+    description: str | None
+    billing_cycle: str
+    price_pence: int
+    included_services: list
+    discount_percent: int
+    rollover_enabled: bool
+    rollover_max_periods: int
+    cancellation_notice_days: int
+    is_active: bool
+    sort_order: int
+
+    model_config = {"from_attributes": True}
+
+
+class PlanListResponse(BaseModel):
+    items: list[PlanResponse]
+
+
+class TierResponse(BaseModel):
+    id: uuid.UUID
+    code: str
+    name: str
+    min_points_lifetime: int
+    benefits: list
+    sort_order: int
+
+    model_config = {"from_attributes": True}
+
+
+class TierListResponse(BaseModel):
+    items: list[TierResponse]
+
+
+class CatalogItemCreate(BaseModel):
+    name: str
+    description: str | None = None
+    points_cost: int
+    reward_type: str = "discount"
+    config: dict = Field(default_factory=dict)
+    is_active: bool = True
+    stock_remaining: int | None = None
+
+
+class CatalogItemResponse(BaseModel):
+    id: uuid.UUID
+    name: str
+    description: str | None
+    points_cost: int
+    reward_type: str
+    config: dict
+    is_active: bool
+    stock_remaining: int | None
+
+    model_config = {"from_attributes": True}
+
+
+class CatalogListResponse(BaseModel):
+    items: list[CatalogItemResponse]
+
+
+class PointsAdjustRequest(BaseModel):
+    customer_id: uuid.UUID
+    amount: int
+    source: str = "adjustment"
+    description: str | None = None
+
+
+class PointsLedgerEntry(BaseModel):
+    id: uuid.UUID
+    amount: int
+    balance_after: int
+    source: str
+    description: str | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class CustomerLoyaltyResponse(BaseModel):
+    customer_id: uuid.UUID
+    points_balance: int
+    points_lifetime: int
+    tier_code: str
+
+
+class LandingConfigUpdate(BaseModel):
+    title: str | None = None
+    meta_description: str | None = None
+    hero: dict | None = None
+    benefits: list | None = None
+    cta_label: str | None = None
+    cta_href: str | None = None
+    published: bool | None = None
+
+
+class TierSummary(BaseModel):
+    code: str
+    name: str
+    min_points_lifetime: int
+    benefits: list = Field(default_factory=list)
+
+
+class LandingConfigResponse(BaseModel):
+    title: str
+    meta_description: str | None
+    hero: dict
+    benefits: list
+    cta_label: str
+    cta_href: str | None
+    published: bool
+    auto_generated: bool = True
+    public_url: str | None = None
+    preview_path: str | None = None
+    booking_cta_url: str | None = None
+    plans: list[PlanResponse] = Field(default_factory=list)
+    tiers: list[TierSummary] = Field(default_factory=list)
+
+
+class MembershipInterestRequest(BaseModel):
+    first_name: str
+    last_name: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    message: str | None = None
+    plan_id: uuid.UUID | None = None
+
+
+class CheckoutRequest(BaseModel):
+    success_url: str
+    cancel_url: str
+
+
+class CheckoutResponse(BaseModel):
+    checkout_url: str
+
+
+class SubscriptionCreate(BaseModel):
+    customer_id: uuid.UUID
+    plan_id: uuid.UUID
+    started_at: date | None = None
+
+
+class SubscriptionResponse(BaseModel):
+    id: uuid.UUID
+    tenant_id: uuid.UUID
+    customer_id: uuid.UUID
+    plan_id: uuid.UUID
+    status: str
+    started_at: date | None
+    current_period_end: date | None
+    canceled_at: datetime | None
+
+    model_config = {"from_attributes": True}
+
+
+class SubscriptionListResponse(BaseModel):
+    items: list[SubscriptionResponse]
+
+
+class DashboardResponse(BaseModel):
+    active_subscriptions: int
+    members_with_points: int
+    points_issued_lifetime: int
+    redemptions_count: int
+    active_plans: int
+    landing_published: bool
+
+
+class LoyaltyLeaderboardEntry(BaseModel):
+    customer_id: str
+    customer_name: str | None
+    points_balance: int
+    points_lifetime: int
+    tier_code: str
+
+
+class LoyaltyLeaderboardResponse(BaseModel):
+    items: list[LoyaltyLeaderboardEntry]

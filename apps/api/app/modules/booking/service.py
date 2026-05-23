@@ -275,6 +275,9 @@ async def update_booking(
 
         await on_booking_completed(db, tenant_id=tenant_id, booking=b)
         await maybe_auto_invoice_booking(db, tenant_id=tenant_id, booking=b)
+        from app.modules.membership_rewards.hooks import on_booking_completed as mr_booking_points
+
+        await mr_booking_points(db, tenant_id=tenant_id, booking=b)
 
     if notify_customer and (b.booking_date != old_date or b.start_time != old_time):
         await _notify_booking_schedule_change(

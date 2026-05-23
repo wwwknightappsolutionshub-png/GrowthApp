@@ -13,6 +13,7 @@ class AddonStatusResponse(BaseModel):
     industry_booking: bool
     industry_billing: bool
     industry_crm: bool
+    membership_rewards: bool = False
     items: list[AddonStatusItem] = Field(default_factory=list)
 
 

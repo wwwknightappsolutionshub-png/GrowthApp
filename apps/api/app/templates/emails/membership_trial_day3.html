@@ -1,0 +1,34 @@
+{% extends "emails/base.html" %}
+
+{% block header_eyebrow %}
+<p class="eyebrow">Membership &amp; Rewards — day 3</p>
+{% endblock %}
+
+{% block content %}
+<h1>How's your membership trial going, {{ first_name | default('there') }}?</h1>
+
+<p>
+  You're three days into your <strong>Membership &amp; Rewards</strong> trial for
+  <strong>{{ business_name }}</strong>. Here's what to set up this week:
+</p>
+
+<div class="highlight-box">
+  <p>
+    <strong>1. Create your first membership plan</strong> — weekly, monthly, or yearly pricing with included services.<br/>
+    <strong>2. Publish your public page</strong> at <code>/p/your-business/memberships</code> so customers can see benefits.<br/>
+    <strong>3. Add rewards to your catalog</strong> — let loyal customers redeem points for discounts and perks.
+  </p>
+</div>
+
+<p style="text-align:center;">
+  <a href="{{ dashboard_url | default('https://app.customerflow.ai/dashboard/membership-rewards') }}" class="btn">
+    Open Membership &amp; Rewards →
+  </a>
+</p>
+
+<div class="divider"></div>
+
+<p style="font-size:14px; color:#6b7280;">
+  Questions? Reply to this email — we're here to help.
+</p>
+{% endblock %}

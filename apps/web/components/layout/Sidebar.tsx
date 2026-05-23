@@ -42,6 +42,7 @@ import {
   Briefcase,
   Link2,
   Package,
+  Gift,
   type LucideIcon,
 } from 'lucide-react'
 import { logout as doLogout } from '@/lib/auth'
@@ -218,6 +219,7 @@ const navItems: NavItem[] = [
   { href: '/dashboard/reviews',       label: 'Reviews',       description: 'Request, monitor, and respond to Google reviews automatically',              icon: Star,         group: 'grow' },
   { href: '/dashboard/integrations',  label: 'Integrations',  description: 'Connect Google Business Profile and other channels',                       icon: Link2,        group: 'grow' },
   { href: '/dashboard/referrals',     label: 'Referrals',     description: 'Reward customers for referring new business to you',                          icon: TrendingUp,   group: 'grow' },
+  { href: '/dashboard/membership-rewards', label: 'Membership & Rewards', description: 'Membership plans, loyalty points, tiers, and public memberships page', icon: Gift,        group: 'grow' },
 
   // ── AI Social ─────────────────────────────────────────────────────────────
   { href: '/dashboard/ai-social/brand-identity', label: 'Brand Identity',     description: 'Set your colours, fonts, tone, and logo for AI-generated posts',     icon: Palette,        group: 'ai_social' },

@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Download,
   ExternalLink,
+  Gift,
   Globe,
   Loader2,
   QrCode,
@@ -138,6 +139,26 @@ export default function SiteBuilderPage() {
               />
             </div>
           )}
+        </div>
+      )}
+
+      {(site as { memberships_url?: string | null })?.memberships_url && (
+        <div className="rounded-xl border border-brand-teal-500/30 bg-brand-teal-600/10 p-5 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <Gift className="w-5 h-5 text-brand-teal-300 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-white text-sm">Memberships page</p>
+              <p className="text-xs text-brand-teal-100/75 mt-1 break-all">
+                {(site as { memberships_url?: string }).memberships_url}
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard/membership-rewards?section=landing"
+            className="text-sm font-medium text-brand-teal-300 hover:text-white"
+          >
+            Edit landing →
+          </Link>
         </div>
       )}
 

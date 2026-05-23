@@ -1,0 +1,274 @@
+"""Event hooks — award loyalty points (separate from referral cash payouts)."""
+
+from __future__ import annotations
+
+import logging
+import uuid
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.modules.booking.models import Booking
+from app.modules.crm.models import Customer
+from app.modules.membership_rewards.entitlement import tenant_has_membership_rewards
+from app.modules.membership_rewards.models import MrPointsLedger
+from app.modules.membership_rewards import service
+from app.modules.quotes_invoices.models import Invoice
+
+logger = logging.getLogger(__name__)
+
+
+async def _already_earned(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    customer_id: uuid.UUID,
+    reference_type: str,
+    reference_id: uuid.UUID,
+) -> bool:
+    row = (
+        await db.execute(
+            select(MrPointsLedger.id).where(
+                MrPointsLedger.tenant_id == tenant_id,
+                MrPointsLedger.customer_id == customer_id,
+                MrPointsLedger.reference_type == reference_type,
+                MrPointsLedger.reference_id == reference_id,
+                MrPointsLedger.amount > 0,
+            )
+        )
+    ).scalar_one_or_none()
+    return row is not None
+
+
+async def _award_if_new(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    customer_id: uuid.UUID,
+    amount: int,
+    *,
+    source: str,
+    reference_type: str,
+    reference_id: uuid.UUID,
+    description: str,
+) -> None:
+    if amount <= 0:
+        return
+    if await _already_earned(db, tenant_id, customer_id, reference_type, reference_id):
+        return
+    await service.earn_points(
+        db,
+        tenant_id,
+        customer_id,
+        amount,
+        source=source,
+        reference_type=reference_type,
+        reference_id=reference_id,
+        description=description,
+    )
+
+
+async def _earn_rule_amount(db: AsyncSession, tenant_id: uuid.UUID, rule_key: str) -> int:
+    settings = await service.get_settings(db, tenant_id)
+    rules = settings.earn_rules or {}
+    try:
+        return int(rules.get(rule_key, 0))
+    except (TypeError, ValueError):
+        return 0
+
+
+async def on_booking_completed(
+    db: AsyncSession, *, tenant_id: uuid.UUID, booking: Booking
+) -> None:
+    """Award points when a booking is marked completed."""
+    if not booking.customer_id:
+        return
+    if not await tenant_has_membership_rewards(db, tenant_id):
+        return
+    try:
+        pts = await _earn_rule_amount(db, tenant_id, "booking_completed")
+        await _award_if_new(
+            db,
+            tenant_id,
+            booking.customer_id,
+            pts,
+            source="booking",
+            reference_type="booking",
+            reference_id=booking.id,
+            description="Booking completed",
+        )
+        cust = await db.get(Customer, booking.customer_id)
+        if cust and cust.referral_program_id:
+            await _award_referrer_for_customer_event(
+                db,
+                tenant_id=tenant_id,
+                referred_customer=cust,
+                rule_key="referral_booking",
+                reference_type="referral_booking",
+                reference_id=booking.id,
+                description="Referral booking completed",
+            )
+    except Exception:  # noqa: BLE001
+        logger.exception("Membership points booking hook failed tenant=%s booking=%s", tenant_id, booking.id)
+
+
+async def on_invoice_paid(
+    db: AsyncSession, *, tenant_id: uuid.UUID, invoice_id: uuid.UUID
+) -> None:
+    """Award purchase-based points when an invoice is paid."""
+    inv = (
+        await db.execute(
+            select(Invoice).where(Invoice.id == invoice_id, Invoice.tenant_id == tenant_id)
+        )
+    ).scalar_one_or_none()
+    if not inv or not inv.customer_id:
+        return
+    if not await tenant_has_membership_rewards(db, tenant_id):
+        return
+    try:
+        per_pound = await _earn_rule_amount(db, tenant_id, "purchase_per_pound")
+        pounds = max(0, inv.total_pence) // 100
+        pts = pounds * per_pound if per_pound else 0
+        if pts > 0:
+            await _award_if_new(
+                db,
+                tenant_id,
+                inv.customer_id,
+                pts,
+                source="purchase",
+                reference_type="invoice",
+                reference_id=invoice_id,
+                description=f"Purchase ({pounds} GBP)",
+            )
+    except Exception:  # noqa: BLE001
+        logger.exception("Membership points invoice hook failed tenant=%s invoice=%s", tenant_id, invoice_id)
+
+
+async def on_subscription_created(
+    db: AsyncSession, *, tenant_id: uuid.UUID, subscription_id: uuid.UUID
+) -> None:
+    """Award signup bonus when a customer subscribes to a membership plan."""
+    from app.modules.membership_rewards.models import MrCustomerSubscription
+
+    sub = await db.get(MrCustomerSubscription, subscription_id)
+    if not sub or sub.tenant_id != tenant_id:
+        return
+    if not await tenant_has_membership_rewards(db, tenant_id):
+        return
+    try:
+        pts = await _earn_rule_amount(db, tenant_id, "membership_signup")
+        await _award_if_new(
+            db,
+            tenant_id,
+            sub.customer_id,
+            pts,
+            source="membership",
+            reference_type="mr_subscription",
+            reference_id=subscription_id,
+            description="Membership signup bonus",
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception(
+            "Membership points subscription hook failed tenant=%s sub=%s",
+            tenant_id,
+            subscription_id,
+        )
+
+
+async def on_review_submitted(
+    db: AsyncSession,
+    *,
+    tenant_id: uuid.UUID,
+    review_id: uuid.UUID,
+    customer_id: uuid.UUID | None,
+) -> None:
+    if not customer_id:
+        return
+    if not await tenant_has_membership_rewards(db, tenant_id):
+        return
+    try:
+        pts = await _earn_rule_amount(db, tenant_id, "review_left")
+        await _award_if_new(
+            db,
+            tenant_id,
+            customer_id,
+            pts,
+            source="review",
+            reference_type="review",
+            reference_id=review_id,
+            description="Review submitted",
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("Membership points review hook failed tenant=%s review=%s", tenant_id, review_id)
+
+
+async def on_customer_created(
+    db: AsyncSession, *, tenant_id: uuid.UUID, customer_id: uuid.UUID
+) -> None:
+    """Award referrer when a referred customer is added to CRM."""
+    cust = await db.get(Customer, customer_id)
+    if not cust or not cust.referral_program_id:
+        return
+    if not await tenant_has_membership_rewards(db, tenant_id):
+        return
+    try:
+        await _award_referrer_for_customer_event(
+            db,
+            tenant_id=tenant_id,
+            referred_customer=cust,
+            rule_key="referral_signup",
+            reference_type="referral_signup",
+            reference_id=customer_id,
+            description="Referral signup",
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("Membership points customer hook failed tenant=%s customer=%s", tenant_id, customer_id)
+
+
+async def _award_referrer_for_customer_event(
+    db: AsyncSession,
+    *,
+    tenant_id: uuid.UUID,
+    referred_customer: Customer,
+    rule_key: str,
+    reference_type: str,
+    reference_id: uuid.UUID,
+    description: str,
+) -> None:
+    """Best-effort: find referrer CRM customer via referral program owner email."""
+    from app.modules.referrals.models import ReferralProgram
+    from app.modules.auth.models import User
+
+    prog = await db.get(ReferralProgram, referred_customer.referral_program_id)
+    if not prog or not prog.owner_id:
+        return
+    owner = await db.get(User, prog.owner_id)
+    if not owner or not owner.email:
+        return
+    referrer = (
+        await db.execute(
+            select(Customer).where(
+                Customer.tenant_id == tenant_id,
+                Customer.email.ilike(owner.email),
+            )
+        )
+    ).scalar_one_or_none()
+    if not referrer:
+        return
+    pts = await _earn_rule_amount(db, tenant_id, rule_key)
+    await _award_if_new(
+        db,
+        tenant_id,
+        referrer.id,
+        pts,
+        source="referral",
+        reference_type=reference_type,
+        reference_id=reference_id,
+        description=description,
+    )
+
+
+async def on_tenant_signup(db: AsyncSession, tenant_id: uuid.UUID) -> None:
+    """Start 7-day Membership & Rewards trial for new tenants (best-effort)."""
+    try:
+        await service.start_trial_for_tenant(db, tenant_id)
+    except Exception:  # noqa: BLE001
+        logger.exception("Membership & Rewards trial start failed for tenant %s", tenant_id)

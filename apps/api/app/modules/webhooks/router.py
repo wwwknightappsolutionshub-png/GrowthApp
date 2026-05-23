@@ -189,6 +189,21 @@ async def stripe_webhook(request: Request, db: AsyncSession = Depends(get_db)):
                 tenant_id=_uuid.UUID(metadata["tenant_id"]),
                 checkout_session_id=data_obj.get("id"),
             )
+        elif metadata.get("feature_code") == "membership_rewards" and metadata.get("tenant_id"):
+            import uuid as _uuid
+            from app.modules.membership_rewards import service as mr_service
+            from app.modules.membership_rewards.billing import (
+                resolve_stripe_subscription_item_from_checkout,
+            )
+
+            session_id = data_obj.get("id")
+            item_id = resolve_stripe_subscription_item_from_checkout(session_id) if session_id else None
+            await mr_service.activate_from_checkout_metadata(
+                db,
+                tenant_id=_uuid.UUID(metadata["tenant_id"]),
+                stripe_subscription_item_id=item_id,
+                checkout_session_id=session_id,
+            )
         else:
             sub_id = data_obj.get("subscription")
             if sub_id:

@@ -54,6 +54,16 @@ async def submit_review_rating(db: AsyncSession, token: str, rating: int, feedba
     )
     db.add(review)
     await db.commit()
+    await db.refresh(review)
+
+    from app.modules.membership_rewards.hooks import on_review_submitted
+
+    await on_review_submitted(
+        db,
+        tenant_id=rr.tenant_id,
+        review_id=review.id,
+        customer_id=rr.customer_id,
+    )
 
     # Smart routing
     if rating >= 4:

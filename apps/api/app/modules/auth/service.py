@@ -131,6 +131,17 @@ async def register(db: AsyncSession, data: RegisterRequest) -> tuple[User, dict]
     await db.commit()
     await db.refresh(user)
 
+    try:
+        from app.modules.membership_rewards.hooks import on_tenant_signup
+
+        await on_tenant_signup(db, tenant.id)
+    except Exception:  # noqa: BLE001
+        import logging
+
+        logging.getLogger(__name__).exception(
+            "Membership & Rewards trial start failed for tenant %s", tenant.id
+        )
+
     # Welcome email — best-effort (don't block registration on send failures)
     try:
         import os

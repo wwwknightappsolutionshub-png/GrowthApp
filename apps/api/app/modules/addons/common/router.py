@@ -14,6 +14,8 @@ from app.modules.addons.common.constants import (
     Vertical,
 )
 from app.modules.addons.common.entitlement import tenant_has_addon
+from app.modules.membership_rewards.constants import FEATURE_MEMBERSHIP_REWARDS
+from app.modules.membership_rewards.entitlement import tenant_has_membership_rewards
 from app.modules.addons.common.schemas import AddonStatusItem, AddonStatusResponse, SetVerticalRequest
 from app.modules.addons.common.vertical import get_tenant_vertical, set_tenant_vertical
 
@@ -30,15 +32,18 @@ async def addon_status(
     booking = await tenant_has_addon(db, tenant.id, FEATURE_INDUSTRY_BOOKING)
     billing = await tenant_has_addon(db, tenant.id, FEATURE_INDUSTRY_BILLING)
     crm = await tenant_has_addon(db, tenant.id, FEATURE_INDUSTRY_CRM)
+    membership = await tenant_has_membership_rewards(db, tenant.id)
     return AddonStatusResponse(
         vertical=vertical.value,
         industry_booking=booking,
         industry_billing=billing,
         industry_crm=crm,
+        membership_rewards=membership,
         items=[
             AddonStatusItem(feature_code=FEATURE_INDUSTRY_BOOKING, active=booking),
             AddonStatusItem(feature_code=FEATURE_INDUSTRY_BILLING, active=billing),
             AddonStatusItem(feature_code=FEATURE_INDUSTRY_CRM, active=crm),
+            AddonStatusItem(feature_code=FEATURE_MEMBERSHIP_REWARDS, active=membership),
         ],
     )
 
@@ -56,6 +61,7 @@ async def dev_grant_all_addons(
         FEATURE_INDUSTRY_CRM,
     )
     from app.modules.addons.common import service as addon_service
+    from app.modules.membership_rewards import service as mr_service
 
     if settings.ENVIRONMENT == "production":
         from fastapi import HTTPException
@@ -64,6 +70,7 @@ async def dev_grant_all_addons(
     _, tenant, _ = ctx
     for code in (FEATURE_INDUSTRY_BOOKING, FEATURE_INDUSTRY_BILLING, FEATURE_INDUSTRY_CRM):
         await addon_service.grant_addon(db, tenant.id, code)
+    await mr_service.grant_addon(db, tenant.id)
     return await addon_status(ctx, db)
 
 

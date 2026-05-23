@@ -421,3 +421,60 @@ def render_trial_expiry(
             "reviews_collected": reviews_collected,
         },
     )
+
+
+def render_membership_trial_day3(
+    *,
+    first_name: str,
+    business_name: str,
+    dashboard_url: str,
+) -> str:
+    return render_email(
+        "emails/membership_trial_day3.html",
+        {
+            "subject": f"Membership & Rewards — day 3 check-in for {business_name}",
+            "first_name": first_name,
+            "business_name": business_name,
+            "dashboard_url": dashboard_url,
+        },
+    )
+
+
+def render_membership_trial_day6(
+    *,
+    first_name: str,
+    business_name: str,
+    trial_ends_at: str,
+    upgrade_url: str,
+    days_remaining: int = 1,
+) -> str:
+    return render_email(
+        "emails/membership_trial_day6.html",
+        {
+            "subject": f"Your Membership & Rewards trial ends {trial_ends_at}",
+            "first_name": first_name,
+            "business_name": business_name,
+            "trial_ends_at": trial_ends_at,
+            "upgrade_url": upgrade_url,
+            "days_remaining": days_remaining,
+        },
+    )
+
+
+def render_membership_winback_day15(
+    *,
+    first_name: str,
+    business_name: str,
+    discount_percent: int,
+    upgrade_url: str,
+) -> str:
+    return render_email(
+        "emails/membership_winback_day15.html",
+        {
+            "subject": f"{discount_percent}% off Membership & Rewards — welcome back",
+            "first_name": first_name,
+            "business_name": business_name,
+            "discount_percent": discount_percent,
+            "upgrade_url": upgrade_url,
+        },
+    )

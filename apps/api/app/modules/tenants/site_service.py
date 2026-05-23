@@ -48,12 +48,24 @@ def _qr_png_base64(url: str) -> str:
 
 
 async def get_site_status(db: AsyncSession, tenant: Tenant) -> dict:
+    from app.modules.membership_rewards.landing import memberships_public_url
+
     page = await _get_primary_page(db, tenant)
     public_url = business_site_public_url(tenant.slug)
     qr_b64 = _qr_png_base64(public_url) if tenant.business_site_published else None
+    memberships_url = None
+    try:
+        from app.modules.membership_rewards.models import MrTenantSettings
+
+        mr_settings = await db.get(MrTenantSettings, tenant.id)
+        if mr_settings and mr_settings.landing_published:
+            memberships_url = memberships_public_url(tenant.slug)
+    except Exception:  # noqa: BLE001
+        pass
     return {
         "tenant_slug": tenant.slug,
         "public_url": public_url,
+        "memberships_url": memberships_url,
         "is_published": tenant.business_site_published,
         "published_at": tenant.business_site_published_at.isoformat()
         if tenant.business_site_published_at
