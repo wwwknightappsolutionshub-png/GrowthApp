@@ -35,11 +35,21 @@ export function AccountsInvoicesPanel() {
     enabled: showCreate,
   })
 
+  const sendInv = useMutation({
+    mutationFn: (id: string) => invoices.send(id),
+    onSuccess: () => {
+      toast.success('Invoice sent by email')
+      qc.invalidateQueries({ queryKey: ['invoices'] })
+    },
+    onError: () => toast.error('Send failed — check customer email'),
+  })
+
   const createInv = useMutation({
     mutationFn: () =>
       invoices.create({
         customer_id: customerId,
         title: title || 'Invoice',
+        due_date: dueDate || undefined,
         items: [
           {
             description: title || 'Service',
@@ -53,6 +63,7 @@ export function AccountsInvoicesPanel() {
       setShowCreate(false)
       setTitle('')
       setAmountPence('')
+      setDueDate('')
       qc.invalidateQueries({ queryKey: ['invoices'] })
       qc.invalidateQueries({ queryKey: ['accounts-dashboard'] })
     },
