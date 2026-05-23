@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
 
+import { IndustryAddonsUpgradeAlert } from '@/components/addons/IndustryAddonsUpgradeAlert'
 import { industryAddons } from '@/lib/api-client'
 
 const CARDS = [
@@ -38,6 +39,7 @@ export default function IndustryAddonsHubPage() {
 
   return (
     <div className="space-y-8 p-6">
+      <IndustryAddonsUpgradeAlert />
       <div>
         <h1 className="text-2xl font-semibold text-white">Industry add-ons</h1>
         <p className="mt-1 text-sm text-slate-400">

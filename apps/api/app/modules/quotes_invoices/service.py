@@ -1,13 +1,17 @@
+import csv
+import io
 import uuid
 import secrets
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from sqlalchemy import delete, select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from app.core.audit import log_action
 from app.core.exceptions import NotFoundException, BadRequestException
+from app.modules.crm.models import Customer
 from app.modules.quotes_invoices.models import Quote, QuoteItem, Invoice, InvoiceItem, Payment
 from app.modules.quotes_invoices.schemas import QuoteCreate, QuoteUpdate, InvoiceCreate, InvoiceUpdate, QuoteItemIn
+from app.modules.quotes_invoices.delivery import deliver_invoice_email, deliver_quote_email
 
 
 def _calc_totals(items: list[QuoteItemIn]) -> tuple[int, int, int]:
@@ -277,6 +281,7 @@ async def send_quote(
     q.status = "sent"
     q.sent_at = datetime.now(timezone.utc)
     db.add(q)
+    await deliver_quote_email(db, tenant_id, q, actor_user_id=actor_user_id)
     await log_action(
         db,
         action="quote.sent",
@@ -288,14 +293,100 @@ async def send_quote(
     )
     await db.commit()
     from app.workers.queue import enqueue
+
     await enqueue("trigger_automation_for_event", tenant_id=str(tenant_id), event="quote_sent", entity_id=str(q.id))
-    return q
+    return await get_quote(db, tenant_id, quote_id)
 
 
-async def list_quotes(db: AsyncSession, tenant_id: uuid.UUID, page: int = 1, page_size: int = 25) -> tuple[list[Quote], int]:
+async def send_invoice(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    invoice_id: uuid.UUID,
+    *,
+    actor_user_id: uuid.UUID | None = None,
+) -> Invoice:
+    inv = await get_invoice(db, tenant_id, invoice_id)
+    return await deliver_invoice_email(db, tenant_id, inv, actor_user_id=actor_user_id)
+
+
+async def send_invoice_from_quote(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    quote_id: uuid.UUID,
+    *,
+    actor_user_id: uuid.UUID | None = None,
+) -> Invoice:
+    q = await get_quote(db, tenant_id, quote_id)
+    existing = (
+        await db.execute(
+            select(Invoice).where(Invoice.tenant_id == tenant_id, Invoice.quote_id == q.id)
+        )
+    ).scalar_one_or_none()
+    if existing:
+        inv = existing
+    else:
+        inv = await create_invoice_from_quote(db, tenant_id, q)
+        inv = await get_invoice(db, tenant_id, inv.id)
+    if inv.due_date is None and q.valid_until is not None:
+        inv.due_date = q.valid_until
+        db.add(inv)
+        await db.flush()
+    return await deliver_invoice_email(db, tenant_id, inv, actor_user_id=actor_user_id)
+
+
+def _apply_invoice_category(stmt, category: str | None, today: date):
+    if category == "cash_in":
+        return stmt.where(Invoice.status == "paid")
+    if category == "cash_pending":
+        return stmt.where(
+            Invoice.status.in_(("sent", "viewed", "partial")),
+            Invoice.paid_pence < Invoice.total_pence,
+        )
+    if category == "cash_out":
+        return stmt.where(
+            Invoice.status.in_(("sent", "viewed", "overdue", "partial")),
+            Invoice.due_date.is_not(None),
+            Invoice.due_date < today,
+            Invoice.paid_pence < Invoice.total_pence,
+        )
+    return stmt
+
+
+async def list_quotes(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    page: int = 1,
+    page_size: int = 25,
+    *,
+    title: str | None = None,
+    quote_number: str | None = None,
+    total_min: int | None = None,
+    total_max: int | None = None,
+    valid_until_from: date | None = None,
+    valid_until_to: date | None = None,
+) -> tuple[list[Quote], int]:
     q = select(Quote).where(Quote.tenant_id == tenant_id)
+    if title:
+        q = q.where(Quote.title.ilike(f"%{title}%"))
+    if quote_number:
+        q = q.where(Quote.quote_number.ilike(f"%{quote_number}%"))
+    if total_min is not None:
+        q = q.where(Quote.total_pence >= total_min)
+    if total_max is not None:
+        q = q.where(Quote.total_pence <= total_max)
+    if valid_until_from is not None:
+        q = q.where(Quote.valid_until >= valid_until_from)
+    if valid_until_to is not None:
+        q = q.where(Quote.valid_until <= valid_until_to)
     total = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
-    items = (await db.execute(q.options(selectinload(Quote.items)).order_by(Quote.created_at.desc()).offset((page-1)*page_size).limit(page_size))).scalars().all()
+    items = (
+        await db.execute(
+            q.options(selectinload(Quote.items))
+            .order_by(Quote.created_at.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+    ).scalars().all()
     return list(items), total
 
 
@@ -336,11 +427,165 @@ async def get_invoice(db: AsyncSession, tenant_id: uuid.UUID, invoice_id: uuid.U
     return inv
 
 
-async def list_invoices(db: AsyncSession, tenant_id: uuid.UUID, page: int = 1, page_size: int = 25) -> tuple[list[Invoice], int]:
+async def list_invoices(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    page: int = 1,
+    page_size: int = 25,
+    *,
+    category: str | None = None,
+    title: str | None = None,
+    invoice_number: str | None = None,
+    total_min: int | None = None,
+    total_max: int | None = None,
+    due_date_from: date | None = None,
+    due_date_to: date | None = None,
+    paid_from: date | None = None,
+    paid_to: date | None = None,
+    payment_channel: str | None = None,
+    sort_by: str | None = None,
+    sort_dir: str = "desc",
+) -> tuple[list[Invoice], int]:
+    today = date.today()
     q = select(Invoice).where(Invoice.tenant_id == tenant_id)
+    q = _apply_invoice_category(q, category, today)
+    if title:
+        q = q.where(Invoice.title.ilike(f"%{title}%"))
+    if invoice_number:
+        q = q.where(Invoice.invoice_number.ilike(f"%{invoice_number}%"))
+    if total_min is not None:
+        q = q.where(Invoice.total_pence >= total_min)
+    if total_max is not None:
+        q = q.where(Invoice.total_pence <= total_max)
+    if due_date_from is not None:
+        q = q.where(Invoice.due_date >= due_date_from)
+    if due_date_to is not None:
+        q = q.where(Invoice.due_date <= due_date_to)
+    if payment_channel:
+        q = q.where(Invoice.payment_channel == payment_channel)
+    order_col = Invoice.created_at
+    if sort_by == "amount":
+        order_col = Invoice.total_pence
+    elif sort_by == "due_date":
+        order_col = Invoice.due_date
+    elif sort_by == "deposit_date":
+        order_col = Invoice.paid_at
+    elif sort_by == "channel":
+        order_col = Invoice.payment_channel
+    if sort_dir == "asc":
+        q = q.order_by(order_col.asc().nulls_last())
+    else:
+        q = q.order_by(order_col.desc().nulls_last())
     total = (await db.execute(select(func.count()).select_from(q.subquery()))).scalar_one()
-    items = (await db.execute(q.options(selectinload(Invoice.items)).order_by(Invoice.created_at.desc()).offset((page-1)*page_size).limit(page_size))).scalars().all()
+    items = (
+        await db.execute(
+            q.options(selectinload(Invoice.items))
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
+    ).scalars().all()
     return list(items), total
+
+
+async def list_cash_saved(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    page: int = 1,
+    page_size: int = 50,
+    *,
+    payment_channel: str | None = None,
+    total_min: int | None = None,
+    total_max: int | None = None,
+    deposit_from: date | None = None,
+    deposit_to: date | None = None,
+    sort_by: str | None = None,
+    sort_dir: str = "desc",
+) -> tuple[list[Invoice], int]:
+    return await list_invoices(
+        db,
+        tenant_id,
+        page,
+        page_size,
+        category="cash_in",
+        payment_channel=payment_channel,
+        total_min=total_min,
+        total_max=total_max,
+        paid_from=deposit_from,
+        paid_to=deposit_to,
+        sort_by=sort_by or "deposit_date",
+        sort_dir=sort_dir,
+    )
+
+
+async def load_customer_names(
+    db: AsyncSession, tenant_id: uuid.UUID, customer_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, str]:
+    if not customer_ids:
+        return {}
+    rows = (
+        await db.execute(
+            select(Customer).where(
+                Customer.tenant_id == tenant_id,
+                Customer.id.in_(customer_ids),
+            )
+        )
+    ).scalars().all()
+    out: dict[uuid.UUID, str] = {}
+    for c in rows:
+        out[c.id] = f"{c.first_name} {c.last_name or ''}".strip() or "Customer"
+    return out
+
+
+async def export_accounts_report_csv(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    *,
+    category: str,
+    date_from: date | None = None,
+    date_to: date | None = None,
+) -> str:
+    """CSV export for accounts reports (invoices or quotes)."""
+    today = date.today()
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    if category == "quotes":
+        stmt = select(Quote).where(Quote.tenant_id == tenant_id)
+        if date_from:
+            stmt = stmt.where(func.date(Quote.created_at) >= date_from)
+        if date_to:
+            stmt = stmt.where(func.date(Quote.created_at) <= date_to)
+        rows = (await db.execute(stmt.order_by(Quote.created_at.desc()))).scalars().all()
+        writer.writerow(["quote_number", "title", "status", "total_pence", "valid_until", "created_at"])
+        for r in rows:
+            writer.writerow(
+                [r.quote_number, r.title, r.status, r.total_pence, r.valid_until, r.created_at]
+            )
+        return buf.getvalue()
+
+    stmt = select(Invoice).where(Invoice.tenant_id == tenant_id)
+    stmt = _apply_invoice_category(stmt, category if category != "cash_saved" else "cash_in", today)
+    if date_from:
+        stmt = stmt.where(func.date(Invoice.created_at) >= date_from)
+    if date_to:
+        stmt = stmt.where(func.date(Invoice.created_at) <= date_to)
+    rows = (await db.execute(stmt.order_by(Invoice.created_at.desc()))).scalars().all()
+    writer.writerow(
+        ["invoice_number", "title", "status", "total_pence", "paid_pence", "due_date", "payment_channel", "paid_at"]
+    )
+    for r in rows:
+        writer.writerow(
+            [
+                r.invoice_number,
+                r.title,
+                r.status,
+                r.total_pence,
+                r.paid_pence,
+                r.due_date,
+                r.payment_channel,
+                r.paid_at,
+            ]
+        )
+    return buf.getvalue()
 
 
 async def update_invoice(
@@ -382,7 +627,13 @@ async def update_invoice(
     return await get_invoice(db, tenant_id, invoice_id)
 
 
-async def record_invoice_paid(db: AsyncSession, tenant_id: uuid.UUID, invoice_id: uuid.UUID) -> Invoice:
+async def record_invoice_paid(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    invoice_id: uuid.UUID,
+    *,
+    payment_channel: str = "cash_deposit",
+) -> Invoice:
     """Mark CRM invoice paid and trigger referral automation (invoice paid → eligible)."""
     inv = await get_invoice(db, tenant_id, invoice_id)
     if inv.status == "paid":
@@ -392,15 +643,17 @@ async def record_invoice_paid(db: AsyncSession, tenant_id: uuid.UUID, invoice_id
     inv.status = "paid"
     inv.paid_pence = inv.total_pence
     inv.paid_at = now
+    inv.payment_channel = payment_channel
     db.add(inv)
     if amount_due > 0:
+        method = "stripe" if payment_channel == "online" else "manual"
         db.add(
             Payment(
                 id=uuid.uuid4(),
                 tenant_id=tenant_id,
                 invoice_id=invoice_id,
                 amount_pence=amount_due,
-                method="manual",
+                method=method,
                 status="succeeded",
             )
         )

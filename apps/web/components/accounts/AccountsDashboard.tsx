@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import {
   AlertTriangle,
   ArrowDownLeft,
@@ -30,8 +31,11 @@ import { ModuleCardGrid, type ModuleCardItem } from '@/components/modules/Module
 import { TenantWelcomeHeader } from '@/components/dashboard/TenantWelcomeHeader'
 import { AccountsInvoicesPanel } from '@/components/accounts/AccountsInvoicesPanel'
 import { AccountingPanels, AccountingUpgradeBanner } from '@/components/accounts/AccountingPanels'
-import { accounting } from '@/lib/api-client'
-import { auth, tenants } from '@/lib/api-client'
+import { AccountsInvoiceSection } from '@/components/accounts/AccountsInvoiceSection'
+import { AccountsReportsPanel } from '@/components/accounts/AccountsReportsPanel'
+import { CashSavedPanel } from '@/components/accounts/CashSavedPanel'
+import { IndustryAddonsUpgradeAlert } from '@/components/addons/IndustryAddonsUpgradeAlert'
+import { accounting, auth, tenants } from '@/lib/api-client'
 
 type Dashboard = {
   headline: {
@@ -49,7 +53,30 @@ type Dashboard = {
   upsell_suggestions: unknown[]
 }
 
+const SECTION_META: Record<
+  string,
+  { category?: 'cash_in' | 'cash_pending' | 'cash_out'; title: string; description: string }
+> = {
+  'cash-in': {
+    category: 'cash_in',
+    title: 'Cash in',
+    description: 'Paid invoices and money received.',
+  },
+  'cash-pending': {
+    category: 'cash_pending',
+    title: 'Cash pending',
+    description: 'Outstanding invoices awaiting payment.',
+  },
+  'cash-out': {
+    category: 'cash_out',
+    title: 'Cash out',
+    description: 'Overdue invoices — chase these first.',
+  },
+}
+
 export function AccountsDashboard() {
+  const searchParams = useSearchParams()
+  const section = searchParams.get('section')
   const [days, setDays] = useState(90)
   const { data: me } = useQuery({
     queryKey: ['me'],
@@ -97,28 +124,28 @@ export function AccountsDashboard() {
     {
       title: 'Cash in',
       description: `Paid revenue in the last ${days} days — money received.`,
-      href: '/dashboard/invoices',
+      href: '/dashboard/accounts?section=cash-in',
       icon: ArrowDownLeft,
       badge: formatCurrency(cashIn),
     },
     {
       title: 'Cash pending',
       description: 'Outstanding invoices awaiting payment.',
-      href: '/dashboard/invoices',
+      href: '/dashboard/accounts?section=cash-pending',
       icon: Clock,
       badge: formatCurrency(cashPending),
     },
     {
       title: 'Cash out',
       description: 'Overdue amounts — chase these first.',
-      href: '/dashboard/invoices',
+      href: '/dashboard/accounts?section=cash-out',
       icon: ArrowUpRight,
       badge: formatCurrency(cashOut),
     },
     {
       title: 'Cash saved',
-      description: 'YTD collected minus still outstanding (working capital snapshot).',
-      href: '/dashboard/accounts',
+      description: 'Paid deposits — invoices and cash received.',
+      href: '/dashboard/accounts?section=cash-saved',
       icon: PiggyBank,
       badge: formatCurrency(cashSaved),
     },
@@ -130,11 +157,13 @@ export function AccountsDashboard() {
     },
     {
       title: 'Reports',
-      description: 'Export-ready view of cashflow and pipeline value.',
-      href: '/dashboard/accounts',
+      description: 'Export CSV by cash category or quotes.',
+      href: '/dashboard/accounts?section=reports',
       icon: TrendingUp,
     },
   ]
+
+  const sectionMeta = section ? SECTION_META[section] : null
 
   if (isLoading) {
     return (
@@ -171,7 +200,40 @@ export function AccountsDashboard() {
       />
 
       {!acctStatus?.has_accounting && !h?.has_accounting && <AccountingUpgradeBanner />}
+      <IndustryAddonsUpgradeAlert />
 
+      {section && (
+        <div className="flex items-center gap-2 text-sm">
+          <Link href="/dashboard/accounts" className="text-brand-teal-300 hover:underline">
+            ← Accounts overview
+          </Link>
+        </div>
+      )}
+
+      {section === 'cash-saved' && (
+        <section className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 p-6">
+          <CashSavedPanel />
+        </section>
+      )}
+
+      {section === 'reports' && (
+        <section className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 p-6">
+          <AccountsReportsPanel />
+        </section>
+      )}
+
+      {sectionMeta?.category && (
+        <section className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 p-6">
+          <AccountsInvoiceSection
+            category={sectionMeta.category}
+            title={sectionMeta.title}
+            description={sectionMeta.description}
+          />
+        </section>
+      )}
+
+      {!section && (
+      <>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-bold text-white">Accounts overview</h2>
         <select
@@ -217,8 +279,10 @@ export function AccountsDashboard() {
       </div>
 
       <ModuleCardGrid items={cards} />
+      </>
+      )}
 
-      {(h?.has_accounting || acctStatus?.has_accounting) && (h?.expenses_30d_pence ?? 0) > 0 && (
+      {!section && (h?.has_accounting || acctStatus?.has_accounting) && (h?.expenses_30d_pence ?? 0) > 0 && (
         <p className="text-sm text-brand-teal-100/70">
           Net cashflow (30d):{' '}
           <span className="font-semibold text-white">{formatCurrency(h?.net_cashflow_30d_pence ?? 0)}</span>
@@ -226,7 +290,7 @@ export function AccountsDashboard() {
         </p>
       )}
 
-      {(h?.overdue_pence ?? 0) > 0 && (
+      {!section && (h?.overdue_pence ?? 0) > 0 && (
         <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-950/20 p-4">
           <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
           <div>
@@ -238,11 +302,13 @@ export function AccountsDashboard() {
         </div>
       )}
 
+      {!section && (
       <section className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 p-6">
         <AccountsInvoicesPanel />
       </section>
+      )}
 
-      {(acctStatus?.has_accounting || h?.has_accounting) && (
+      {!section && (acctStatus?.has_accounting || h?.has_accounting) && (
         <section className="rounded-2xl border border-brand-forest-800 bg-brand-forest-950 p-6">
           <AccountingPanels />
         </section>

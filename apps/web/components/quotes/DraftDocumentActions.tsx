@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Mail, Pencil, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { crm } from '@/lib/api-client'
 import { inputClass, labelClass, lineItemFromPounds } from '@/components/quotes/QuoteInvoiceForm'
@@ -13,6 +13,7 @@ type Api = {
   create: (data: object) => Promise<unknown>
   update: (id: string, data: object) => Promise<unknown>
   delete: (id: string) => Promise<unknown>
+  send?: (id: string) => Promise<unknown>
 }
 
 export function DraftDocumentCreatePanel({
@@ -29,6 +30,9 @@ export function DraftDocumentCreatePanel({
   const [customerId, setCustomerId] = useState('')
   const [title, setTitle] = useState('')
   const [amount, setAmount] = useState('')
+  const [dueDate, setDueDate] = useState('')
+  const [validUntil, setValidUntil] = useState('')
+  const [sendEmail, setSendEmail] = useState(false)
 
   const { data: customers } = useQuery({
     queryKey: ['crm', 'customers', kind, 'picker'],
@@ -37,18 +41,37 @@ export function DraftDocumentCreatePanel({
   })
 
   const create = useMutation({
-    mutationFn: () =>
-      api.create({
+    mutationFn: async () => {
+      const payload: Record<string, unknown> = {
         customer_id: customerId,
         title: title || (kind === 'quote' ? 'Quote' : 'Invoice'),
         items: [lineItemFromPounds(title || 'Service', amount)],
-      }),
+      }
+      if (kind === 'invoice' && dueDate) payload.due_date = dueDate
+      if (kind === 'quote' && validUntil) payload.valid_until = validUntil
+      const res = (await api.create(payload)) as { data: { id: string } }
+      if (sendEmail && api.send && res.data?.id) {
+        await api.send(res.data.id)
+      }
+      return res
+    },
     onSuccess: () => {
-      toast.success(kind === 'quote' ? 'Quote created' : 'Invoice created')
+      toast.success(
+        sendEmail
+          ? kind === 'quote'
+            ? 'Quote created and emailed'
+            : 'Invoice created and emailed'
+          : kind === 'quote'
+            ? 'Quote created'
+            : 'Invoice created',
+      )
       setOpen(false)
       setTitle('')
       setAmount('')
       setCustomerId('')
+      setDueDate('')
+      setValidUntil('')
+      setSendEmail(false)
       qc.invalidateQueries({ queryKey: listQueryKey })
       qc.invalidateQueries({ queryKey: ['accounts-dashboard'] })
     },
@@ -94,6 +117,30 @@ export function DraftDocumentCreatePanel({
               onChange={(e) => setAmount(e.target.value)}
             />
           </div>
+          {kind === 'invoice' && (
+            <div>
+              <label className={labelClass}>Due date</label>
+              <input className={inputClass} type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            </div>
+          )}
+          {kind === 'quote' && (
+            <div>
+              <label className={labelClass}>Valid until</label>
+              <input className={inputClass} type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} />
+            </div>
+          )}
+          {api.send && (
+            <label className="flex items-center gap-2 text-sm text-brand-teal-100/80">
+              <input
+                type="checkbox"
+                checked={sendEmail}
+                onChange={(e) => setSendEmail(e.target.checked)}
+                className="rounded border-brand-forest-600"
+              />
+              <Mail className="w-3.5 h-3.5" />
+              Send by email after create
+            </label>
+          )}
           <button
             type="button"
             disabled={!customerId || create.isPending}

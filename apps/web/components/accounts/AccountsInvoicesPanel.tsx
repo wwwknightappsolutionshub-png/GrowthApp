@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { FileText, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { accounting, crm, invoices } from '@/lib/api-client'
+import { crm, invoices } from '@/lib/api-client'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -22,6 +22,7 @@ export function AccountsInvoicesPanel() {
   const [title, setTitle] = useState('')
   const [customerId, setCustomerId] = useState('')
   const [amountPence, setAmountPence] = useState('')
+  const [dueDate, setDueDate] = useState('')
 
   const { data, isLoading } = useQuery({
     queryKey: ['invoices', 'accounts'],
@@ -66,20 +67,6 @@ export function AccountsInvoicesPanel() {
     },
     onError: (e: { response?: { data?: { detail?: string } } }) =>
       toast.error(e.response?.data?.detail ?? 'Delete failed'),
-  })
-
-  const { data: acctStatus } = useQuery({
-    queryKey: ['accounting-status'],
-    queryFn: () => accounting.status().then((r) => r.data as { has_accounting: boolean }),
-  })
-
-  const sendInv = useMutation({
-    mutationFn: (id: string) => accounting.sendInvoice(id),
-    onSuccess: () => {
-      toast.success('Invoice sent')
-      qc.invalidateQueries({ queryKey: ['invoices'] })
-    },
-    onError: () => toast.error('Send failed — upgrade Accounting or check customer email'),
   })
 
   const recordPay = useMutation({
@@ -137,6 +124,13 @@ export function AccountsInvoicesPanel() {
             value={amountPence}
             onChange={(e) => setAmountPence(e.target.value)}
           />
+          <input
+            className="w-full border border-brand-forest-700 rounded-lg px-3 py-2 bg-brand-forest-950 text-white text-sm"
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            placeholder="Due date"
+          />
           <button
             type="button"
             disabled={!customerId || createInv.isPending}
@@ -186,13 +180,13 @@ export function AccountsInvoicesPanel() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right space-x-2">
-                      {acctStatus?.has_accounting && inv.status === 'draft' && (
+                      {inv.status === 'draft' && (
                         <button
                           type="button"
                           onClick={() => sendInv.mutate(inv.id)}
                           className="text-xs text-brand-teal-300 hover:underline"
                         >
-                          Send
+                          Send email
                         </button>
                       )}
                       {inv.status !== 'paid' && (

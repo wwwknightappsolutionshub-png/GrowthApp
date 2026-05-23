@@ -330,69 +330,13 @@ async def send_invoice(
     *,
     actor_user_id: uuid.UUID | None = None,
 ) -> Invoice:
-    inv = await qi_service.get_invoice(db, tenant_id, invoice_id)
-    tenant = (await db.execute(select(Tenant).where(Tenant.id == tenant_id))).scalar_one()
-    customer = (
-        await db.execute(select(Customer).where(Customer.id == inv.customer_id, Customer.tenant_id == tenant_id))
-    ).scalar_one_or_none()
-    if not customer:
-        raise NotFoundException("Customer")
-
-    amount_due = max(0, inv.total_pence - inv.paid_pence)
-    if amount_due > 0 and not inv.stripe_payment_link:
-        from app.adapters import get_payment_adapter
-
-        adapter = get_payment_adapter()
-        link = await adapter.create_payment_link(
-            amount_pence=amount_due,
-            description=f"{inv.invoice_number} — {inv.title}",
-            metadata={"tenant_id": str(tenant_id), "invoice_id": str(inv.id)},
-        )
-        inv.stripe_payment_link = link.url
-
-    now = datetime.now(timezone.utc)
-    inv.status = "sent" if inv.status == "draft" else inv.status
-    inv.sent_at = inv.sent_at or now
-    await db.flush()
-
-    from app.workers.queue import enqueue
-
-    if customer.email:
-        from app.templates.renderer import render_invoice_sent
-
-        html = render_invoice_sent(
-            customer_name=customer.first_name or "there",
-            business_name=tenant.name,
-            invoice_number=inv.invoice_number,
-            invoice_title=inv.title,
-            subtotal_pence=inv.subtotal_pence,
-            vat_pence=inv.vat_pence,
-            total_pence=inv.total_pence,
-            due_date=inv.due_date.isoformat() if inv.due_date else None,
-            notes=inv.notes,
-            stripe_payment_link=inv.stripe_payment_link,
-            business_phone=tenant.phone,
-            business_email=tenant.email,
-        )
-        await enqueue(
-            "send_email_task",
-            to=customer.email,
-            subject=f"Invoice {inv.invoice_number} from {tenant.name}",
-            html=html,
-            tenant_id=str(tenant_id),
-        )
-
-    await log_action(
-        db,
-        action="invoice.sent",
-        resource="invoice",
-        resource_id=inv.id,
-        tenant_id=tenant_id,
-        user_id=actor_user_id,
-        metadata={"invoice_number": inv.invoice_number},
+    await qi_service.send_invoice(db, tenant_id, invoice_id, actor_user_id=actor_user_id)
+    await enqueue(
+        "trigger_automation_for_event",
+        tenant_id=str(tenant_id),
+        event="invoice_sent",
+        entity_id=str(invoice_id),
     )
-    await db.commit()
-    await enqueue("trigger_automation_for_event", tenant_id=str(tenant_id), event="invoice_sent", entity_id=str(inv.id))
     return await qi_service.get_invoice(db, tenant_id, invoice_id)
 
 

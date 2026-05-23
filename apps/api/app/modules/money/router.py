@@ -8,7 +8,10 @@ from __future__ import annotations
 from datetime import date, datetime, timedelta, timezone
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from datetime import date
+
+from fastapi import APIRouter, Depends, Query
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -250,3 +253,74 @@ async def get_accounts_dashboard(
 ):
     """Alias for money dashboard — used by Accounts module UI."""
     return await get_money_dashboard(ctx, db, days=days)
+
+
+@accounts_router.get("/cash-saved")
+async def list_cash_saved(
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1),
+    payment_channel: str | None = None,
+    total_min: int | None = None,
+    total_max: int | None = None,
+    deposit_from: date | None = None,
+    deposit_to: date | None = None,
+    sort_by: str | None = None,
+    sort_dir: str = Query("desc", pattern="^(asc|desc)$"),
+):
+    from app.modules.quotes_invoices import service as qi_service
+    _, tenant, _ = ctx
+    items, total = await qi_service.list_cash_saved(
+        db,
+        tenant.id,
+        page,
+        payment_channel=payment_channel,
+        total_min=total_min,
+        total_max=total_max,
+        deposit_from=deposit_from,
+        deposit_to=deposit_to,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
+    )
+    names = await qi_service.load_customer_names(db, tenant.id, [i.customer_id for i in items])
+    return {
+        "items": [
+            {
+                "id": str(i.id),
+                "invoice_number": i.invoice_number,
+                "title": i.title,
+                "total_pence": i.total_pence,
+                "payment_date": i.paid_at.date().isoformat() if i.paid_at else None,
+                "payment_channel": i.payment_channel or "cash_deposit",
+                "customer_name": names.get(i.customer_id),
+            }
+            for i in items
+        ],
+        "total": total,
+    }
+
+
+@accounts_router.get("/reports")
+async def accounts_report(
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+    category: str = Query(..., pattern="^(cash_in|cash_pending|cash_out|cash_saved|quotes)$"),
+    date_from: date | None = None,
+    date_to: date | None = None,
+):
+    from app.modules.quotes_invoices import service as qi_service
+
+    _, tenant, _ = ctx
+    export_category = "cash_in" if category == "cash_saved" else category
+    csv_data = await qi_service.export_accounts_report_csv(
+        db,
+        tenant.id,
+        category=export_category,
+        date_from=date_from,
+        date_to=date_to,
+    )
+    return PlainTextResponse(
+        csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="accounts-{category}.csv"'},
+    )

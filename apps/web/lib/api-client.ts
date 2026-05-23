@@ -436,20 +436,23 @@ export const publicBooking = {
 }
 
 export const quotes = {
-  list: () => apiClient.get('/quotes'),
+  list: (params?: object) => apiClient.get('/quotes', { params }),
   create: (data: object) => apiClient.post('/quotes', data),
   get: (id: string) => apiClient.get(`/quotes/${id}`),
   update: (id: string, data: object) => apiClient.patch(`/quotes/${id}`, data),
   delete: (id: string) => apiClient.delete(`/quotes/${id}`),
   send: (id: string) => apiClient.post(`/quotes/${id}/send`),
+  sendInvoice: (id: string) => apiClient.post(`/quotes/${id}/send-invoice`),
 }
 
 export const invoices = {
-  list: () => apiClient.get('/invoices'),
+  list: (params?: object) => apiClient.get('/invoices', { params }),
   create: (data: object) => apiClient.post('/invoices', data),
   get: (id: string) => apiClient.get(`/invoices/${id}`),
   update: (id: string, data: object) => apiClient.patch(`/invoices/${id}`, data),
-  recordPayment: (id: string) => apiClient.post(`/invoices/${id}/record-payment`),
+  send: (id: string) => apiClient.post(`/invoices/${id}/send`),
+  recordPayment: (id: string, data?: { payment_channel?: 'online' | 'cash_deposit' }) =>
+    apiClient.post(`/invoices/${id}/record-payment`, data ?? {}),
   delete: (id: string) => apiClient.delete(`/invoices/${id}`),
 }
 
@@ -639,6 +642,9 @@ export const money = {
 
 export const accounts = {
   dashboard: (days?: number) => apiClient.get('/accounts/dashboard', { params: { days } }),
+  cashSaved: (params?: object) => apiClient.get('/accounts/cash-saved', { params }),
+  reports: (params: { category: string; date_from?: string; date_to?: string }) =>
+    apiClient.get('/accounts/reports', { params, responseType: 'blob' }),
 }
 
 export type AddonStatusResponse = {

@@ -1,4 +1,5 @@
 from datetime import datetime, date
+from typing import Literal
 from uuid import UUID
 from pydantic import BaseModel
 
@@ -39,6 +40,7 @@ class QuoteResponse(BaseModel):
     id: UUID
     tenant_id: UUID
     customer_id: UUID
+    customer_name: str | None = None
     deal_id: UUID | None
     quote_number: str
     public_token: str
@@ -78,11 +80,16 @@ class InvoiceUpdate(BaseModel):
     items: list[QuoteItemIn] | None = None
 
 
+class RecordPaymentIn(BaseModel):
+    payment_channel: Literal["online", "cash_deposit"] = "cash_deposit"
+
+
 class InvoiceResponse(BaseModel):
     model_config = {"from_attributes": True}
     id: UUID
     tenant_id: UUID
     customer_id: UUID
+    customer_name: str | None = None
     invoice_number: str
     status: str
     title: str
@@ -91,11 +98,26 @@ class InvoiceResponse(BaseModel):
     total_pence: int
     paid_pence: int
     due_date: date | None
+    payment_channel: str | None = None
     stripe_payment_link: str | None
     sent_at: datetime | None
     paid_at: datetime | None
     created_at: datetime
     items: list[QuoteItemResponse] = []
+
+
+class CashSavedRow(BaseModel):
+    id: UUID
+    invoice_number: str
+    title: str
+    total_pence: int
+    payment_date: date | None
+    payment_channel: str | None
+
+
+class CashSavedListResponse(BaseModel):
+    items: list[CashSavedRow]
+    total: int
 
 
 class InvoiceListResponse(BaseModel):
