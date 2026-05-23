@@ -44,6 +44,10 @@ from app.modules.ai_assistant.router import router as ai_assistant_router
 from app.modules.segments.router import router as segments_router
 from app.modules.money.router import accounts_router, router as money_router
 from app.modules.accounting.router import router as accounting_router
+from app.modules.addons.common.router import router as addons_router
+from app.modules.addons.booking.router import router as addons_booking_router
+from app.modules.addons.billing.router import router as addons_billing_router
+from app.modules.addons.crm.router import router as addons_crm_router
 from app.modules.accounting import models as _accounting_models  # noqa: F401
 from app.modules.auto_replies.router import router as auto_replies_router
 from app.modules.usage.router import router as usage_router
@@ -165,6 +169,10 @@ def create_app() -> FastAPI:
     app.include_router(money_router, prefix=API_PREFIX)
     app.include_router(accounts_router, prefix=API_PREFIX)
     app.include_router(accounting_router, prefix=API_PREFIX)
+    app.include_router(addons_router, prefix=API_PREFIX)
+    app.include_router(addons_booking_router, prefix=API_PREFIX)
+    app.include_router(addons_billing_router, prefix=API_PREFIX)
+    app.include_router(addons_crm_router, prefix=API_PREFIX)
     app.include_router(auto_replies_router, prefix=API_PREFIX)
     app.include_router(usage_router, prefix=API_PREFIX)
     app.include_router(outreach_router, prefix=API_PREFIX)

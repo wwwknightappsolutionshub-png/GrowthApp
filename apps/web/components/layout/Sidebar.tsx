@@ -41,6 +41,7 @@ import {
   BellRing,
   Briefcase,
   Link2,
+  Package,
   type LucideIcon,
 } from 'lucide-react'
 import { logout as doLogout } from '@/lib/auth'
@@ -66,6 +67,7 @@ const ALL_HREFS = [
   '/dashboard', '/dashboard/assistant', '/dashboard/leads', '/dashboard/crm',
   '/dashboard/tasks', '/dashboard/bookings', '/dashboard/quotes', '/dashboard/invoices',
   '/dashboard/accounts',
+  '/dashboard/addons', '/dashboard/addons/booking', '/dashboard/addons/billing', '/dashboard/addons/crm',
   '/dashboard/money', '/dashboard/messages', '/dashboard/whatsapp', '/dashboard/auto-replies',
   '/dashboard/outreach', '/dashboard/site-builder', '/dashboard/landing-pages', '/dashboard/ads', '/dashboard/seo',
   '/dashboard/automations', '/dashboard/reviews', '/dashboard/referrals', '/dashboard/notifications', '/dashboard/settings',
@@ -89,6 +91,7 @@ const CATEGORY_DEFAULTS: Record<string, string[]> = {
   salon_beauty: [
     '/dashboard', '/dashboard/leads', '/dashboard/crm',
     '/dashboard/tasks', '/dashboard/bookings', '/dashboard/invoices', '/dashboard/accounts',
+    '/dashboard/addons', '/dashboard/addons/booking', '/dashboard/addons/billing', '/dashboard/addons/crm',
     '/dashboard/messages', '/dashboard/whatsapp', '/dashboard/auto-replies',
     '/dashboard/outreach', '/dashboard/reviews', '/dashboard/referrals',
     '/dashboard/landing-pages', '/dashboard/automations',
@@ -195,6 +198,10 @@ const navItems: NavItem[] = [
   { href: '/dashboard/quotes',   label: 'Quotes',   description: 'Create, send, and track professional price quotes',                  icon: FileText,       group: 'pipeline' },
   { href: '/dashboard/invoices', label: 'Invoices', description: 'Issue invoices, record payments, and track outstanding balances',    icon: CreditCard,     group: 'pipeline' },
   { href: '/dashboard/accounts', label: 'Accounts', description: 'Cash in, pending, collections, and business reporting',              icon: PoundSterling,  group: 'pipeline' },
+  { href: '/dashboard/addons', label: 'Industry Add-ons', description: 'Salon or garage premium booking, billing, and CRM tools',           icon: Package,        group: 'pipeline' },
+  { href: '/dashboard/addons/booking', label: 'Industry Booking', description: 'Multi-service scheduling, bays, parts checks, gap-fill',            icon: Calendar,     group: 'pipeline' },
+  { href: '/dashboard/addons/billing', label: 'Industry Billing', description: 'Tips, memberships, VIN invoices, parts markup, warranties',         icon: CreditCard,   group: 'pipeline' },
+  { href: '/dashboard/addons/crm', label: 'Industry CRM', description: 'Stylist notes, vehicle history, maintenance alerts, CLV scores',      icon: Users,        group: 'pipeline' },
 
   // ── Engagement ────────────────────────────────────────────────────────────
   { href: '/dashboard/messages',     label: 'Messages',    description: 'SMS and email conversations with customers in one inbox',               icon: MessageSquare, group: 'engage' },

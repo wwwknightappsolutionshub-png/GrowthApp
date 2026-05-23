@@ -95,6 +95,7 @@ class InvoiceItem(Base):
     vat_rate: Mapped[int] = mapped_column(Integer, default=20)
     line_total_pence: Mapped[int] = mapped_column(Integer, nullable=False)
     sort_order: Mapped[int] = mapped_column(Integer, default=0)
+    line_kind: Mapped[str] = mapped_column(String(20), default="service", server_default="service")
     invoice: Mapped["Invoice"] = relationship("Invoice", back_populates="items")
 
 

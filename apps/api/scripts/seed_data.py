@@ -41,6 +41,7 @@ from app.core.security import hash_password
 # tables imported above — public routes such as `/public/marketing/bundle` then
 # hit missing tables and return 500.
 from app.main import app as _app_for_full_schema  # noqa: F401
+from app.modules.addons import industry_models  # noqa: F401 — industry add-on tables
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def now() -> datetime:
@@ -711,6 +712,9 @@ async def main():
         await seed_customers_and_deals(db, created)
         await seed_electrician_data(db, created)
         await seed_cleaner_data(db, created)
+        from app.modules.addons.seed_garage import ensure_garage_demo_tenant
+
+        garage_info = await ensure_garage_demo_tenant(db, plans=plans)
         from app.modules.marketing.seed import seed_marketing_data
 
         counts = await seed_marketing_data(db, replace=True)
@@ -752,6 +756,12 @@ async def main():
     print("  Email   : amira@luxesalon.co.uk")
     print("  Password: Salon@Test12")
     print("  Plan    : Growth (£149/month)")
+    print()
+    print("  Alex Knight  (Garage — Leeds, all industry add-ons)")
+    print("  Email   : garage@knightmotors.co.uk")
+    print("  Password: Garage@Test1")
+    print("  Slug    : knight-motors-garage")
+    print("  Add-ons : industry_booking, industry_billing, industry_crm")
     print()
     print("  STAFF MEMBERS")
     print("  ─────────────────────────────────────────────────────")

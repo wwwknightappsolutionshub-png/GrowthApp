@@ -66,6 +66,8 @@ from app.modules.audit.models import AuditLog  # noqa: F401
 from app.modules.gdpr.models import GdprRequest  # noqa: F401
 from app.modules.integrations.models import TenantGoogleConnection, GoogleBusinessReview  # noqa: F401
 from app.modules.lead_marketplace.trial_models import TrialLeadDelivery  # noqa: F401
+from app.modules.addons.common.models import TenantIndustryProfile  # noqa: F401
+from app.modules.addons import industry_models  # noqa: F401
 
 config = context.config
 

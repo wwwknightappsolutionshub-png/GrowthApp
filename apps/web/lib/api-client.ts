@@ -641,6 +641,20 @@ export const accounts = {
   dashboard: (days?: number) => apiClient.get('/accounts/dashboard', { params: { days } }),
 }
 
+export type AddonStatusResponse = {
+  vertical: 'salon' | 'realtor' | 'garage'
+  industry_booking: boolean
+  industry_billing: boolean
+  industry_crm: boolean
+  items: { feature_code: string; active: boolean }[]
+}
+
+export const industryAddons = {
+  status: () => apiClient.get<AddonStatusResponse>('/addons/status'),
+  setVertical: (vertical: 'salon' | 'realtor' | 'garage') =>
+    apiClient.patch<AddonStatusResponse>('/addons/vertical', { vertical }),
+}
+
 export const accounting = {
   status: () => apiClient.get('/accounting/status'),
   checkout: (data: { success_url: string; cancel_url: string }) =>

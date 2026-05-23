@@ -158,6 +158,30 @@ async def set_accounting_addon(
     raise HTTPException(422, "action must be grant or revoke")
 
 
+@router.post("/{tenant_id}/addons/industry/{feature_code}")
+async def set_industry_addon(
+    tenant_id: uuid.UUID,
+    feature_code: str,
+    body: dict,
+    admin: SuperAdmin,
+    db: AsyncSession = Depends(get_db),
+):
+    """Grant or revoke industry_booking | industry_billing | industry_crm."""
+    from app.modules.addons.common.constants import INDUSTRY_FEATURE_CODES
+    from app.modules.addons.common import service as addons_service
+
+    if feature_code not in INDUSTRY_FEATURE_CODES:
+        raise HTTPException(422, f"feature_code must be one of: {', '.join(sorted(INDUSTRY_FEATURE_CODES))}")
+    action = body.get("action")
+    if action == "grant":
+        row = await addons_service.grant_addon(db, tenant_id, feature_code, granted_by=admin.id)
+        return {"ok": True, "status": row.status, "feature_code": row.feature_code}
+    if action == "revoke":
+        await addons_service.revoke_addon(db, tenant_id, feature_code)
+        return {"ok": True, "status": "canceled", "feature_code": feature_code}
+    raise HTTPException(422, "action must be grant or revoke")
+
+
 @router.post("/{tenant_id}/toggle-active")
 async def toggle_active(tenant_id: uuid.UUID, _: SuperAdmin, db: AsyncSession = Depends(get_db)):
     t = (await db.execute(select(Tenant).where(Tenant.id == tenant_id))).scalar_one_or_none()
