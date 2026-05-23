@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { ArrowLeft, Calendar, ExternalLink, Zap } from 'lucide-react'
 import { crm } from '@/lib/api-client'
 import { formatDate } from '@/lib/utils'
+import { recurrencyLabel } from '@/components/quotes/RecurrencySelect'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CrmEntityTimeline } from '@/components/crm/CrmEntityTimeline'
 
@@ -97,6 +98,26 @@ export default function CustomerProfilePage() {
         </Card>
 
         <div className="space-y-4">
+          {(customer.service_recurrency || customer.service_renewal_date) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Service renewal</CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm space-y-1">
+                <p>
+                  <span className="text-muted-foreground">Recurrency:</span>{' '}
+                  {recurrencyLabel(customer.service_recurrency)}
+                </p>
+                <p>
+                  <span className="text-muted-foreground">Next renewal:</span>{' '}
+                  {customer.service_renewal_date ? formatDate(customer.service_renewal_date) : '—'}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  You will receive an email 7 days before this date.
+                </p>
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-base">

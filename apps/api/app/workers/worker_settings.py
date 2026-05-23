@@ -28,6 +28,7 @@ from app.workers.tasks.trial_leads import assign_daily_trial_leads, send_trial_l
 from app.workers.tasks.booking_notifications import process_booking_notification_queue
 from app.workers.tasks.accounting import run_accounting_recurring, sweep_invoice_reminders
 from app.workers.tasks.industry import process_industry_rebook_reminders, refresh_maintenance_prediction_alerts
+from app.workers.tasks.invoice_renewals import sweep_service_renewal_reminders
 
 
 class WorkerSettings:
@@ -64,6 +65,7 @@ class WorkerSettings:
         sweep_invoice_reminders,
         process_industry_rebook_reminders,
         refresh_maintenance_prediction_alerts,
+        sweep_service_renewal_reminders,
     ]
     # Cron jobs:
     #   * Every 5 minutes: sweep for missed task reminders.
@@ -84,6 +86,7 @@ class WorkerSettings:
         cron(sweep_invoice_reminders, hour={8}, minute={0}),
         cron(process_industry_rebook_reminders, hour={9}, minute={30}),
         cron(refresh_maintenance_prediction_alerts, hour={7}, minute={0}),
+        cron(sweep_service_renewal_reminders, hour={8}, minute={15}),
     ]
     max_jobs = 10
     job_timeout = 300

@@ -6,6 +6,7 @@ import { Mail, Pencil, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { crm } from '@/lib/api-client'
 import { inputClass, labelClass, lineItemFromPounds } from '@/components/quotes/QuoteInvoiceForm'
+import { RecurrencySelect } from '@/components/quotes/RecurrencySelect'
 
 type Kind = 'quote' | 'invoice'
 
@@ -32,6 +33,7 @@ export function DraftDocumentCreatePanel({
   const [amount, setAmount] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [validUntil, setValidUntil] = useState('')
+  const [recurrency, setRecurrency] = useState('')
   const [sendEmail, setSendEmail] = useState(false)
 
   const { data: customers } = useQuery({
@@ -48,6 +50,7 @@ export function DraftDocumentCreatePanel({
         items: [lineItemFromPounds(title || 'Service', amount)],
       }
       if (kind === 'invoice' && dueDate) payload.due_date = dueDate
+      if (kind === 'invoice' && recurrency) payload.recurrency = recurrency
       if (kind === 'quote' && validUntil) payload.valid_until = validUntil
       const res = (await api.create(payload)) as { data: { id: string } }
       if (sendEmail && api.send && res.data?.id) {
@@ -71,6 +74,7 @@ export function DraftDocumentCreatePanel({
       setCustomerId('')
       setDueDate('')
       setValidUntil('')
+      setRecurrency('')
       setSendEmail(false)
       qc.invalidateQueries({ queryKey: listQueryKey })
       qc.invalidateQueries({ queryKey: ['accounts-dashboard'] })
@@ -128,6 +132,9 @@ export function DraftDocumentCreatePanel({
               <label className={labelClass}>Valid until</label>
               <input className={inputClass} type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} />
             </div>
+          )}
+          {kind === 'invoice' && (
+            <RecurrencySelect value={recurrency} onChange={setRecurrency} />
           )}
           {api.send && (
             <label className="flex items-center gap-2 text-sm text-brand-teal-100/80">

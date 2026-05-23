@@ -1,6 +1,6 @@
 import uuid
-from datetime import datetime
-from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text, Boolean, Integer, func
+from datetime import date, datetime
+from sqlalchemy import Date, DateTime, ForeignKey, Numeric, String, Text, Boolean, Integer, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 from app.core.db_types import UUIDType, JSONBType
@@ -41,6 +41,9 @@ class Customer(Base):
     reward_amount: Mapped[float | None] = mapped_column(Numeric(14, 2), nullable=True)
     reward_type: Mapped[str | None] = mapped_column(String(30), nullable=True)
     reward_delivery_method: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    service_recurrency: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    service_renewal_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    service_renewal_invoice_id: Mapped[uuid.UUID | None] = mapped_column(UUIDType, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

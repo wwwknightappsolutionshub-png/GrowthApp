@@ -12,6 +12,11 @@ from app.modules.crm.models import Customer
 from app.modules.quotes_invoices.models import Quote, QuoteItem, Invoice, InvoiceItem, Payment
 from app.modules.quotes_invoices.schemas import QuoteCreate, QuoteUpdate, InvoiceCreate, InvoiceUpdate, QuoteItemIn
 from app.modules.quotes_invoices.delivery import deliver_invoice_email, deliver_quote_email
+from app.modules.quotes_invoices.recurrency import (
+    apply_invoice_renewal_schedule,
+    sync_customer_service_renewal,
+    validate_recurrency,
+)
 
 
 def _calc_totals(items: list[QuoteItemIn]) -> tuple[int, int, int]:
@@ -390,6 +395,25 @@ async def list_quotes(
     return list(items), total
 
 
+def _parse_recurrency(value: str | None) -> str | None:
+    if value is None:
+        return None
+    try:
+        return validate_recurrency(value)
+    except ValueError as e:
+        raise BadRequestException(str(e)) from e
+
+
+async def _apply_renewal_to_invoice(
+    db: AsyncSession, tenant_id: uuid.UUID, inv: Invoice
+) -> None:
+    apply_invoice_renewal_schedule(inv)
+    db.add(inv)
+    await db.flush()
+    if inv.recurrency and inv.renewal_due_date:
+        await sync_customer_service_renewal(db, tenant_id, inv)
+
+
 async def create_invoice(
     db: AsyncSession,
     tenant_id: uuid.UUID,
@@ -400,9 +424,26 @@ async def create_invoice(
     next_num = await _allocate_number(db, tenant_id, "invoice")
     items_data = data.items
     subtotal, vat, total = _calc_totals(items_data)
-    inv = Invoice(id=uuid.uuid4(), tenant_id=tenant_id, customer_id=data.customer_id, quote_id=data.quote_id, deal_id=data.deal_id, invoice_number=f"INV-{next_num:04d}", public_token=secrets.token_urlsafe(32), title=data.title, notes=data.notes, due_date=data.due_date, subtotal_pence=subtotal, vat_pence=vat, total_pence=total)
+    recurrency = _parse_recurrency(data.recurrency)
+    inv = Invoice(
+        id=uuid.uuid4(),
+        tenant_id=tenant_id,
+        customer_id=data.customer_id,
+        quote_id=data.quote_id,
+        deal_id=data.deal_id,
+        invoice_number=f"INV-{next_num:04d}",
+        public_token=secrets.token_urlsafe(32),
+        title=data.title,
+        notes=data.notes,
+        due_date=data.due_date,
+        recurrency=recurrency,
+        subtotal_pence=subtotal,
+        vat_pence=vat,
+        total_pence=total,
+    )
     db.add(inv)
     await db.flush()
+    await _apply_renewal_to_invoice(db, tenant_id, inv)
     for i, item_data in enumerate(items_data):
         ii = InvoiceItem(id=uuid.uuid4(), invoice_id=inv.id, line_total_pence=item_data.unit_price_pence*item_data.quantity, sort_order=i, **item_data.model_dump(exclude={"sort_order"}))
         db.add(ii)
@@ -461,6 +502,10 @@ async def list_invoices(
         q = q.where(Invoice.due_date >= due_date_from)
     if due_date_to is not None:
         q = q.where(Invoice.due_date <= due_date_to)
+    if paid_from is not None:
+        q = q.where(func.date(Invoice.paid_at) >= paid_from)
+    if paid_to is not None:
+        q = q.where(func.date(Invoice.paid_at) <= paid_to)
     if payment_channel:
         q = q.where(Invoice.payment_channel == payment_channel)
     order_col = Invoice.created_at
@@ -607,12 +652,16 @@ async def update_invoice(
         inv.due_date = data.due_date
     if data.deal_id is not None:
         inv.deal_id = data.deal_id
+    if "recurrency" in data.model_fields_set:
+        inv.recurrency = _parse_recurrency(data.recurrency)
     if data.items is not None:
         await _replace_invoice_items(db, inv.id, data.items)
         subtotal, vat, total = _calc_totals(data.items)
         inv.subtotal_pence = subtotal
         inv.vat_pence = vat
         inv.total_pence = total
+
+    await _apply_renewal_to_invoice(db, tenant_id, inv)
 
     await log_action(
         db,
@@ -659,6 +708,9 @@ async def record_invoice_paid(
         )
     await db.commit()
     await db.refresh(inv)
+    if inv.recurrency and inv.renewal_due_date:
+        await sync_customer_service_renewal(db, tenant_id, inv)
+        await db.commit()
     from app.modules.referrals.service import on_invoice_paid
 
     await on_invoice_paid(db, tenant_id=tenant_id, invoice_id=invoice_id)

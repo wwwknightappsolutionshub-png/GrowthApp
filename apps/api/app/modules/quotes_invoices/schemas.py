@@ -62,6 +62,9 @@ class QuoteListResponse(BaseModel):
     total: int
 
 
+RecurrencyOption = Literal["yearly", "bi_yearly", "quarterly", "monthly"]
+
+
 class InvoiceCreate(BaseModel):
     customer_id: UUID
     quote_id: UUID | None = None
@@ -69,6 +72,7 @@ class InvoiceCreate(BaseModel):
     title: str
     notes: str | None = None
     due_date: date | None = None
+    recurrency: RecurrencyOption | None = None
     items: list[QuoteItemIn] = []
 
 
@@ -76,6 +80,7 @@ class InvoiceUpdate(BaseModel):
     title: str | None = None
     notes: str | None = None
     due_date: date | None = None
+    recurrency: RecurrencyOption | None = None
     deal_id: UUID | None = None
     items: list[QuoteItemIn] | None = None
 
@@ -99,6 +104,8 @@ class InvoiceResponse(BaseModel):
     paid_pence: int
     due_date: date | None
     payment_channel: str | None = None
+    recurrency: str | None = None
+    renewal_due_date: date | None = None
     stripe_payment_link: str | None
     sent_at: datetime | None
     paid_at: datetime | None

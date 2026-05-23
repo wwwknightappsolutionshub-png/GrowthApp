@@ -12,6 +12,7 @@ import {
 } from '@/components/quotes/DocumentListFilters'
 import { IndustryAddonsUpgradeAlert } from '@/components/addons/IndustryAddonsUpgradeAlert'
 import { toast } from 'sonner'
+import { recurrencyLabel } from '@/components/quotes/RecurrencySelect'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { FileText, CheckCircle, Clock, AlertCircle } from 'lucide-react'
 
@@ -115,7 +116,7 @@ export default function InvoicesPage() {
           <table className="min-w-[960px] w-full text-sm">
             <thead className="bg-brand-forest-900 border-b border-brand-forest-800">
               <tr>
-                {['Invoice #', 'Title', 'Total', 'Paid', 'Status', 'Due Date', 'Payment Link', 'Actions'].map((h) => (
+                {['Invoice #', 'Title', 'Recurrency', 'Total', 'Paid', 'Status', 'Due Date', 'Renewal', 'Actions'].map((h) => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-medium text-brand-teal-100/75 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -123,7 +124,7 @@ export default function InvoicesPage() {
             <tbody className="divide-y divide-brand-forest-800">
               {data?.items?.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center">
+                  <td colSpan={9} className="px-4 py-12 text-center">
                     <FileText className="w-8 h-8 mx-auto mb-2 text-brand-teal-300/70" />
                     <p className="text-brand-teal-100/60">No invoices yet. Create one with Add New.</p>
                   </td>
@@ -137,6 +138,8 @@ export default function InvoicesPage() {
                 paid_pence: number
                 status: string
                 due_date?: string
+                recurrency?: string
+                renewal_due_date?: string
                 stripe_payment_link?: string
               }) => {
                 const StatusIcon = STATUS_ICONS[invoice.status] || Clock
@@ -144,6 +147,7 @@ export default function InvoicesPage() {
                   <tr key={invoice.id} className="hover:bg-brand-forest-900">
                     <td className="px-4 py-3 font-mono text-xs text-brand-teal-100/60">{invoice.invoice_number}</td>
                     <td className="px-4 py-3 font-medium text-white max-w-[180px] truncate">{invoice.title}</td>
+                    <td className="px-4 py-3 text-brand-teal-100/70 text-xs">{recurrencyLabel(invoice.recurrency)}</td>
                     <td className="px-4 py-3 font-semibold text-white">{formatCurrency(invoice.total_pence)}</td>
                     <td className="px-4 py-3 text-brand-teal-100 font-medium">{formatCurrency(invoice.paid_pence)}</td>
                     <td className="px-4 py-3">
@@ -153,15 +157,16 @@ export default function InvoicesPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-brand-teal-100/70">{invoice.due_date ? formatDate(invoice.due_date) : '—'}</td>
-                    <td className="px-4 py-3">
-                      {invoice.stripe_payment_link && (
-                        <a href={invoice.stripe_payment_link} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-teal-100 hover:underline">
-                          Pay now
-                        </a>
-                      )}
+                    <td className="px-4 py-3 text-brand-teal-100/70 text-xs">
+                      {invoice.renewal_due_date ? formatDate(invoice.renewal_due_date) : '—'}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-1 items-start">
+                        {invoice.stripe_payment_link && (
+                          <a href={invoice.stripe_payment_link} target="_blank" rel="noopener noreferrer" className="text-xs text-brand-teal-100 hover:underline">
+                            Pay now
+                          </a>
+                        )}
                         <DraftRowActions id={invoice.id} status={invoice.status} title={invoice.title} kind="invoice" api={invoices} listQueryKey={['invoices']} />
                         {invoice.status === 'draft' && (
                           <button type="button" onClick={() => sendInv.mutate(invoice.id)} className="text-xs text-brand-teal-300 hover:underline inline-flex items-center gap-1">

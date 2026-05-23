@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from uuid import UUID
 from pydantic import BaseModel, Field
 
@@ -66,6 +66,9 @@ class CustomerResponse(BaseModel):
     upsell_date: datetime | None = None
     special_event: str | None = None
     needs_reminders: bool = False
+    service_recurrency: str | None = None
+    service_renewal_date: date | None = None
+    service_renewal_invoice_id: UUID | None = None
     ref_count: int = 0
     referral_program_id: UUID | None = None
     reward_amount: float | None = None

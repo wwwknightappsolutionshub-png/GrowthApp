@@ -1,0 +1,33 @@
+{% extends "emails/base.html" %}
+
+{% block header_eyebrow %}
+<p class="eyebrow">Service renewal reminder</p>
+{% endblock %}
+
+{% block content %}
+<h1>Upcoming renewal — {{ customer_name }}</h1>
+
+<p>
+  This is a reminder for <strong>{{ business_name }}</strong>: a customer's service is scheduled for renewal
+  in <strong>{{ days_until }} days</strong> ({{ renewal_date }}).
+</p>
+
+<div class="alert-warning">
+  <p>
+    <strong>{{ customer_name }}</strong> — {{ invoice_title }} ({{ invoice_number }})<br>
+    Recurrency: <strong>{{ recurrency_label }}</strong><br>
+    Renewal date: <strong>{{ renewal_date }}</strong>
+  </p>
+</div>
+
+<p>
+  This reminder is for your follow-up and retargeting. CustomerFlow does not bill the customer automatically.
+</p>
+
+<p style="text-align:center;">
+  <a href="{{ customer_url }}" class="btn btn-accent">Open customer profile →</a>
+</p>
+<p style="text-align:center;">
+  <a href="{{ invoices_url }}" class="btn" style="margin-top:8px;">View invoices →</a>
+</p>
+{% endblock %}

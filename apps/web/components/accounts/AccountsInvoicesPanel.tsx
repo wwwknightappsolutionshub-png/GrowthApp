@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { FileText, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { crm, invoices } from '@/lib/api-client'
+import { RecurrencySelect } from '@/components/quotes/RecurrencySelect'
 import { formatCurrency, formatDate } from '@/lib/utils'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -23,6 +24,7 @@ export function AccountsInvoicesPanel() {
   const [customerId, setCustomerId] = useState('')
   const [amountPence, setAmountPence] = useState('')
   const [dueDate, setDueDate] = useState('')
+  const [recurrency, setRecurrency] = useState('')
 
   const { data, isLoading } = useQuery({
     queryKey: ['invoices', 'accounts'],
@@ -50,6 +52,7 @@ export function AccountsInvoicesPanel() {
         customer_id: customerId,
         title: title || 'Invoice',
         due_date: dueDate || undefined,
+        recurrency: recurrency || undefined,
         items: [
           {
             description: title || 'Service',
@@ -142,6 +145,7 @@ export function AccountsInvoicesPanel() {
             onChange={(e) => setDueDate(e.target.value)}
             placeholder="Due date"
           />
+          <RecurrencySelect value={recurrency} onChange={setRecurrency} />
           <button
             type="button"
             disabled={!customerId || createInv.isPending}
