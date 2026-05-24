@@ -104,7 +104,7 @@ export function LoyaltyTiersEditor() {
             </label>
           </div>
         ))}
-      </motion.div>
+      </div>
 
       <button
         type="button"
