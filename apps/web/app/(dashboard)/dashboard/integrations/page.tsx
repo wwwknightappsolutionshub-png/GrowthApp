@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useSearchParams } from 'next/navigation'
@@ -74,6 +75,42 @@ export default function IntegrationsPage() {
         <p className="text-muted-foreground text-sm">
           Connect Google Business Profile to view and reply to reviews from your dashboard.
         </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Link
+          href="/dashboard/integrations/google"
+          className="rounded-xl border border-brand-forest-800 bg-brand-forest-950 p-6 shadow-sm hover:border-brand-teal-500/40 transition-colors block"
+        >
+          <div className="flex gap-3">
+            <div className="rounded-lg bg-brand-teal-400/10 p-2">
+              <Link2 className="h-5 w-5 text-brand-teal-300" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-white">Google Business Profile</h2>
+              <p className="text-sm text-brand-teal-100/70 mt-1">
+                Tenant-owned OAuth — connect your own Google Cloud app.
+              </p>
+            </div>
+          </div>
+        </Link>
+
+        <Link
+          href="/dashboard/integrations/social"
+          className="rounded-xl border bg-card p-6 shadow-sm hover:border-brand-teal-500/40 transition-colors block"
+        >
+          <div className="flex gap-3">
+            <div className="rounded-lg bg-brand-teal-400/10 p-2">
+              <Link2 className="h-5 w-5 text-brand-teal-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold">Social (Zapier / Make)</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Facebook, Instagram, TikTok, LinkedIn via webhooks.
+              </p>
+            </div>
+          </div>
+        </Link>
       </div>
 
       <div className="rounded-xl border border-brand-forest-800 bg-brand-forest-950 p-6 shadow-sm space-y-4">

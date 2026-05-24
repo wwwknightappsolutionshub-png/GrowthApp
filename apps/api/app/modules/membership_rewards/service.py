@@ -220,7 +220,17 @@ async def start_trial_for_tenant(db: AsyncSession, tenant_id: uuid.UUID) -> Tena
             )
         )
         await db.commit()
+    await _schedule_tenant_pwa_reminders(db, tenant_id)
     return addon
+
+
+async def _schedule_tenant_pwa_reminders(db: AsyncSession, tenant_id: uuid.UUID) -> None:
+    try:
+        from app.modules.membership_rewards.services.pwa_install_reminders import schedule_tenant_pwa_reminders
+
+        await schedule_tenant_pwa_reminders(db, tenant_id)
+    except Exception:  # noqa: BLE001
+        logger.exception("Failed to schedule tenant PWA reminders tenant=%s", tenant_id)
 
 
 # ── Settings ─────────────────────────────────────────────────────────────────
@@ -759,6 +769,13 @@ async def submit_loyalty_enrollment(
             tenant.id,
             customer_id,
         )
+
+    try:
+        from app.modules.membership_rewards.services.pwa_install_reminders import schedule_customer_pwa_reminders
+
+        await schedule_customer_pwa_reminders(db, tenant_id=tenant.id, customer_id=customer_id)
+    except Exception:  # noqa: BLE001
+        logger.exception("Failed to schedule customer PWA reminders tenant=%s customer=%s", tenant.id, customer_id)
 
     return {
         "message": "Welcome! You're enrolled in our loyalty program.",

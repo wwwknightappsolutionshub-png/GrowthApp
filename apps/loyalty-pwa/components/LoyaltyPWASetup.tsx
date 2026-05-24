@@ -73,11 +73,11 @@ export function LoyaltyPWASetup() {
       <div className="card flex items-start gap-3 border-[var(--tenant-primary)]/20 bg-white shadow-lg">
         <Smartphone className="mt-0.5 h-5 w-5 shrink-0 text-[var(--tenant-primary)]" />
         <div className="flex-1 text-sm">
-          <p className="font-semibold">Install rewards wallet</p>
+          <p className="font-semibold">{forceInstall ? 'Install your rewards wallet' : 'Install rewards wallet'}</p>
           <p className="mt-1 text-slate-600">
             {iosSafari && !installPrompt
-              ? 'Tap Share, then Add to Home Screen for quick access.'
-              : 'Add this wallet to your home screen for one-tap access.'}
+              ? 'Tap Share, then Add to Home Screen. Open the app and enable notifications in Profile.'
+              : 'Add this wallet to your home screen, then enable push alerts in Profile for offers and points updates.'}
           </p>
           {installPrompt ? (
             <button type="button" className="btn-primary mt-3 text-xs" onClick={() => void install()}>
@@ -86,9 +86,11 @@ export function LoyaltyPWASetup() {
             </button>
           ) : null}
         </div>
-        <button type="button" className="text-slate-400" aria-label="Dismiss" onClick={dismiss}>
-          <X className="h-4 w-4" />
-        </button>
+        {!forceInstall ? (
+          <button type="button" className="text-slate-400" aria-label="Dismiss" onClick={dismiss}>
+            <X className="h-4 w-4" />
+          </button>
+        ) : null}
       </div>
     </div>
   )

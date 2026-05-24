@@ -12,11 +12,13 @@ from app.adapters.email import get_email_adapter
 from app.adapters.email.base import EmailMessage
 from app.modules.crm.models import Customer
 from app.modules.membership_rewards.landing import rewards_portal_url
+from app.core.exceptions import BadRequestException
 from app.modules.membership_rewards.models import (
+    MrCustomerLoyalty,
     MrCustomerPreferences,
     MrCustomerPushSubscription,
-    MrLoyaltyAccount,
 )
+from app.modules.notifications.service import push_is_configured
 from app.modules.membership_rewards.services.customer_push_service import send_loyalty_push
 from app.modules.tenants.models import Tenant
 
@@ -26,7 +28,7 @@ logger = logging.getLogger(__name__)
 async def count_broadcast_recipients(db: AsyncSession, tenant_id: uuid.UUID) -> dict[str, int]:
     accounts = (
         await db.execute(
-            select(MrLoyaltyAccount.customer_id).where(MrLoyaltyAccount.tenant_id == tenant_id)
+            select(MrCustomerLoyalty.customer_id).where(MrCustomerLoyalty.tenant_id == tenant_id)
         )
     ).scalars().all()
     customer_ids = list(accounts)
@@ -75,15 +77,26 @@ async def broadcast_to_loyalty_customers(
     send_email: bool = False,
     path: str = "dashboard",
 ) -> dict[str, int]:
+    if send_push and not push_is_configured():
+        raise BadRequestException(
+            "Push notifications are not configured on this server. Enable VAPID keys or send via email."
+        )
+
     tenant = await db.get(Tenant, tenant_id)
     slug = tenant.slug if tenant else str(tenant_id)
 
-    accounts = (
-        await db.execute(
-            select(MrLoyaltyAccount.customer_id).where(MrLoyaltyAccount.tenant_id == tenant_id)
+    customer_ids = list(
+        (
+            await db.execute(
+                select(MrCustomerLoyalty.customer_id).where(MrCustomerLoyalty.tenant_id == tenant_id)
+            )
+        ).scalars().all()
+    )
+
+    if not customer_ids:
+        raise BadRequestException(
+            "No enrolled loyalty customers yet. Customers must join your rewards program before you can message them."
         )
-    ).scalars().all()
-    customer_ids = list(accounts)
 
     push_sent = 0
     email_sent = 0
@@ -105,7 +118,7 @@ async def broadcast_to_loyalty_customers(
                 logger.exception("customer push broadcast failed customer=%s", customer_id)
 
         if send_email:
-            prefs = await db.get(MrCustomerPreferences, {"tenant_id": tenant_id, "customer_id": customer_id})
+            prefs = await db.get(MrCustomerPreferences, (tenant_id, customer_id))
             if prefs and not prefs.marketing_email:
                 continue
             customer = await db.get(Customer, customer_id)

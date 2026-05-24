@@ -22,12 +22,33 @@ class GoogleBusinessError(Exception):
     """Raised when Google API returns an error."""
 
 
-def build_authorization_url(*, state: str) -> str:
+def _oauth_config(
+    *,
+    client_id: str | None = None,
+    client_secret: str | None = None,
+    redirect_uri: str | None = None,
+) -> tuple[str, str, str]:
+    cid = client_id or settings.GOOGLE_CLIENT_ID
+    secret = client_secret or settings.GOOGLE_CLIENT_SECRET
+    redirect = redirect_uri or settings.GOOGLE_REDIRECT_URI
+    if not cid or not secret or not redirect:
+        raise GoogleBusinessError("Google OAuth is not configured")
+    return cid, secret, redirect
+
+
+def build_authorization_url(
+    *,
+    state: str,
+    client_id: str | None = None,
+    redirect_uri: str | None = None,
+    scopes: tuple[str, ...] | None = None,
+) -> str:
+    cid, _, redirect = _oauth_config(client_id=client_id, redirect_uri=redirect_uri)
     params = {
-        "client_id": settings.GOOGLE_CLIENT_ID,
-        "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+        "client_id": cid,
+        "redirect_uri": redirect,
         "response_type": "code",
-        "scope": " ".join(GOOGLE_SCOPES),
+        "scope": " ".join(scopes or GOOGLE_SCOPES),
         "access_type": "offline",
         "prompt": "consent",
         "state": state,
@@ -35,15 +56,24 @@ def build_authorization_url(*, state: str) -> str:
     return f"{GOOGLE_AUTH_URL}?{urlencode(params)}"
 
 
-async def exchange_code_for_tokens(code: str) -> dict[str, Any]:
+async def exchange_code_for_tokens(
+    code: str,
+    *,
+    client_id: str | None = None,
+    client_secret: str | None = None,
+    redirect_uri: str | None = None,
+) -> dict[str, Any]:
+    cid, secret, redirect = _oauth_config(
+        client_id=client_id, client_secret=client_secret, redirect_uri=redirect_uri
+    )
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.post(
             GOOGLE_TOKEN_URL,
             data={
                 "code": code,
-                "client_id": settings.GOOGLE_CLIENT_ID,
-                "client_secret": settings.GOOGLE_CLIENT_SECRET,
-                "redirect_uri": settings.GOOGLE_REDIRECT_URI,
+                "client_id": cid,
+                "client_secret": secret,
+                "redirect_uri": redirect,
                 "grant_type": "authorization_code",
             },
         )
@@ -53,13 +83,19 @@ async def exchange_code_for_tokens(code: str) -> dict[str, Any]:
     return resp.json()
 
 
-async def refresh_access_token(refresh_token: str) -> dict[str, Any]:
+async def refresh_access_token(
+    refresh_token: str,
+    *,
+    client_id: str | None = None,
+    client_secret: str | None = None,
+) -> dict[str, Any]:
+    cid, secret, _ = _oauth_config(client_id=client_id, client_secret=client_secret)
     async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.post(
             GOOGLE_TOKEN_URL,
             data={
-                "client_id": settings.GOOGLE_CLIENT_ID,
-                "client_secret": settings.GOOGLE_CLIENT_SECRET,
+                "client_id": cid,
+                "client_secret": secret,
                 "refresh_token": refresh_token,
                 "grant_type": "refresh_token",
             },
@@ -121,3 +157,24 @@ class GoogleBusinessClient:
     async def reply_to_review(self, review_name: str, comment: str) -> dict[str, Any]:
         # review_name: accounts/.../locations/.../reviews/...
         return await self._put(f"{review_name}/reply", {"comment": comment})
+
+    async def list_local_posts(self, location_name: str) -> list[dict[str, Any]]:
+        data = await self._get(f"{location_name}/localPosts", params={"pageSize": 50})
+        return list(data.get("localPosts") or [])
+
+    async def list_media(self, location_name: str) -> list[dict[str, Any]]:
+        account_id, _, location_id = location_name.partition("/locations/")
+        account_part = account_id.replace("accounts/", "")
+        loc_id = location_id.split("/")[0] if location_id else location_name.split("/")[-1]
+        data = await self._get(
+            f"accounts/{account_part}/locations/{loc_id}/media",
+            params={"pageSize": 50},
+        )
+        return list(data.get("mediaItems") or [])
+
+    async def fetch_location_insights(self, location_name: str) -> dict[str, Any]:
+        """Best-effort analytics snapshot for a location."""
+        try:
+            return await self._get(f"{location_name}:reportInsights", params={"dailyMetrics": "ALL"})
+        except GoogleBusinessError:
+            return {"location": location_name, "metrics": []}

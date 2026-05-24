@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { BellRing, Download, Smartphone, X } from 'lucide-react'
 import { notifications } from '@/lib/api-client'
 
@@ -54,6 +54,8 @@ function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
 
 export function PWAInstallManager() {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const forceInstall = searchParams?.get('install') === '1'
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [isStandalone, setIsStandalone] = useState(false)
@@ -98,6 +100,10 @@ export function PWAInstallManager() {
   }, [])
 
   useEffect(() => {
+    if (forceInstall) {
+      setVisible(true)
+      return
+    }
     if (!isMobile || isStandalone || window.localStorage.getItem(INSTALLED_KEY) === '1') {
       setVisible(false)
       return
@@ -107,7 +113,7 @@ export function PWAInstallManager() {
       return
     }
     setVisible(canShowAgain() && !isAuthPage)
-  }, [isAppArea, isAuthPage, isMobile, isStandalone, pathname])
+  }, [forceInstall, isAppArea, isAuthPage, isMobile, isStandalone, pathname])
 
   const mode = useMemo<'gate' | 'banner'>(() => (isAppArea ? 'gate' : 'banner'), [isAppArea])
 
@@ -175,7 +181,7 @@ export function PWAInstallManager() {
     }
   }
 
-  if (!visible || !isMobile || isStandalone) return null
+  if ((!visible && !forceInstall) || (!forceInstall && !isMobile) || isStandalone) return null
 
   if (mode === 'gate') {
     return (

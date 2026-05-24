@@ -41,3 +41,55 @@ class GoogleReviewReplyRequest(BaseModel):
 class GoogleSyncResponse(BaseModel):
     synced: int
     total_fetched: int
+
+
+class TenantGoogleCredentialsStatus(BaseModel):
+    registered: bool
+    status: str | None = None
+    redirect_uri: str
+    google_client_id: str | None = None
+    connected_at: str | None = None
+    expires_at: str | None = None
+
+
+class TenantGoogleCredentialsRegister(BaseModel):
+    google_client_id: str = Field(min_length=10, max_length=512)
+    google_client_secret: str = Field(min_length=10, max_length=512)
+
+
+class GoogleAuthUrlResponse(BaseModel):
+    url: str
+
+
+class GoogleGenericSyncResponse(BaseModel):
+    ok: bool = True
+    detail: dict = Field(default_factory=dict)
+
+
+class SocialChannelResponse(BaseModel):
+    id: str
+    channel_type: str
+    webhook_url: str
+    api_key: str
+    zapier_integration_key: str | None = None
+    make_integration_key: str | None = None
+    status: str
+    connected_at: str | None = None
+
+
+class SocialPostRequest(BaseModel):
+    platform: str = Field(min_length=3, max_length=30)
+    content: str = Field(min_length=1, max_length=8000)
+    media_url: str | None = None
+
+
+class IntegrationsOnboardingState(BaseModel):
+    google_connected: bool = False
+    social_connected: bool = False
+    skipped: bool = False
+
+
+class IntegrationsOnboardingUpdate(BaseModel):
+    google_connected: bool | None = None
+    social_connected: bool | None = None
+    skipped: bool | None = None

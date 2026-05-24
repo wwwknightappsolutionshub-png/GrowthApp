@@ -468,6 +468,33 @@ export const integrations = {
   googleReviews: () => apiClient.get('/integrations/google/reviews'),
   googleReply: (reviewId: string, comment: string) =>
     apiClient.post(`/integrations/google/reviews/${reviewId}/reply`, { comment }),
+
+  // Tenant-owned Google OAuth
+  googleCredentials: () => apiClient.get('/integrations/google/credentials'),
+  googleRegisterCredentials: (data: { google_client_id: string; google_client_secret: string }) =>
+    apiClient.post('/integrations/google/register-credentials', data),
+  googleAuthUrl: () => apiClient.get('/integrations/google/auth-url'),
+  googleRefreshToken: () => apiClient.post('/integrations/google/refresh-token'),
+  googleReviewsSync: () => apiClient.get('/integrations/google/reviews/sync'),
+  googleMessagesSync: () => apiClient.get('/integrations/google/messages/sync'),
+  googlePostsSync: () => apiClient.get('/integrations/google/posts/sync'),
+  googlePhotosSync: () => apiClient.get('/integrations/google/photos/sync'),
+  googleAnalyticsSync: () => apiClient.get('/integrations/google/analytics/sync'),
+
+  // Social (Zapier/Make)
+  socialChannels: () => apiClient.get('/integrations/social/channels'),
+  provisionSocialChannel: (platform: string) =>
+    apiClient.post(`/integrations/social/channels/${platform}`),
+  socialPost: (data: { platform: string; content: string; media_url?: string }) =>
+    apiClient.post('/integrations/social/post', data),
+
+  // Onboarding
+  integrationsOnboarding: () => apiClient.get('/integrations/onboarding'),
+  saveIntegrationsOnboarding: (data: {
+    google_connected?: boolean
+    social_connected?: boolean
+    skipped?: boolean
+  }) => apiClient.post('/integrations/onboarding', data),
 }
 
 export const social = {

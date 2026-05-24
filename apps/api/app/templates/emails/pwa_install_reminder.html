@@ -1,0 +1,33 @@
+{% extends "emails/base.html" %}
+{% block header_eyebrow %}<p class="eyebrow">Mobile app</p>{% endblock %}
+{% block content %}
+<h1>{{ headline }}</h1>
+<p>Hi {{ recipient_name }},</p>
+<p>{{ intro }}</p>
+
+<h2 style="font-size:18px;margin-top:24px;">Why install the app?</h2>
+<ul style="padding-left:20px;line-height:1.6;">
+  <li><strong>One-tap access</strong> — open CustomerFlow from your home screen in seconds</li>
+  <li><strong>Instant alerts</strong> — get notified about {{ alert_examples }}</li>
+  <li><strong>Works offline</strong> — key screens stay available when signal is weak</li>
+  <li><strong>Faster than the browser</strong> — no typing URLs or logging in every visit</li>
+</ul>
+
+<h2 style="font-size:18px;margin-top:24px;">How to install &amp; enable notifications</h2>
+<ol style="padding-left:20px;line-height:1.6;">
+  <li>Tap the button below on your phone (use Safari on iPhone or Chrome on Android).</li>
+  <li>When prompted, choose <strong>Install</strong> or <strong>Add to Home Screen</strong>.</li>
+  <li>Open the app from your home screen, then go to <strong>Profile</strong> or notification settings.</li>
+  <li>Tap <strong>Enable push notifications</strong> and allow alerts when your browser asks.</li>
+</ol>
+
+<p style="text-align:center;margin:28px 0;">
+  <a href="{{ install_url }}"
+     style="display:inline-block;background:#025422;color:#fff;padding:14px 28px;
+            border-radius:8px;text-decoration:none;font-weight:600;">Install app &amp; enable alerts</a>
+</p>
+
+<p style="font-size:13px;color:#6b7280;text-align:center;">
+  On iPhone: if you don&apos;t see Install, tap Share → Add to Home Screen, then open the app and enable notifications in Profile.
+</p>
+{% endblock %}

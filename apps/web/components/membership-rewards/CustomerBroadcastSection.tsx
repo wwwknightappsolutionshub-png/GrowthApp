@@ -26,13 +26,21 @@ export function CustomerBroadcastSection() {
         send_email: sendEmail,
       }),
     onSuccess: (res) => {
-      toast.success(
-        `Sent to ${res.data.push_sent} push subscriber(s) and ${res.data.email_sent} email recipient(s)`,
-      )
+      const { push_sent, email_sent } = res.data
+      if (push_sent === 0 && email_sent === 0) {
+        toast.warning('Message queued but no push subscribers or email recipients matched your selection.')
+      } else {
+        toast.success(
+          `Sent to ${push_sent} push subscriber(s) and ${email_sent} email recipient(s)`,
+        )
+      }
       setTitle('')
       setBody('')
     },
-    onError: () => toast.error('Could not send customer message'),
+    onError: (err: { response?: { data?: { detail?: string } } }) => {
+      const detail = err?.response?.data?.detail
+      toast.error(typeof detail === 'string' ? detail : 'Could not send customer message')
+    },
   })
 
   return (

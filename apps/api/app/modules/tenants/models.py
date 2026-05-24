@@ -55,6 +55,7 @@ class Tenant(Base):
     business_site_published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     # Social media handles per managed client (used by the freelancer dashboard).
     social_handles: Mapped[dict] = mapped_column(JSONBType, default=dict, nullable=False, server_default="{}")
+    integrations_onboarding: Mapped[dict] = mapped_column(JSONBType, default=dict, nullable=False, server_default="{}")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 

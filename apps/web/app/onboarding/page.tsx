@@ -556,6 +556,25 @@ export default function OnboardingPage() {
         </p>
       </div>
 
+      {/* Connect platforms (optional step) */}
+      <div className="mb-8 rounded-xl border border-brand-teal-400/30 bg-brand-teal-400/5 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="font-semibold text-foreground">Connect your platforms</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Google Business Profile and social channels via Zapier/Make — optional, skippable.
+            </p>
+          </div>
+          <Link
+            href="/onboarding/connect"
+            className="inline-flex items-center gap-2 rounded-md bg-brand-forest-700 px-4 py-2 text-sm font-medium text-white"
+          >
+            Set up integrations
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </div>
+
       {/* Quick stats */}
       <div className="mb-8 grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[

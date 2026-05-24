@@ -23,12 +23,20 @@ from app.workers.tasks.ai_scraper import run_ai_scraper_task
 from app.workers.tasks.ai_scraper_scheduler import enqueue_due_scraper_tasks
 from app.services.ai_scraper.task_runner import run_crawler_task
 from app.workers.tasks.ai_social import run_ai_social_scheduler
+from app.modules.integrations.jobs.google_jobs import (
+    sync_google_analytics_job,
+    sync_google_messages_job,
+    sync_google_photos_job,
+    sync_google_posts_job,
+    sync_google_reviews_job,
+)
 from app.workers.tasks.google_integrations import sync_all_google_reviews
 from app.workers.tasks.booking_notifications import process_booking_notification_queue
 from app.workers.tasks.accounting import run_accounting_recurring, sweep_invoice_reminders
 from app.workers.tasks.industry import process_industry_rebook_reminders, refresh_maintenance_prediction_alerts
 from app.workers.tasks.invoice_renewals import sweep_service_renewal_reminders
 from app.workers.tasks.membership_trial_reminders import sweep_membership_trial_reminders_task
+from app.workers.tasks.pwa_install_reminders import sweep_pwa_install_reminders_task
 from app.workers.tasks.loyalty_points_expiration import sweep_loyalty_points_expiration_task
 from app.workers.tasks.loyalty_maintenance import (
     sweep_loyalty_birthday_bonuses_task,
@@ -70,9 +78,16 @@ class WorkerSettings:
         refresh_maintenance_prediction_alerts,
         sweep_service_renewal_reminders,
         sweep_membership_trial_reminders_task,
+        sweep_pwa_install_reminders_task,
         sweep_loyalty_points_expiration_task,
         sweep_loyalty_birthday_bonuses_task,
         sweep_loyalty_expiring_points_reminders_task,
+        sync_all_google_reviews,
+        sync_google_reviews_job,
+        sync_google_messages_job,
+        sync_google_posts_job,
+        sync_google_photos_job,
+        sync_google_analytics_job,
     ]
     # Cron jobs:
     #   * Every 5 minutes: sweep for missed task reminders.
@@ -86,6 +101,10 @@ class WorkerSettings:
         cron(run_ai_social_scheduler, minute=set(range(60))),
         cron(enqueue_due_scraper_tasks, minute={0, 15, 30, 45}),
         cron(sync_all_google_reviews, minute={5, 35}),
+        cron(sync_google_messages_job, minute={10, 40}),
+        cron(sync_google_posts_job, hour={1, 13}, minute={0}),
+        cron(sync_google_photos_job, hour={2, 14}, minute={0}),
+        cron(sync_google_analytics_job, hour={3}, minute={0}),
         cron(process_booking_notification_queue, minute={0, 10, 20, 30, 40, 50}),
         cron(run_accounting_recurring, hour={6}, minute={30}),
         cron(sweep_invoice_reminders, hour={8}, minute={0}),
@@ -93,6 +112,7 @@ class WorkerSettings:
         cron(refresh_maintenance_prediction_alerts, hour={7}, minute={0}),
         cron(sweep_service_renewal_reminders, hour={8}, minute={15}),
         cron(sweep_membership_trial_reminders_task, hour={9, 18}, minute={15}),
+        cron(sweep_pwa_install_reminders_task, minute={1, 6, 11, 16, 21, 26, 31, 36, 41, 46, 51, 56}),
         cron(sweep_loyalty_points_expiration_task, hour={2}, minute={0}),
         cron(sweep_loyalty_birthday_bonuses_task, hour={8}, minute={30}),
         cron(sweep_loyalty_expiring_points_reminders_task, hour={9}, minute={0}),

@@ -328,3 +328,28 @@ class MrLandingConfig(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class MrPwaInstallReminder(Base):
+    """Scheduled PWA install reminder emails after M&R registration."""
+
+    __tablename__ = "mr_pwa_install_reminders"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUIDType, primary_key=True, default=uuid.uuid4)
+    audience: Mapped[str] = mapped_column(String(20), nullable=False)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    customer_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUIDType, ForeignKey("customers.id", ondelete="CASCADE"), nullable=True
+    )
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUIDType, ForeignKey("users.id", ondelete="CASCADE"), nullable=True
+    )
+    registered_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False, index=True
+    )
+    reminder_30m_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    reminder_1h_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    reminder_3h_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
