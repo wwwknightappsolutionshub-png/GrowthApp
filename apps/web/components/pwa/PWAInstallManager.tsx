@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { BellRing, Download, Smartphone, X } from 'lucide-react'
 import { notifications } from '@/lib/api-client'
@@ -52,7 +52,7 @@ function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
   return outputArray.buffer as ArrayBuffer
 }
 
-export function PWAInstallManager() {
+function PWAInstallManagerInner() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const forceInstall = searchParams?.get('install') === '1'
@@ -304,5 +304,13 @@ export function PWAInstallManager() {
         </button>
       </div>
     </div>
+  )
+}
+
+export function PWAInstallManager() {
+  return (
+    <Suspense fallback={null}>
+      <PWAInstallManagerInner />
+    </Suspense>
   )
 }

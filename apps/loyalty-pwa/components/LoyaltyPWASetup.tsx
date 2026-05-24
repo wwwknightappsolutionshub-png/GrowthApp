@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Download, Smartphone, X } from 'lucide-react'
 
@@ -25,7 +25,7 @@ function isIosSafari(): boolean {
   return /iphone|ipad|ipod/i.test(ua) && /safari/i.test(ua) && !/crios|fxios|edgios/i.test(ua)
 }
 
-export function LoyaltyPWASetup() {
+function LoyaltyPWASetupInner() {
   const searchParams = useSearchParams()
   const forceInstall = searchParams?.get('install') === '1'
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
@@ -93,5 +93,13 @@ export function LoyaltyPWASetup() {
         ) : null}
       </div>
     </div>
+  )
+}
+
+export function LoyaltyPWASetup() {
+  return (
+    <Suspense fallback={null}>
+      <LoyaltyPWASetupInner />
+    </Suspense>
   )
 }
