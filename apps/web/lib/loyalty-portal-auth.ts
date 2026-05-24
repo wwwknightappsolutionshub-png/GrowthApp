@@ -1,5 +1,9 @@
 'use client'
 
+import { rewardsPath } from '@/lib/loyalty-portal-paths'
+
+export { rewardsPath }
+
 const TOKEN_PREFIX = 'loyalty:'
 
 export function getLoyaltyToken(tenant: string): string | null {
@@ -17,9 +21,4 @@ export function clearLoyaltyToken(tenant: string): void {
 
 export function isLoyaltyAuthenticated(tenant: string): boolean {
   return Boolean(getLoyaltyToken(tenant))
-}
-
-export function rewardsPath(tenant: string, subpath = ''): string {
-  const suffix = subpath ? `/${subpath.replace(/^\//, '')}` : ''
-  return `/rewards/${encodeURIComponent(tenant)}${suffix}`
 }
