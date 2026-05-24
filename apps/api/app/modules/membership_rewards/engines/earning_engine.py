@@ -64,6 +64,22 @@ async def earn_points(
     else:
         await db.flush()
     await db.refresh(entry)
+
+    if commit:
+        try:
+            from app.modules.membership_rewards.services.notification_triggers import notify_points_earned
+
+            await notify_points_earned(
+                db,
+                tenant_id=tenant_id,
+                customer_id=customer_id,
+                amount=amount,
+                balance=balance,
+                description=description,
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception("loyalty push after earn failed tenant=%s customer=%s", tenant_id, customer_id)
+
     return entry
 
 
@@ -102,6 +118,21 @@ async def adjust_points(
     await recalc_tier(db, tenant_id, customer_id, loyalty)
     await db.commit()
     await db.refresh(entry)
+
+    try:
+        from app.modules.membership_rewards.services.notification_triggers import notify_points_earned
+
+        await notify_points_earned(
+            db,
+            tenant_id=tenant_id,
+            customer_id=customer_id,
+            amount=amount,
+            balance=balance,
+            description=description,
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception("loyalty push after earn failed tenant=%s customer=%s", tenant_id, customer_id)
+
     return entry
 
 

@@ -43,7 +43,7 @@ class MembershipStatusResponse(BaseModel):
 
 
 class EarnRulesUpdate(BaseModel):
-    earn_rules: dict[str, int] = Field(default_factory=dict)
+    earn_rules: dict = Field(default_factory=dict)
     points_expire_days: int | None = None
 
 
@@ -168,6 +168,7 @@ class PointsLedgerEntry(BaseModel):
     source: str
     description: str | None
     created_at: datetime
+    expires_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 
@@ -389,12 +390,42 @@ class CustomerPortalMeResponse(BaseModel):
     phone: str | None = None
     points_balance: int
     points_lifetime: int
+    points_earned: int = 0
+    points_redeemed: int = 0
+    points_expiring_soon: int = 0
+    pending_redemptions: int = 0
     tier_code: str
     tier_name: str
     tier_benefits: list = Field(default_factory=list)
+    next_tier_code: str | None = None
+    next_tier_name: str | None = None
+    points_to_next_tier: int = 0
+    tier_progress_percent: int = 0
     must_change_password: bool = False
+    push_notifications_enabled: bool = False
+    date_of_birth: date | None = None
+    marketing_email: bool = True
+    marketing_sms: bool = False
+    birthday_participation: bool = True
+    expiring_points_reminders: bool = True
     tenant_slug: str
     tenant_name: str
+
+
+class PortalPreferencesUpdate(BaseModel):
+    date_of_birth: date | None = None
+    marketing_email: bool | None = None
+    marketing_sms: bool | None = None
+    birthday_participation: bool | None = None
+    expiring_points_reminders: bool | None = None
+
+
+class PortalPreferencesResponse(BaseModel):
+    date_of_birth: date | None = None
+    marketing_email: bool
+    marketing_sms: bool
+    birthday_participation: bool
+    expiring_points_reminders: bool
 
 
 class CustomerPortalRedeemResponse(BaseModel):
@@ -402,6 +433,21 @@ class CustomerPortalRedeemResponse(BaseModel):
     status: str
     points_spent: int
     reward_name: str | None = None
+    fulfillment_code: str | None = None
+    code_expires_at: datetime | None = None
+
+
+class PortalPendingRedemption(BaseModel):
+    id: uuid.UUID
+    reward_name: str
+    points_spent: int
+    fulfillment_code: str
+    code_expires_at: datetime | None = None
+    status: str
+
+
+class PortalPendingRedemptionsResponse(BaseModel):
+    items: list[PortalPendingRedemption]
 
 
 class PortalHistoryResponse(BaseModel):
@@ -444,4 +490,17 @@ class QrScanResponse(BaseModel):
     points_awarded: int
     points_balance: int
     tier_code: str
+    message: str
+
+
+class RedemptionFulfillRequest(BaseModel):
+    fulfillment_code: str = Field(min_length=4, max_length=16)
+
+
+class RedemptionFulfillResponse(BaseModel):
+    id: uuid.UUID
+    status: str
+    reward_name: str | None = None
+    customer_name: str | None = None
+    points_spent: int
     message: str

@@ -176,6 +176,9 @@ class MrRewardRedemption(Base):
     )
     points_spent: Mapped[int] = mapped_column(Integer, nullable=False)
     status: Mapped[str] = mapped_column(String(30), default="pending")
+    fulfillment_code: Mapped[str | None] = mapped_column(String(16), nullable=True, index=True)
+    code_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    fulfilled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -286,6 +289,26 @@ class MrCustomerPushSubscription(Base):
     auth: Mapped[str] = mapped_column(String(255), nullable=False)
     user_agent: Mapped[str | None] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class MrCustomerPreferences(Base):
+    __tablename__ = "mr_customer_preferences"
+
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), primary_key=True
+    )
+    customer_id: Mapped[uuid.UUID] = mapped_column(
+        UUIDType, ForeignKey("customers.id", ondelete="CASCADE"), primary_key=True
+    )
+    marketing_email: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    marketing_sms: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    birthday_participation: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    expiring_points_reminders: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
+    last_expiring_points_notice_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
 
 
 class MrLandingConfig(Base):

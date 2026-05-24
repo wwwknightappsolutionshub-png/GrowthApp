@@ -19,6 +19,8 @@ async def issue_qr_token(
     db: AsyncSession,
     tenant_id: uuid.UUID,
     customer_id: uuid.UUID,
+    *,
+    expires_minutes: int | None = None,
 ) -> tuple[str, datetime]:
     """Return (raw_token, expires_at). Revokes previous active tokens for this customer."""
     now = datetime.now(timezone.utc)
@@ -36,7 +38,8 @@ async def issue_qr_token(
         tok.revoked_at = now
 
     raw = secrets.token_urlsafe(32)
-    expires_at = now + timedelta(minutes=CUSTOMER_QR_TOKEN_EXPIRE_MINUTES)
+    ttl = expires_minutes if expires_minutes is not None else CUSTOMER_QR_TOKEN_EXPIRE_MINUTES
+    expires_at = now + timedelta(minutes=ttl)
     db.add(
         MrCustomerQrToken(
             tenant_id=tenant_id,

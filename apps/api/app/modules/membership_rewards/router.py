@@ -37,6 +37,8 @@ from app.modules.membership_rewards.schemas import (
     PointsLedgerEntry,
     QrScanRequest,
     QrScanResponse,
+    RedemptionFulfillRequest,
+    RedemptionFulfillResponse,
     SettingsResponse,
     TierListResponse,
     TierResponse,
@@ -66,6 +68,44 @@ async def scan_customer_qr(
         payload=data.payload,
         staff_user_id=user.id,
     )
+
+
+@router.post(
+    "/redemptions/fulfill",
+    response_model=RedemptionFulfillResponse,
+    dependencies=[Depends(require_membership_rewards)],
+)
+async def fulfill_redemption_code(
+    data: RedemptionFulfillRequest,
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+):
+    """Staff validates a customer's one-time redemption code in store."""
+    from sqlalchemy import select
+
+    from app.modules.crm.models import Customer
+    from app.modules.membership_rewards.engines.redemption_engine import fulfill_redemption_by_code
+    from app.modules.membership_rewards.models import MrRewardCatalog
+
+    _, tenant, _ = ctx
+    redemption = await fulfill_redemption_by_code(
+        db, tenant_id=tenant.id, fulfillment_code=data.fulfillment_code
+    )
+    catalog = await db.get(MrRewardCatalog, redemption.catalog_item_id)
+    customer = (
+        await db.execute(select(Customer).where(Customer.id == redemption.customer_id))
+    ).scalar_one_or_none()
+    name = None
+    if customer:
+        name = f"{customer.first_name or ''} {customer.last_name or ''}".strip() or customer.email
+    return {
+        "id": redemption.id,
+        "status": redemption.status,
+        "reward_name": catalog.name if catalog else None,
+        "customer_name": name,
+        "points_spent": redemption.points_spent,
+        "message": "Redemption fulfilled",
+    }
 
 
 @router.get("/status", response_model=MembershipStatusResponse)

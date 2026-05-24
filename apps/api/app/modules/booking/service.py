@@ -199,6 +199,17 @@ async def create_public_booking(db: AsyncSession, tenant: Tenant, data: PublicBo
         "status": booking.status,
         "manage_url": manage_url,
     }
+    try:
+        from app.modules.membership_rewards.entitlement import tenant_has_membership_rewards
+        from app.modules.membership_rewards.landing import rewards_portal_url
+
+        if await tenant_has_membership_rewards(db, tenant.id):
+            result["rewards_portal_url"] = rewards_portal_url(tenant.slug)
+            result["loyalty_wallet_message"] = (
+                "We created your rewards wallet — check your email for login details and your in-store QR code."
+            )
+    except Exception:  # noqa: BLE001
+        pass
     if booking.deposit_required_pence > booking.deposit_paid_pence:
         from app.modules.booking.enterprise.payments import create_booking_payment_intent
         from app.modules.booking.enterprise_schemas import BookingPaymentIntentRequest

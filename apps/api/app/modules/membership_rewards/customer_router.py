@@ -32,6 +32,9 @@ from app.modules.membership_rewards.schemas import (
     PortalAuthResponse,
     PortalHistoryResponse,
     PortalLoginRequest,
+    PortalPendingRedemptionsResponse,
+    PortalPreferencesResponse,
+    PortalPreferencesUpdate,
     PortalQrResponse,
     PortalSetPasswordRequest,
     PushSubscribeRequest,
@@ -39,14 +42,21 @@ from app.modules.membership_rewards.schemas import (
 )
 from app.modules.membership_rewards.services.portal_service import (
     build_customer_profile,
+    delete_customer_push_subscriptions,
     find_customer_by_email,
     get_customer_qr_payload,
     get_portal_branding,
     list_active_rewards,
+    list_pending_redemptions,
     resolve_tenant_by_slug,
     upsert_customer_push_subscription,
 )
 from app.modules.membership_rewards.services.customer_loyalty_service import list_ledger
+from app.modules.membership_rewards.services.customer_preferences_service import (
+    get_or_create_preferences,
+    preferences_payload,
+    update_preferences,
+)
 
 router = APIRouter(prefix="/loyalty-portal", tags=["Loyalty Portal"])
 
@@ -117,6 +127,33 @@ async def portal_me(ctx: CurrentCustomerContext, db: AsyncSession = Depends(get_
     return await build_customer_profile(db, tenant, customer)
 
 
+@router.get("/me/preferences", response_model=PortalPreferencesResponse)
+async def portal_get_preferences(ctx: CurrentCustomerContext, db: AsyncSession = Depends(get_db)):
+    customer, tenant = ctx
+    prefs = await get_or_create_preferences(db, tenant.id, customer.id)
+    return preferences_payload(prefs, customer)
+
+
+@router.patch("/me/preferences", response_model=PortalPreferencesResponse)
+async def portal_update_preferences(
+    data: PortalPreferencesUpdate,
+    ctx: CurrentCustomerContext,
+    db: AsyncSession = Depends(get_db),
+):
+    customer, tenant = ctx
+    return await update_preferences(
+        db,
+        tenant_id=tenant.id,
+        customer=customer,
+        date_of_birth=data.date_of_birth,
+        marketing_email=data.marketing_email,
+        marketing_sms=data.marketing_sms,
+        birthday_participation=data.birthday_participation,
+        expiring_points_reminders=data.expiring_points_reminders,
+        update_dob="date_of_birth" in data.model_fields_set,
+    )
+
+
 @router.get("/rewards", response_model=CatalogListResponse)
 async def portal_rewards(ctx: CurrentCustomerContext, db: AsyncSession = Depends(get_db)):
     _, tenant = ctx
@@ -138,7 +175,16 @@ async def portal_redeem(
         "status": redemption.status,
         "points_spent": redemption.points_spent,
         "reward_name": item.name if item else None,
+        "fulfillment_code": redemption.fulfillment_code,
+        "code_expires_at": redemption.code_expires_at,
     }
+
+
+@router.get("/redemptions/pending", response_model=PortalPendingRedemptionsResponse)
+async def portal_pending_redemptions(ctx: CurrentCustomerContext, db: AsyncSession = Depends(get_db)):
+    customer, tenant = ctx
+    items = await list_pending_redemptions(db, tenant.id, customer.id)
+    return {"items": items}
 
 
 @router.get("/history", response_model=PortalHistoryResponse)
@@ -183,3 +229,10 @@ async def portal_push_subscribe(
         user_agent=request.headers.get("user-agent"),
     )
     return {"id": row.id, "endpoint": row.endpoint}
+
+
+@router.post("/push/unsubscribe", response_model=MessageResponse)
+async def portal_push_unsubscribe(ctx: CurrentCustomerContext, db: AsyncSession = Depends(get_db)):
+    customer, tenant = ctx
+    await delete_customer_push_subscriptions(db, tenant.id, customer.id)
+    return {"message": "Push notifications disabled for this device"}

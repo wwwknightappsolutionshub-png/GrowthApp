@@ -24,13 +24,27 @@ def build_portal_welcome_html(
     tenant_name: str,
     rewards_portal_url: str,
     magic_link_url: str | None,
+    temp_password: str | None = None,
     signup_bonus_points: int = 0,
     points_balance: int = 0,
     refer_win_url: str | None = None,
     memberships_url: str | None = None,
     tier_name: str | None = None,
+    wallet_checkin_qr_url: str | None = None,
 ) -> str:
     portal_qr = _qr_img_url(rewards_portal_url)
+    checkin_qr_block = ""
+    if wallet_checkin_qr_url:
+        checkin_qr = _qr_img_url(wallet_checkin_qr_url)
+        checkin_qr_block = f"""
+  <h2 style="font-size:18px;color:#025422;margin-top:28px;">In-store check-in QR</h2>
+  <p style="text-align:center;margin:20px 0;">
+    <img src="{checkin_qr}" alt="In-store check-in QR code" width="180" height="180"
+         style="border:1px solid #e5e7eb;border-radius:8px;padding:8px;" />
+  </p>
+  <p style="text-align:center;font-size:13px;color:#6b7280;">
+    Show this code at the counter for visit points. For security it expires — open your wallet app anytime for a fresh QR.
+  </p>"""
     bonus_block = ""
     if signup_bonus_points > 0:
         bonus_block = f"""
@@ -39,6 +53,13 @@ def build_portal_welcome_html(
     Your balance is now <strong>{points_balance}</strong> points.
   </p>"""
     tier_line = f" You&apos;re on the <strong>{tier_name}</strong> tier." if tier_name else ""
+    password_block = ""
+    if temp_password:
+        password_block = f"""
+  <p style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:14px 16px;margin:20px 0;">
+    <strong>Your temporary password:</strong> <code style="font-size:16px;">{temp_password}</code><br/>
+    <span style="font-size:13px;color:#475569;">Sign in at your rewards wallet with this email and password, or use the magic link below. You&apos;ll be asked to set a new password on first login.</span>
+  </p>"""
     login_block = ""
     if magic_link_url:
         login_block = f"""
@@ -81,6 +102,7 @@ def build_portal_welcome_html(
   <p>Hi {customer_name},</p>
   <p>Your rewards wallet is ready.{tier_line} Track points, view rewards, and redeem perks online or in-store.</p>
   {bonus_block}
+  {password_block}
 
   <h2 style="font-size:18px;color:#025422;margin-top:28px;">Your rewards app</h2>
   <p style="text-align:center;margin:20px 0;">
@@ -89,6 +111,7 @@ def build_portal_welcome_html(
   </p>
   <p style="text-align:center;font-size:13px;color:#6b7280;">Scan to open your wallet, or use the button below.</p>
   {login_block}
+  {checkin_qr_block}
   {refer_block}
   {memberships_block}
 
@@ -104,11 +127,13 @@ async def send_portal_welcome_email(
     tenant_name: str,
     rewards_portal_url: str,
     magic_link_url: str | None = None,
+    temp_password: str | None = None,
     signup_bonus_points: int = 0,
     points_balance: int = 0,
     refer_win_url: str | None = None,
     memberships_url: str | None = None,
     tier_name: str | None = None,
+    wallet_checkin_qr_url: str | None = None,
 ) -> None:
     if not (to or "").strip():
         return
@@ -118,11 +143,13 @@ async def send_portal_welcome_email(
         tenant_name=tenant_name,
         rewards_portal_url=rewards_portal_url,
         magic_link_url=magic_link_url,
+        temp_password=temp_password,
         signup_bonus_points=signup_bonus_points,
         points_balance=points_balance,
         refer_win_url=refer_win_url,
         memberships_url=memberships_url,
         tier_name=tier_name,
+        wallet_checkin_qr_url=wallet_checkin_qr_url,
     )
     try:
         adapter = get_email_adapter()

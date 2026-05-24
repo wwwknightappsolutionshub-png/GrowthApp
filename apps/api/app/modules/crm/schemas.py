@@ -22,6 +22,7 @@ class CustomerCreate(BaseModel):
     upsell_date: datetime | None = None
     special_event: str | None = None
     needs_reminders: bool = False
+    date_of_birth: date | None = None
 
 
 class CustomerUpdate(BaseModel):
@@ -42,6 +43,7 @@ class CustomerUpdate(BaseModel):
     upsell_date: datetime | None = None
     special_event: str | None = None
     needs_reminders: bool | None = None
+    date_of_birth: date | None = None
 
 
 class CustomerResponse(BaseModel):
@@ -66,6 +68,7 @@ class CustomerResponse(BaseModel):
     upsell_date: datetime | None = None
     special_event: str | None = None
     needs_reminders: bool = False
+    date_of_birth: date | None = None
     service_recurrency: str | None = None
     service_renewal_date: date | None = None
     service_renewal_invoice_id: UUID | None = None

@@ -36,6 +36,9 @@ export default function RewardsHistoryPage({ params }: { params: { tenant: strin
                     {entry.description ?? entry.source.replace(/_/g, ' ')}
                   </p>
                   <p className="text-xs text-slate-500">{formatWhen(entry.created_at)}</p>
+                  {entry.expires_at ? (
+                    <p className="text-xs text-amber-600">Expires {formatWhen(entry.expires_at)}</p>
+                  ) : null}
                 </div>
                 <div className="text-right">
                   <p

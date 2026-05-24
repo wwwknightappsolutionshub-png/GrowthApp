@@ -101,7 +101,11 @@ async def on_booking_completed(
 async def on_invoice_paid(
     db: AsyncSession, *, tenant_id: uuid.UUID, invoice_id: uuid.UUID
 ) -> None:
-    """Award purchase-based points when an invoice is paid."""
+    """Award purchase-based points when an invoice is paid (per line item)."""
+    from app.modules.quotes_invoices.models import InvoiceItem
+
+    from app.modules.membership_rewards.engines.purchase_earn import points_for_invoice_item
+
     inv = (
         await db.execute(
             select(Invoice).where(Invoice.id == invoice_id, Invoice.tenant_id == tenant_id)
@@ -112,6 +116,34 @@ async def on_invoice_paid(
     if not await tenant_has_membership_rewards(db, tenant_id):
         return
     try:
+        settings = await service.get_settings(db, tenant_id)
+        rules = settings.earn_rules or {}
+        items = list(
+            (
+                await db.execute(
+                    select(InvoiceItem).where(InvoiceItem.invoice_id == invoice_id).order_by(InvoiceItem.sort_order)
+                )
+            ).scalars().all()
+        )
+
+        if items:
+            for item in items:
+                pts = points_for_invoice_item(item, rules)
+                if pts <= 0:
+                    continue
+                kind = item.line_kind or "service"
+                await _award_if_new(
+                    db,
+                    tenant_id,
+                    inv.customer_id,
+                    pts,
+                    source="purchase",
+                    reference_type="invoice_item",
+                    reference_id=item.id,
+                    description=f"{'Product' if kind == 'product' else 'Service'}: {item.description}",
+                )
+            return
+
         per_pound = await _earn_rule_amount(db, tenant_id, "purchase_per_pound")
         pounds = max(0, inv.total_pence) // 100
         pts = pounds * per_pound if per_pound else 0

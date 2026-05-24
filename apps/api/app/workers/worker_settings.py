@@ -30,6 +30,10 @@ from app.workers.tasks.industry import process_industry_rebook_reminders, refres
 from app.workers.tasks.invoice_renewals import sweep_service_renewal_reminders
 from app.workers.tasks.membership_trial_reminders import sweep_membership_trial_reminders_task
 from app.workers.tasks.loyalty_points_expiration import sweep_loyalty_points_expiration_task
+from app.workers.tasks.loyalty_maintenance import (
+    sweep_loyalty_birthday_bonuses_task,
+    sweep_loyalty_expiring_points_reminders_task,
+)
 
 
 class WorkerSettings:
@@ -67,6 +71,8 @@ class WorkerSettings:
         sweep_service_renewal_reminders,
         sweep_membership_trial_reminders_task,
         sweep_loyalty_points_expiration_task,
+        sweep_loyalty_birthday_bonuses_task,
+        sweep_loyalty_expiring_points_reminders_task,
     ]
     # Cron jobs:
     #   * Every 5 minutes: sweep for missed task reminders.
@@ -88,6 +94,8 @@ class WorkerSettings:
         cron(sweep_service_renewal_reminders, hour={8}, minute={15}),
         cron(sweep_membership_trial_reminders_task, hour={9, 18}, minute={15}),
         cron(sweep_loyalty_points_expiration_task, hour={2}, minute={0}),
+        cron(sweep_loyalty_birthday_bonuses_task, hour={8}, minute={30}),
+        cron(sweep_loyalty_expiring_points_reminders_task, hour={9}, minute={0}),
     ]
     max_jobs = 10
     job_timeout = 300

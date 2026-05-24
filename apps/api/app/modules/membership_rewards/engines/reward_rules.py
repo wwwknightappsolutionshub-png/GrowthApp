@@ -50,9 +50,19 @@ async def has_loyalty_signup_bonus(
 
 
 def validate_earn_rules(rules: dict) -> dict:
-    """Normalize earn_rules payload; unknown keys are preserved."""
+    """Normalize earn_rules payload; preserves product keyword bonuses."""
     out = dict(DEFAULT_EARN_RULES)
     for key, val in (rules or {}).items():
+        if key == "product_keywords":
+            if isinstance(val, dict):
+                cleaned: dict[str, int] = {}
+                for k, v in val.items():
+                    try:
+                        cleaned[str(k)] = max(0, int(v))
+                    except (TypeError, ValueError):
+                        continue
+                out[key] = cleaned
+            continue
         try:
             out[key] = max(0, int(val))
         except (TypeError, ValueError):

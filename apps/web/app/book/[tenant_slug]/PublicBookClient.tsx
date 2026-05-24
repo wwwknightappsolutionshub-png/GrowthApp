@@ -39,6 +39,8 @@ export function PublicBookClient({ slug, initialWidget, loadStatus }: Props) {
   const [confirmed, setConfirmed] = useState<{
     message: string
     manageUrl?: string
+    rewardsPortalUrl?: string
+    loyaltyWalletMessage?: string
   } | null>(null)
 
   const {
@@ -67,7 +69,13 @@ export function PublicBookClient({ slug, initialWidget, loadStatus }: Props) {
   const bookMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) =>
       publicBooking.create(slug, payload).then((r) => r.data),
-    onSuccess: (data: { message?: string; manage_url?: string; payment?: { client_secret?: string } }) => {
+    onSuccess: (data: {
+      message?: string
+      manage_url?: string
+      payment?: { client_secret?: string }
+      rewards_portal_url?: string
+      loyalty_wallet_message?: string
+    }) => {
       const message = data.message || 'Booking confirmed! We will be in touch shortly.'
       if (data.payment?.client_secret && data.manage_url) {
         toast.success(message)
@@ -78,7 +86,12 @@ export function PublicBookClient({ slug, initialWidget, loadStatus }: Props) {
         return
       }
       toast.success(message)
-      setConfirmed({ message, manageUrl: data.manage_url })
+      setConfirmed({
+        message,
+        manageUrl: data.manage_url,
+        rewardsPortalUrl: data.rewards_portal_url,
+        loyaltyWalletMessage: data.loyalty_wallet_message,
+      })
     },
     onError: (e: { response?: { data?: { detail?: string } }; message?: string }) =>
       toast.error(e.response?.data?.detail ?? e.message ?? 'Could not complete booking'),
@@ -148,6 +161,22 @@ export function PublicBookClient({ slug, initialWidget, loadStatus }: Props) {
             >
               Need to reschedule or cancel later?
             </a>
+          ) : null}
+          {confirmed.rewardsPortalUrl ? (
+            <div className="mt-4 rounded-lg border border-emerald-300/60 bg-white/70 px-4 py-3 text-left space-y-2">
+              <p className="text-sm font-medium text-emerald-900">Your rewards wallet</p>
+              <p className="text-sm text-emerald-800/90">
+                {confirmed.loyaltyWalletMessage ??
+                  'Track points, redeem rewards, and show your in-store QR from your personal wallet.'}
+              </p>
+              <a
+                href={confirmed.rewardsPortalUrl}
+                className="inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold text-white"
+                style={{ backgroundColor: accent }}
+              >
+                Open rewards wallet
+              </a>
+            </div>
           ) : null}
         </div>
       </PublicBookShell>

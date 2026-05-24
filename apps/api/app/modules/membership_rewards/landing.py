@@ -26,8 +26,11 @@ def rewards_portal_path(tenant_slug: str) -> str:
     return f"/rewards/{tenant_slug}"
 
 
-def rewards_portal_url(tenant_slug: str) -> str:
-    return f"{frontend_base_url()}{rewards_portal_path(tenant_slug)}"
+def rewards_portal_url(tenant_slug: str, subpath: str = "") -> str:
+    base = f"{frontend_base_url()}{rewards_portal_path(tenant_slug)}"
+    if subpath:
+        return f"{base}/{subpath.lstrip('/')}"
+    return base
 
 
 def memberships_public_path(tenant_slug: str) -> str:

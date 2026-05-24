@@ -22,10 +22,13 @@ DEFAULT_TIERS: list[dict] = [
 DEFAULT_EARN_RULES: dict = {
     "booking_completed": 50,
     "purchase_per_pound": 10,
+    "product_per_pound": 10,
+    "product_per_item": 5,
     "membership_signup": 200,
     "refer_win": 100,
     "review_left": 75,
     "qr_checkin": 25,
+    "birthday_bonus": 100,
 }
 
 POINT_SOURCES = frozenset(
@@ -40,6 +43,7 @@ POINT_SOURCES = frozenset(
         "adjustment",
         "expiration",
         "qr_checkin",
+        "birthday",
     }
 )
 

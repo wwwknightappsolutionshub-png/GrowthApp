@@ -51,7 +51,10 @@ const SECTIONS = [
 
 const EARN_RULE_LABELS: Record<string, string> = {
   booking_completed: 'Booking completed',
-  purchase_per_pound: 'Points per £1 spent',
+  purchase_per_pound: 'Service points per £1 spent',
+  product_per_pound: 'Product points per £1 spent',
+  product_per_item: 'Product bonus points per item',
+  birthday_bonus: 'Birthday bonus (once per year)',
   membership_signup: 'Membership signup',
   refer_win: 'Refer & Win submission',
   review_left: 'Review submitted',
@@ -732,14 +735,24 @@ function EarnRulesEditor() {
     },
   })
   const [rules, setRules] = useState<Record<string, string>>({})
+  const [productKeywords, setProductKeywords] = useState('')
   const [expireDays, setExpireDays] = useState('')
 
   const save = useMutation({
     mutationFn: () => {
-      const parsed: Record<string, number> = {}
+      const parsed: Record<string, number | Record<string, number>> = {}
       for (const [k, v] of Object.entries(rules)) {
         parsed[k] = parseInt(v || '0', 10)
       }
+      const keywords: Record<string, number> = {}
+      for (const line of productKeywords.split('\n')) {
+        const trimmed = line.trim()
+        if (!trimmed) continue
+        const [word, ptsRaw] = trimmed.split(':')
+        const pts = parseInt((ptsRaw || '0').trim(), 10)
+        if (word?.trim()) keywords[word.trim()] = Number.isFinite(pts) ? pts : 0
+      }
+      if (Object.keys(keywords).length) parsed.product_keywords = keywords
       const days = expireDays.trim() === '' ? null : parseInt(expireDays, 10)
       return membershipRewards.updateSettings({
         earn_rules: parsed,
@@ -756,9 +769,20 @@ function EarnRulesEditor() {
     if (!settingsQ.data) return
     const initial: Record<string, string> = {}
     for (const [k, v] of Object.entries(settingsQ.data.earn_rules ?? {})) {
+      if (k === 'product_keywords') continue
       initial[k] = String(v)
     }
     setRules(initial)
+    const rawKw = settingsQ.data.earn_rules?.product_keywords
+    if (rawKw && typeof rawKw === 'object') {
+      setProductKeywords(
+        Object.entries(rawKw as Record<string, number>)
+          .map(([word, pts]) => `${word}:${pts}`)
+          .join('\n'),
+      )
+    } else {
+      setProductKeywords('')
+    }
     setExpireDays(
       settingsQ.data.points_expire_days != null ? String(settingsQ.data.points_expire_days) : '',
     )
@@ -783,6 +807,19 @@ function EarnRulesEditor() {
             </div>
           ))}
         </div>
+      </div>
+      <div className="max-w-md">
+        <label className="block text-xs text-slate-400 mb-1">Product keyword bonuses</label>
+        <textarea
+          value={productKeywords}
+          onChange={(e) => setProductKeywords(e.target.value)}
+          placeholder={'shampoo:25\nwax:15'}
+          rows={4}
+          className="w-full rounded-lg border border-white/10 bg-brand-forest-950 px-3 py-2 text-sm text-white font-mono"
+        />
+        <p className="text-xs text-slate-500 mt-1">
+          One per line: product keyword and bonus points. Matches invoice line descriptions (product lines only).
+        </p>
       </div>
       <div className="max-w-md">
         <label className="block text-xs text-slate-400 mb-1">Points expire after (days)</label>

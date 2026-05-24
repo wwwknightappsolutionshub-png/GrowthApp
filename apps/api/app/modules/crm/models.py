@@ -38,6 +38,7 @@ class Customer(Base):
     service_recurrency: Mapped[str | None] = mapped_column(String(30), nullable=True)
     service_renewal_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     service_renewal_invoice_id: Mapped[uuid.UUID | None] = mapped_column(UUIDType, nullable=True)
+    date_of_birth: Mapped[date | None] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

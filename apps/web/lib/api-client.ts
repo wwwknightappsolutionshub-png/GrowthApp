@@ -802,7 +802,7 @@ export const membershipRewards = {
       }[]
     }>('/membership-rewards/loyalty/leaderboard', { params: { limit } }),
   settings: () => apiClient.get('/membership-rewards/settings'),
-  updateSettings: (data: { earn_rules?: Record<string, number>; points_expire_days?: number | null }) =>
+  updateSettings: (data: { earn_rules?: Record<string, unknown>; points_expire_days?: number | null }) =>
     apiClient.patch('/membership-rewards/settings', data),
   listPlans: (activeOnly = false) =>
     apiClient.get<{ items: MembershipPlan[] }>('/membership-rewards/plans', {
@@ -877,6 +877,15 @@ export const membershipRewards = {
       tier_code: string
       message: string
     }>('/membership-rewards/qr/scan', { payload }),
+  fulfillRedemption: (fulfillmentCode: string) =>
+    apiClient.post<{
+      id: string
+      status: string
+      reward_name: string | null
+      customer_name: string | null
+      points_spent: number
+      message: string
+    }>('/membership-rewards/redemptions/fulfill', { fulfillment_code: fulfillmentCode }),
   submitInterest: (
     tenantSlug: string,
     data: {
@@ -920,12 +929,34 @@ export type LoyaltyPortalProfile = {
   phone: string | null
   points_balance: number
   points_lifetime: number
+  points_earned: number
+  points_redeemed: number
+  points_expiring_soon: number
+  pending_redemptions: number
   tier_code: string
   tier_name: string
   tier_benefits: unknown[]
+  next_tier_code: string | null
+  next_tier_name: string | null
+  points_to_next_tier: number
+  tier_progress_percent: number
   must_change_password: boolean
+  push_notifications_enabled: boolean
+  date_of_birth: string | null
+  marketing_email: boolean
+  marketing_sms: boolean
+  birthday_participation: boolean
+  expiring_points_reminders: boolean
   tenant_slug: string
   tenant_name: string
+}
+
+export type LoyaltyPortalPreferences = {
+  date_of_birth: string | null
+  marketing_email: boolean
+  marketing_sms: boolean
+  birthday_participation: boolean
+  expiring_points_reminders: boolean
 }
 
 export type LoyaltyRewardItem = {
@@ -944,6 +975,16 @@ export type LoyaltyLedgerEntry = {
   source: string
   description: string | null
   created_at: string
+  expires_at?: string | null
+}
+
+export type LoyaltyPendingRedemption = {
+  id: string
+  reward_name: string
+  points_spent: number
+  fulfillment_code: string
+  code_expires_at: string | null
+  status: string
 }
 
 function loyaltyAuthHeaders(tenant: string) {
@@ -992,9 +1033,17 @@ export const loyaltyPortalCustomer = {
     }),
 
   redeem: (tenant: string, rewardId: string) =>
-    publicApiClient.post<{ reward_name?: string }>(
-      `/loyalty-portal/rewards/${rewardId}/redeem`,
-      {},
+    publicApiClient.post<{
+      reward_name?: string
+      fulfillment_code?: string
+      code_expires_at?: string
+      status: string
+      points_spent: number
+    }>(`/loyalty-portal/rewards/${rewardId}/redeem`, {}, { headers: loyaltyAuthHeaders(tenant) }),
+
+  pendingRedemptions: (tenant: string) =>
+    publicApiClient.get<{ items: LoyaltyPendingRedemption[] }>(
+      '/loyalty-portal/redemptions/pending',
       { headers: loyaltyAuthHeaders(tenant) },
     ),
 
@@ -1008,6 +1057,42 @@ export const loyaltyPortalCustomer = {
     publicApiClient.get<{ qr_data_url: string; expires_at: string }>('/loyalty-portal/qr', {
       headers: loyaltyAuthHeaders(tenant),
     }),
+
+  pushPublicKey: () =>
+    publicApiClient.get<{ public_key: string; configured: boolean }>(
+      '/notifications/push/public-key',
+    ),
+
+  pushSubscribe: (
+    tenant: string,
+    subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
+  ) =>
+    publicApiClient.post(
+      '/loyalty-portal/push/subscribe',
+      subscription,
+      { headers: loyaltyAuthHeaders(tenant) },
+    ),
+
+  pushUnsubscribe: (tenant: string) =>
+    publicApiClient.post('/loyalty-portal/push/unsubscribe', {}, {
+      headers: loyaltyAuthHeaders(tenant),
+    }),
+
+  updatePreferences: (
+    tenant: string,
+    data: Partial<{
+      date_of_birth: string | null
+      marketing_email: boolean
+      marketing_sms: boolean
+      birthday_participation: boolean
+      expiring_points_reminders: boolean
+    }>,
+  ) =>
+    publicApiClient.patch<LoyaltyPortalPreferences>(
+      '/loyalty-portal/me/preferences',
+      data,
+      { headers: loyaltyAuthHeaders(tenant) },
+    ),
 }
 
 export const accounting = {

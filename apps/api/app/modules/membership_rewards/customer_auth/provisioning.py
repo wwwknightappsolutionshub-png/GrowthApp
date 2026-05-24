@@ -175,6 +175,19 @@ async def ensure_portal_account(
     loyalty = await get_or_create_loyalty(db, tenant_id, customer_id)
     tier_name = loyalty.tier_code.replace("_", " ").title() if loyalty.tier_code else None
 
+    wallet_checkin_qr_url: str | None = None
+    try:
+        from app.modules.membership_rewards.customer_auth.qr_tokens import issue_qr_token
+
+        raw, _ = await issue_qr_token(
+            db, tenant_id, customer_id, expires_minutes=7 * 24 * 60
+        )
+        wallet_checkin_qr_url = f"cf-loyalty:{tenant_id}:{customer_id}:{raw}"
+    except Exception:  # noqa: BLE001
+        logger.exception(
+            "Welcome email check-in QR failed tenant=%s customer=%s", tenant_id, customer_id
+        )
+
     try:
         await send_portal_welcome_email(
             to=email,
@@ -182,11 +195,13 @@ async def ensure_portal_account(
             tenant_name=tenant_name,
             rewards_portal_url=rewards_portal_url(tenant_slug),
             magic_link_url=magic_url,
+            temp_password=temp_password,
             signup_bonus_points=signup_bonus if awarded_bonus else 0,
             points_balance=points_balance,
             refer_win_url=refer_url_for_slug(tenant_slug),
             memberships_url=memberships_public_url(tenant_slug),
             tier_name=tier_name if tier_code else None,
+            wallet_checkin_qr_url=wallet_checkin_qr_url,
         )
     except Exception:  # noqa: BLE001
         logger.exception(

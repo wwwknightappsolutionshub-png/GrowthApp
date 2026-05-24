@@ -227,8 +227,10 @@ async def start_trial_for_tenant(db: AsyncSession, tenant_id: uuid.UUID) -> Tena
 
 
 async def update_settings(db: AsyncSession, tenant_id: uuid.UUID, data: EarnRulesUpdate) -> MrTenantSettings:
+    from app.modules.membership_rewards.engines.reward_rules import validate_earn_rules
+
     row = await _get_or_create_settings(db, tenant_id)
-    row.earn_rules = data.earn_rules
+    row.earn_rules = validate_earn_rules(data.earn_rules)
     row.points_expire_days = data.points_expire_days
     await db.commit()
     await db.refresh(row)
