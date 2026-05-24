@@ -581,7 +581,7 @@ async def submit_loyalty_enrollment(
     )
 
     tier = (tier_code or "").strip().lower()
-    email_norm = (email or "").strip()
+    email_norm = (email or "").strip().lower()
     phone_norm = (phone or "").strip()
 
     if not email_norm and not phone_norm:
@@ -661,16 +661,28 @@ async def submit_loyalty_enrollment(
         loyalty_row = await get_customer_loyalty(db, tenant.id, customer_id)
         points_balance = loyalty_row.points_balance
 
-    portal = await ensure_portal_account(
-        db,
-        tenant_id=tenant.id,
-        customer_id=customer_id,
-        email=email_norm,
-        customer_name=first_name,
-        tier_code=tier,
-        source="loyalty_enroll",
-        award_signup_bonus=False,
-    )
+    portal: dict
+    try:
+        portal = await ensure_portal_account(
+            db,
+            tenant_id=tenant.id,
+            customer_id=customer_id,
+            email=email_norm,
+            customer_name=first_name,
+            tier_code=tier,
+            source="loyalty_enroll",
+            award_signup_bonus=False,
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception(
+            "Portal provisioning failed during loyalty enroll tenant=%s customer=%s",
+            tenant.id,
+            customer_id,
+        )
+        raise BadRequestException(
+            "We saved your loyalty tier but could not create your rewards wallet yet. "
+            "Please try again shortly or contact the business for help."
+        ) from exc
 
     lead_data = LeadCreate(
         first_name=first_name,

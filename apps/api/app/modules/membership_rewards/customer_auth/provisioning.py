@@ -122,12 +122,14 @@ async def ensure_portal_account(
     """Ensure loyalty row + credentials exist; send consolidated welcome email."""
     await get_or_create_loyalty(db, tenant_id, customer_id)
     if tier_code:
-        await set_tier(db, tenant_id, customer_id, tier_code)
+        loyalty_row = await get_or_create_loyalty(db, tenant_id, customer_id)
+        if loyalty_row.tier_code != tier_code or loyalty_row.tier_updated_at is None:
+            await set_tier(db, tenant_id, customer_id, tier_code, loyalty=loyalty_row)
 
     _, temp_password = await ensure_credentials(db, tenant_id, customer_id)
 
     link = await create_magic_link_token(
-        db, tenant_id=tenant_id, customer_id=customer_id, email=email
+        db, tenant_id=tenant_id, customer_id=customer_id, email=email.lower().strip()
     )
     magic_url = link[1] if link else None
 

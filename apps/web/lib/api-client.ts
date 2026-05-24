@@ -903,6 +903,65 @@ export const membershipRewards = {
     }>(`/public/memberships/${tenantSlug}/loyalty-enroll`, data),
 }
 
+export type LoyaltyPortalBranding = {
+  tenant_slug: string
+  tenant_name: string
+  logo_url: string | null
+  primary_color: string
+  rewards_portal_url: string
+  loyalty_enabled: boolean
+}
+
+export type LoyaltyPortalProfile = {
+  customer_id: string
+  first_name: string
+  last_name: string | null
+  email: string | null
+  phone: string | null
+  points_balance: number
+  points_lifetime: number
+  tier_code: string
+  tier_name: string
+  tier_benefits: unknown[]
+  must_change_password: boolean
+  tenant_slug: string
+  tenant_name: string
+}
+
+function loyaltyAuthHeaders(tenant: string) {
+  if (typeof window === 'undefined') return {}
+  const token = localStorage.getItem(`loyalty:${tenant}:token`)
+  return token ? { Authorization: `Bearer ${token}` } : {}
+}
+
+/** Customer-facing rewards wallet API (no dashboard session cookies). */
+export const loyaltyPortalCustomer = {
+  branding: (tenant: string) =>
+    publicApiClient.get<LoyaltyPortalBranding>(
+      `/loyalty-portal/public/branding/${encodeURIComponent(tenant)}`,
+    ),
+
+  requestMagicLink: (tenant: string, email: string) =>
+    publicApiClient.post('/loyalty-portal/auth/magic-link', { email, tenant_slug: tenant }),
+
+  verifyMagicLink: (tenant: string, token: string) =>
+    publicApiClient.post<{ access_token: string; customer_id: string }>(
+      '/loyalty-portal/auth/magic-link/verify',
+      { token, tenant_slug: tenant },
+    ),
+
+  login: (tenant: string, email: string, password: string) =>
+    publicApiClient.post<{ access_token: string; must_change_password?: boolean }>(
+      '/loyalty-portal/auth/login',
+      { email, password, tenant_slug: tenant },
+    ),
+
+  me: (tenant: string) =>
+    publicApiClient.get<LoyaltyPortalProfile>('/loyalty-portal/me', {
+      headers: loyaltyAuthHeaders(tenant),
+    }),
+}
+
 export const accounting = {
   status: () => apiClient.get('/accounting/status'),
   checkout: (data: { success_url: string; cancel_url: string }) =>
