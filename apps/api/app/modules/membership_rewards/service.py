@@ -640,16 +640,6 @@ async def submit_loyalty_enrollment(
     loyalty.tier_updated_at = datetime.now(timezone.utc)
 
     tier_name = tier_row.name
-    lead_data = LeadCreate(
-        first_name=first_name,
-        last_name=last_name,
-        email=email_norm,
-        phone=phone_norm or None,
-        message=f"Joined loyalty program — selected {tier_name} tier",
-        service_needed="loyalty",
-        source="memberships_loyalty",
-    )
-    await leads_service.create_lead_public(db=db, tenant=tenant, data=lead_data, ip_address=ip_address)
 
     signup_bonus = await membership_signup_bonus_points(db, tenant.id)
     awarded_bonus = False
@@ -681,6 +671,26 @@ async def submit_loyalty_enrollment(
         source="loyalty_enroll",
         award_signup_bonus=False,
     )
+
+    lead_data = LeadCreate(
+        first_name=first_name,
+        last_name=last_name,
+        email=email_norm,
+        phone=phone_norm or None,
+        message=f"Joined loyalty program — selected {tier_name} tier",
+        service_needed="loyalty",
+        source="memberships_loyalty",
+    )
+    try:
+        await leads_service.create_lead_public(
+            db=db, tenant=tenant, data=lead_data, ip_address=ip_address
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception(
+            "Lead capture failed after loyalty enroll tenant=%s customer=%s",
+            tenant.id,
+            customer_id,
+        )
 
     return {
         "message": "Welcome! You're enrolled in our loyalty program.",

@@ -22,6 +22,11 @@ export const publicApiClient: AxiosInstance = axios.create({
   withCredentials: false,
 })
 
+publicApiClient.interceptors.response.use(
+  (res) => res,
+  (error: AxiosError) => Promise.reject(normalizeApiError(error)),
+)
+
 apiClient.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
     const activeClientId = window.localStorage.getItem('cf:freelancer:activeClientId')

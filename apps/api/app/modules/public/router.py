@@ -308,6 +308,7 @@ async def submit_membership_interest(
     from app.modules.membership_rewards.schemas import MembershipInterestRequest
     from app.modules.membership_rewards import service as mr_service
 
+    await _active_tenant_for_public(db, tenant_slug)
     body = await request.json()
     data = MembershipInterestRequest(**body)
     ip = request.client.host if request.client else None
@@ -337,6 +338,7 @@ async def submit_loyalty_enrollment(
     from app.modules.membership_rewards.schemas import LoyaltyEnrollResponse
     from app.modules.membership_rewards import service as mr_service
 
+    await _active_tenant_for_public(db, tenant_slug)
     ip = request.client.host if request.client else None
     result = await mr_service.submit_loyalty_enrollment(
         db,

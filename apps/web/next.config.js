@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const API_ORIGIN = process.env.API_PROXY_TARGET || 'http://localhost:8000'
-const LOYALTY_PWA_ORIGIN = process.env.LOYALTY_PWA_DEV_URL || 'http://localhost:3001'
+const LOYALTY_PWA_ORIGIN =
+  process.env.LOYALTY_PWA_ORIGIN || process.env.LOYALTY_PWA_DEV_URL || 'http://localhost:3001'
 
 const nextConfig = {
   // Use standard output instead of standalone to avoid Windows symlink issues

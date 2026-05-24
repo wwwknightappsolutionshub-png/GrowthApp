@@ -68,11 +68,17 @@ export function LoyaltyTiersSection({
       setEmail('')
       setPhone('')
     } catch (err: unknown) {
-      const detail =
-        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
-        'Something went wrong. Please try again.'
+      const axiosErr = err as { response?: { data?: { detail?: string }; status?: number } }
+      const detail = axiosErr?.response?.data?.detail
+      const status = axiosErr?.response?.status
       setStatus('error')
-      setErrorMessage(typeof detail === 'string' ? detail : 'Something went wrong. Please try again.')
+      if (typeof detail === 'string' && detail.trim()) {
+        setErrorMessage(detail)
+      } else if (status) {
+        setErrorMessage(`Request failed (${status}). Please try again.`)
+      } else {
+        setErrorMessage('Something went wrong. Please try again.')
+      }
     }
   }
 
