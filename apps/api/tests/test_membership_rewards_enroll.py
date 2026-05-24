@@ -141,6 +141,22 @@ async def test_loyalty_enroll_rejects_duplicate_phone(client, db_session):
 
 
 @pytest.mark.asyncio
+async def test_loyalty_enroll_succeeds_when_lead_email_rejected(client, db_session):
+    """Reserved TLDs (e.g. .local) must not fail enrollment after portal provisioning."""
+    slug, _ = await _setup_public_memberships(client, db_session)
+    member_email = f"debug-{uuid.uuid4().hex[:8]}@test.local"
+
+    enroll = await client.post(
+        f"/api/v1/public/memberships/{slug}/loyalty-enroll",
+        json={"name": "Local Tester", "email": member_email, "tier_code": "bronze"},
+    )
+    assert enroll.status_code == 201, enroll.text
+    body = enroll.json()
+    assert body["tier_code"] == "bronze"
+    assert body["portal_account_created"] is True
+
+
+@pytest.mark.asyncio
 async def test_loyalty_enroll_requires_email(client, db_session):
     slug, _ = await _setup_public_memberships(client, db_session)
 

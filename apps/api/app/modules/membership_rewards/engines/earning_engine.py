@@ -29,6 +29,7 @@ async def earn_points(
     description: str | None = None,
     reference_type: str | None = None,
     reference_id: uuid.UUID | None = None,
+    commit: bool = True,
 ) -> MrPointsLedger:
     if amount <= 0:
         raise BadRequestException("earn amount must be positive")
@@ -58,7 +59,10 @@ async def earn_points(
     )
     db.add(entry)
     await recalc_tier(db, tenant_id, customer_id, loyalty)
-    await db.commit()
+    if commit:
+        await db.commit()
+    else:
+        await db.flush()
     await db.refresh(entry)
     return entry
 

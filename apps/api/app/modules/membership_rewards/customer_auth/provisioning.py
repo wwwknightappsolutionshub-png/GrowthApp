@@ -8,6 +8,7 @@ import uuid
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.database import set_rls_context
 from app.modules.booking.models import Booking
 from app.modules.crm.models import Customer
 from app.modules.membership_rewards.customer_auth.credentials import ensure_credentials, get_credentials
@@ -120,6 +121,7 @@ async def ensure_portal_account(
     award_signup_bonus: bool = False,
 ) -> dict:
     """Ensure loyalty row + credentials exist; send consolidated welcome email."""
+    await set_rls_context(db, tenant_id)
     await get_or_create_loyalty(db, tenant_id, customer_id)
     if tier_code:
         loyalty_row = await get_or_create_loyalty(db, tenant_id, customer_id)
@@ -155,10 +157,12 @@ async def ensure_portal_account(
             loyalty = await get_or_create_loyalty(db, tenant_id, customer_id)
             points_balance = loyalty.points_balance
             await db.commit()
+            await set_rls_context(db, tenant_id)
     else:
         loyalty = await get_or_create_loyalty(db, tenant_id, customer_id)
         points_balance = loyalty.points_balance
         await db.commit()
+        await set_rls_context(db, tenant_id)
 
     tenant = await db.get(Tenant, tenant_id)
     tenant_name = tenant.name if tenant else "Our business"

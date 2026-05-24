@@ -13,6 +13,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.database import set_rls_context
 from app.core.exceptions import BadRequestException, NotFoundException
 from app.modules.accounting.models import TenantAddon
 from app.modules.membership_rewards.constants import (
@@ -653,16 +654,21 @@ async def submit_loyalty_enrollment(
             source="membership",
             description="Welcome bonus — loyalty program signup",
             reference_type="loyalty_signup",
+            commit=False,
         )
         points_balance = entry.balance_after
         awarded_bonus = True
+        await db.commit()
+        await set_rls_context(db, tenant.id)
     else:
         await db.commit()
+        await set_rls_context(db, tenant.id)
         loyalty_row = await get_customer_loyalty(db, tenant.id, customer_id)
         points_balance = loyalty_row.points_balance
 
     portal: dict
     try:
+        await set_rls_context(db, tenant.id)
         portal = await ensure_portal_account(
             db,
             tenant_id=tenant.id,
@@ -674,6 +680,7 @@ async def submit_loyalty_enrollment(
             award_signup_bonus=False,
         )
     except Exception as exc:  # noqa: BLE001
+        await db.rollback()
         logger.exception(
             "Portal provisioning failed during loyalty enroll tenant=%s customer=%s",
             tenant.id,
@@ -684,16 +691,16 @@ async def submit_loyalty_enrollment(
             "Please try again shortly or contact the business for help."
         ) from exc
 
-    lead_data = LeadCreate(
-        first_name=first_name,
-        last_name=last_name,
-        email=email_norm,
-        phone=phone_norm or None,
-        message=f"Joined loyalty program — selected {tier_name} tier",
-        service_needed="loyalty",
-        source="memberships_loyalty",
-    )
     try:
+        lead_data = LeadCreate(
+            first_name=first_name,
+            last_name=last_name,
+            email=email_norm,
+            phone=phone_norm or None,
+            message=f"Joined loyalty program — selected {tier_name} tier",
+            service_needed="loyalty",
+            source="memberships_loyalty",
+        )
         await leads_service.create_lead_public(
             db=db, tenant=tenant, data=lead_data, ip_address=ip_address
         )

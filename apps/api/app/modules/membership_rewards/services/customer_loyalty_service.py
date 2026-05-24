@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import uuid
 
 from sqlalchemy import func, or_, select
@@ -11,6 +12,8 @@ from app.modules.crm.models import Customer
 from app.modules.membership_rewards.customer_auth.credentials import get_credentials
 from app.modules.membership_rewards.engines.reward_rules import has_loyalty_signup_bonus
 from app.modules.membership_rewards.models import MrCustomerLoyalty, MrPointsLedger
+
+logger = logging.getLogger(__name__)
 
 
 async def get_or_create_loyalty(
@@ -156,6 +159,21 @@ async def contact_already_enrolled_in_loyalty(
     return False
 
 
+async def _has_portal_credentials(
+    db: AsyncSession, tenant_id: uuid.UUID, customer_id: uuid.UUID
+) -> bool:
+    """Best-effort portal credential check; never raises on missing migration/table."""
+    try:
+        return await get_credentials(db, tenant_id, customer_id) is not None
+    except Exception:  # noqa: BLE001
+        logger.exception(
+            "Portal credentials lookup failed tenant=%s customer=%s",
+            tenant_id,
+            customer_id,
+        )
+        return False
+
+
 async def is_loyalty_program_enrolled(
     db: AsyncSession, tenant_id: uuid.UUID, customer_id: uuid.UUID
 ) -> bool:
@@ -165,4 +183,4 @@ async def is_loyalty_program_enrolled(
         return True
     if await has_loyalty_signup_bonus(db, tenant_id, customer_id):
         return True
-    return await get_credentials(db, tenant_id, customer_id) is not None
+    return await _has_portal_credentials(db, tenant_id, customer_id)
