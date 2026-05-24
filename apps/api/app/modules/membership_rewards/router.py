@@ -155,6 +155,16 @@ async def update_plan(
     return await service.update_plan(db, tenant.id, plan_id, data)
 
 
+@router.delete("/plans/{plan_id}", status_code=204, dependencies=[Depends(require_membership_rewards)])
+async def delete_plan(
+    plan_id: uuid.UUID,
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+):
+    _, tenant, _ = ctx
+    await service.delete_plan(db, tenant.id, plan_id)
+
+
 @router.get("/tiers", response_model=TierListResponse, dependencies=[Depends(require_membership_rewards)])
 async def list_tiers(ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
     _, tenant, _ = ctx

@@ -757,6 +757,7 @@ export const membershipRewards = {
   createPlan: (data: object) => apiClient.post<MembershipPlan>('/membership-rewards/plans', data),
   updatePlan: (id: string, data: object) =>
     apiClient.patch<MembershipPlan>(`/membership-rewards/plans/${id}`, data),
+  deletePlan: (id: string) => apiClient.delete(`/membership-rewards/plans/${id}`),
   listSubscriptions: (params?: { customer_id?: string; status?: string }) =>
     apiClient.get<{ items: MembershipSubscription[] }>('/membership-rewards/subscriptions', { params }),
   createSubscription: (data: { customer_id: string; plan_id: string; started_at?: string }) =>
@@ -826,7 +827,14 @@ export const membershipRewards = {
   submitLoyaltyEnroll: (
     tenantSlug: string,
     data: { name: string; email?: string; phone?: string; tier_code: string },
-  ) => publicApiClient.post(`/public/memberships/${tenantSlug}/loyalty-enroll`, data),
+  ) =>
+    publicApiClient.post<{
+      message: string
+      tier_code: string
+      tier_name: string
+      signup_bonus_points: number
+      points_balance: number
+    }>(`/public/memberships/${tenantSlug}/loyalty-enroll`, data),
 }
 
 export const accounting = {

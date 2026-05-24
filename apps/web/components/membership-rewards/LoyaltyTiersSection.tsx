@@ -30,11 +30,16 @@ export function LoyaltyTiersSection({
   const [phone, setPhone] = useState('')
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [enrollResult, setEnrollResult] = useState<{
+    signup_bonus_points: number
+    points_balance: number
+  } | null>(null)
 
   function closeModal() {
     setSelectedTier(null)
     setStatus('idle')
     setErrorMessage(null)
+    setEnrollResult(null)
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -42,11 +47,15 @@ export function LoyaltyTiersSection({
     if (!selectedTier) return
     setStatus('loading')
     try {
-      await membershipRewards.submitLoyaltyEnroll(tenantSlug, {
+      const res = await membershipRewards.submitLoyaltyEnroll(tenantSlug, {
         name,
         email: email || undefined,
         phone: phone || undefined,
         tier_code: selectedTier.code,
+      })
+      setEnrollResult({
+        signup_bonus_points: res.data.signup_bonus_points,
+        points_balance: res.data.points_balance,
       })
       setStatus('done')
       setName('')
@@ -106,8 +115,11 @@ export function LoyaltyTiersSection({
                 <p className="mt-2 text-sm text-gray-600">
                   Welcome to the {selectedTier.name} tier. We&apos;ve added you to our loyalty
                   leaderboard
-                  {email.trim() ? ' and sent a welcome email with Refer & Win and membership details' : ''}
-                  — start earning points on your next visit.
+                  {enrollResult && enrollResult.signup_bonus_points > 0
+                    ? ` with ${enrollResult.signup_bonus_points} membership points (${enrollResult.points_balance} total)`
+                    : ''}
+                  {email.trim() ? ' and sent a welcome email with your balance, Refer & Win, and membership details' : ''}
+                  — start earning more on your next visit.
                 </p>
                 <button
                   type="button"

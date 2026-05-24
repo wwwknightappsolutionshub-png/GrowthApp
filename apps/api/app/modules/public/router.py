@@ -306,7 +306,7 @@ async def submit_membership_interest(
     return MessageResponse(message="Thanks! We'll be in touch about membership shortly.")
 
 
-@router.post("/memberships/{tenant_slug}/loyalty-enroll", response_model=MessageResponse, status_code=201)
+@router.post("/memberships/{tenant_slug}/loyalty-enroll", status_code=201)
 @limiter.limit("10/minute")
 async def submit_loyalty_enrollment(
     tenant_slug: str,
@@ -314,13 +314,13 @@ async def submit_loyalty_enrollment(
     db: AsyncSession = Depends(get_db),
 ):
     """Enroll in loyalty program from public /p/{tenant}/memberships page."""
-    from app.modules.membership_rewards.schemas import LoyaltyEnrollRequest
+    from app.modules.membership_rewards.schemas import LoyaltyEnrollRequest, LoyaltyEnrollResponse
     from app.modules.membership_rewards import service as mr_service
 
     body = await request.json()
     data = LoyaltyEnrollRequest(**body)
     ip = request.client.host if request.client else None
-    await mr_service.submit_loyalty_enrollment(
+    result = await mr_service.submit_loyalty_enrollment(
         db,
         tenant_slug,
         name=data.name,
@@ -329,7 +329,7 @@ async def submit_loyalty_enrollment(
         tier_code=data.tier_code,
         ip_address=ip,
     )
-    return MessageResponse(message="Welcome! You're enrolled in our loyalty program.")
+    return LoyaltyEnrollResponse(**result)
 
 
 @router.get("/widget.js", response_class=PlainTextResponse)

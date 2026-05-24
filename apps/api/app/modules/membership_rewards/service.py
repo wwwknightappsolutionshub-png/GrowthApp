@@ -336,6 +336,30 @@ async def update_plan(
     return row
 
 
+async def delete_plan(db: AsyncSession, tenant_id: uuid.UUID, plan_id: uuid.UUID) -> None:
+    row = await _get_plan(db, tenant_id, plan_id)
+    active_subs = (
+        await db.execute(
+            select(func.count())
+            .select_from(MrCustomerSubscription)
+            .where(
+                MrCustomerSubscription.tenant_id == tenant_id,
+                MrCustomerSubscription.plan_id == plan_id,
+                MrCustomerSubscription.status == "active",
+            )
+        )
+    ).scalar_one()
+    if active_subs:
+        raise BadRequestException(
+            "Cannot delete a plan with active subscriptions. Deactivate the plan instead."
+        )
+    await db.delete(row)
+    await db.commit()
+    from app.modules.membership_rewards.landing import sync_landing_from_plans
+
+    await sync_landing_from_plans(db, tenant_id, auto_publish=False)
+
+
 async def _get_plan(db: AsyncSession, tenant_id: uuid.UUID, plan_id: uuid.UUID) -> MrMembershipPlan:
     row = (
         await db.execute(
@@ -780,6 +804,34 @@ async def submit_membership_interest(
     await leads_service.create_lead_public(db=db, tenant=tenant, data=data, ip_address=ip_address)
 
 
+async def _membership_signup_bonus_points(db: AsyncSession, tenant_id: uuid.UUID) -> int:
+    settings = await _get_or_create_settings(db, tenant_id)
+    rules = settings.earn_rules or {}
+    try:
+        raw = rules.get("membership_signup", DEFAULT_EARN_RULES["membership_signup"])
+        return max(0, int(raw))
+    except (TypeError, ValueError):
+        return DEFAULT_EARN_RULES["membership_signup"]
+
+
+async def _has_loyalty_signup_bonus(
+    db: AsyncSession, tenant_id: uuid.UUID, customer_id: uuid.UUID
+) -> bool:
+    row = (
+        await db.execute(
+            select(MrPointsLedger.id)
+            .where(
+                MrPointsLedger.tenant_id == tenant_id,
+                MrPointsLedger.customer_id == customer_id,
+                MrPointsLedger.source == "membership",
+                MrPointsLedger.reference_type == "loyalty_signup",
+            )
+            .limit(1)
+        )
+    ).scalar_one_or_none()
+    return row is not None
+
+
 async def submit_loyalty_enrollment(
     db: AsyncSession,
     tenant_slug: str,
@@ -789,7 +841,7 @@ async def submit_loyalty_enrollment(
     phone: str | None,
     tier_code: str,
     ip_address: str | None,
-) -> None:
+) -> dict[str, Any]:
     """Enroll a customer in the loyalty program from the public memberships page."""
     from app.modules.booking.crm_link import _split_name, resolve_customer_for_booking
     from app.modules.leads.schemas import LeadCreate
@@ -847,6 +899,25 @@ async def submit_loyalty_enrollment(
     )
     await leads_service.create_lead_public(db=db, tenant=tenant, data=lead_data, ip_address=ip_address)
 
+    signup_bonus = await _membership_signup_bonus_points(db, tenant.id)
+    awarded_bonus = False
+    points_balance = 0
+    if signup_bonus > 0 and not await _has_loyalty_signup_bonus(db, tenant.id, customer_id):
+        entry = await earn_points(
+            db,
+            tenant.id,
+            customer_id,
+            signup_bonus,
+            source="membership",
+            description="Welcome bonus — loyalty program signup",
+            reference_type="loyalty_signup",
+        )
+        points_balance = entry.balance_after
+        awarded_bonus = True
+    else:
+        loyalty_row = await get_customer_loyalty(db, tenant.id, customer_id)
+        points_balance = loyalty_row.points_balance
+
     if (email or "").strip():
         try:
             await send_loyalty_welcome_email(
@@ -854,11 +925,21 @@ async def submit_loyalty_enrollment(
                 customer_name=first_name,
                 tenant_name=tenant.name or "Our business",
                 tier_name=tier_name,
+                signup_bonus_points=signup_bonus if awarded_bonus else 0,
+                points_balance=points_balance,
                 refer_win_url=refer_url_for_slug(tenant.slug),
                 memberships_url=memberships_public_url(tenant.slug),
             )
         except Exception:  # noqa: BLE001
             logger.exception("Loyalty welcome email failed for %s", email)
+
+    return {
+        "message": "Welcome! You're enrolled in our loyalty program.",
+        "tier_code": tier,
+        "tier_name": tier_name,
+        "signup_bonus_points": signup_bonus if awarded_bonus else 0,
+        "points_balance": points_balance,
+    }
 
 
 # ── Subscriptions (tenant-level customer plans) ──────────────────────────────

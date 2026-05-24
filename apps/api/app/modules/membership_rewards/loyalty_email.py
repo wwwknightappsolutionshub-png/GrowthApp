@@ -22,15 +22,25 @@ def build_loyalty_welcome_html(
     customer_name: str,
     tenant_name: str,
     tier_name: str,
+    signup_bonus_points: int,
+    points_balance: int,
     refer_win_url: str,
     memberships_url: str,
 ) -> str:
     refer_qr = _qr_img_url(refer_win_url)
+    bonus_block = ""
+    if signup_bonus_points > 0:
+        bonus_block = f"""
+  <p style="background:#ecfdf5;border:1px solid #a7f3d0;border-radius:8px;padding:14px 16px;margin:20px 0;">
+    <strong>+{signup_bonus_points} membership points</strong> have been added to your account.
+    Your balance is now <strong>{points_balance}</strong> points.
+  </p>"""
     return f"""
 <div style="font-family:system-ui,sans-serif;max-width:560px;margin:0 auto;color:#1a1a1a;">
   <p>Hi {customer_name},</p>
   <p>Thank you for signing up to our loyalty program! You&apos;ve joined at the
   <strong>{tier_name}</strong> tier — start earning points on every visit.</p>
+  {bonus_block}
 
   <h2 style="font-size:18px;color:#025422;margin-top:28px;">Refer &amp; Win</h2>
   <p>Share your referral link with friends. When they become customers, you earn loyalty points.</p>
@@ -63,6 +73,8 @@ async def send_loyalty_welcome_email(
     customer_name: str,
     tenant_name: str,
     tier_name: str,
+    signup_bonus_points: int = 0,
+    points_balance: int = 0,
     refer_win_url: str,
     memberships_url: str,
 ) -> None:
@@ -73,6 +85,8 @@ async def send_loyalty_welcome_email(
         customer_name=customer_name,
         tenant_name=tenant_name,
         tier_name=tier_name,
+        signup_bonus_points=signup_bonus_points,
+        points_balance=points_balance,
         refer_win_url=refer_win_url,
         memberships_url=memberships_url,
     )

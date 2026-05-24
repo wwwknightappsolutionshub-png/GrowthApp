@@ -200,40 +200,84 @@ function Panel({ title, children }: { title: string; children: React.ReactNode }
 
 function PlansSection() {
   const qc = useQueryClient()
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
   const [price, setPrice] = useState('')
   const [cycle, setCycle] = useState('monthly')
+  const [discount, setDiscount] = useState('0')
+  const [isActive, setIsActive] = useState(true)
 
   const plansQ = useQuery({
     queryKey: ['mr-plans'],
     queryFn: async () => (await membershipRewards.listPlans()).data.items,
   })
 
-  const create = useMutation({
+  function resetForm() {
+    setEditingId(null)
+    setName('')
+    setDescription('')
+    setPrice('')
+    setCycle('monthly')
+    setDiscount('0')
+    setIsActive(true)
+  }
+
+  function startEdit(plan: MembershipPlan) {
+    setEditingId(plan.id)
+    setName(plan.name)
+    setDescription(plan.description ?? '')
+    setPrice(String(plan.price_pence / 100))
+    setCycle(plan.billing_cycle)
+    setDiscount(String(plan.discount_percent))
+    setIsActive(plan.is_active)
+  }
+
+  const planPayload = () => ({
+    name,
+    description: description.trim() || null,
+    billing_cycle: cycle,
+    price_pence: Math.round(parseFloat(price || '0') * 100),
+    discount_percent: parseInt(discount || '0', 10),
+    is_active: isActive,
+  })
+
+  const save = useMutation({
     mutationFn: () =>
-      membershipRewards.createPlan({
-        name,
-        billing_cycle: cycle,
-        price_pence: Math.round(parseFloat(price || '0') * 100),
-        is_active: true,
-      }),
+      editingId
+        ? membershipRewards.updatePlan(editingId, planPayload())
+        : membershipRewards.createPlan(planPayload()),
     onSuccess: () => {
-      toast.success('Plan created')
-      setName('')
-      setPrice('')
+      toast.success(editingId ? 'Plan updated' : 'Plan created')
+      resetForm()
       qc.invalidateQueries({ queryKey: ['mr-plans'] })
+      qc.invalidateQueries({ queryKey: ['mr-landing'] })
       qc.invalidateQueries({ queryKey: ['membership-rewards-dashboard'] })
     },
-    onError: () => toast.error('Could not create plan'),
+    onError: (e: { response?: { data?: { detail?: string } } }) =>
+      toast.error(e.response?.data?.detail ?? 'Could not save plan'),
+  })
+
+  const remove = useMutation({
+    mutationFn: (id: string) => membershipRewards.deletePlan(id),
+    onSuccess: () => {
+      toast.success('Plan deleted')
+      if (editingId) resetForm()
+      qc.invalidateQueries({ queryKey: ['mr-plans'] })
+      qc.invalidateQueries({ queryKey: ['mr-landing'] })
+      qc.invalidateQueries({ queryKey: ['membership-rewards-dashboard'] })
+    },
+    onError: (e: { response?: { data?: { detail?: string } } }) =>
+      toast.error(e.response?.data?.detail ?? 'Could not delete plan'),
   })
 
   return (
     <Panel title="Membership plans">
       <form
-        className="grid gap-3 sm:grid-cols-4 items-end"
+        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 items-end mb-6"
         onSubmit={(e) => {
           e.preventDefault()
-          create.mutate()
+          save.mutate()
         }}
       >
         <Field label="Plan name" value={name} onChange={setName} placeholder="Gold Monthly" />
@@ -251,13 +295,35 @@ function PlansSection() {
             <option value="yearly">Yearly</option>
           </select>
         </div>
-        <button
-          type="submit"
-          disabled={create.isPending || !name.trim()}
-          className="rounded-lg bg-brand-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-teal-500 disabled:opacity-50"
-        >
-          {create.isPending ? 'Saving…' : 'Add plan'}
-        </button>
+        <Field label="Description" value={description} onChange={setDescription} placeholder="Optional summary" />
+        <Field label="Member discount (%)" value={discount} onChange={setDiscount} placeholder="10" type="number" />
+        <label className="flex items-center gap-2 text-sm text-slate-300 pb-2">
+          <input
+            type="checkbox"
+            checked={isActive}
+            onChange={(e) => setIsActive(e.target.checked)}
+            className="rounded border-white/20"
+          />
+          Active on public page
+        </label>
+        <div className="flex gap-2 sm:col-span-2 lg:col-span-3">
+          <button
+            type="submit"
+            disabled={save.isPending || !name.trim()}
+            className="rounded-lg bg-brand-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-teal-500 disabled:opacity-50"
+          >
+            {save.isPending ? 'Saving…' : editingId ? 'Update plan' : 'Add plan'}
+          </button>
+          {editingId ? (
+            <button
+              type="button"
+              onClick={resetForm}
+              className="rounded-lg border border-white/20 px-4 py-2 text-sm text-slate-300 hover:bg-white/5"
+            >
+              Cancel edit
+            </button>
+          ) : null}
+        </div>
       </form>
 
       {plansQ.isLoading ? (
@@ -270,16 +336,24 @@ function PlansSection() {
                 <th className="py-2 pr-4">Name</th>
                 <th className="py-2 pr-4">Price</th>
                 <th className="py-2 pr-4">Cycle</th>
-                <th className="py-2">Status</th>
+                <th className="py-2 pr-4">Discount</th>
+                <th className="py-2 pr-4">Status</th>
+                <th className="py-2 text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
               {(plansQ.data ?? []).map((p: MembershipPlan) => (
                 <tr key={p.id} className="border-b border-white/5 text-slate-200">
-                  <td className="py-3 pr-4 font-medium">{p.name}</td>
+                  <td className="py-3 pr-4">
+                    <p className="font-medium">{p.name}</p>
+                    {p.description ? (
+                      <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{p.description}</p>
+                    ) : null}
+                  </td>
                   <td className="py-3 pr-4">{formatCurrency(p.price_pence)}</td>
                   <td className="py-3 pr-4 capitalize">{p.billing_cycle}</td>
-                  <td className="py-3">
+                  <td className="py-3 pr-4">{p.discount_percent}%</td>
+                  <td className="py-3 pr-4">
                     <span
                       className={
                         p.is_active
@@ -289,6 +363,25 @@ function PlansSection() {
                     >
                       {p.is_active ? 'Active' : 'Inactive'}
                     </span>
+                  </td>
+                  <td className="py-3 text-right space-x-2 whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() => startEdit(p)}
+                      className="text-xs text-brand-teal-300 hover:text-brand-teal-200"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm(`Delete plan "${p.name}"?`)) remove.mutate(p.id)
+                      }}
+                      disabled={remove.isPending}
+                      className="text-xs text-red-400 hover:text-red-300"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}

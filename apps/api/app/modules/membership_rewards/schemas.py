@@ -228,6 +228,14 @@ class LoyaltyEnrollRequest(BaseModel):
     tier_code: str
 
 
+class LoyaltyEnrollResponse(BaseModel):
+    message: str
+    tier_code: str
+    tier_name: str
+    signup_bonus_points: int
+    points_balance: int
+
+
 class CheckoutRequest(BaseModel):
     success_url: str
     cancel_url: str
