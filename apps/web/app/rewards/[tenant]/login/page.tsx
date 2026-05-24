@@ -66,6 +66,9 @@ export default function RewardsLoginPage({ params }: { params: { tenant: string 
       <div className="text-center">
         <h1 className="text-xl font-bold">{branding.tenant_name}</h1>
         <p className="mt-1 text-sm text-slate-600">Sign in to your rewards wallet</p>
+        <p className="mt-2 text-xs text-slate-500">
+          Use the magic link from your welcome email, or request a new one below.
+        </p>
       </div>
 
       <div className="card space-y-3">

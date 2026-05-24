@@ -928,6 +928,24 @@ export type LoyaltyPortalProfile = {
   tenant_name: string
 }
 
+export type LoyaltyRewardItem = {
+  id: string
+  name: string
+  description: string | null
+  points_cost: number
+  reward_type: string
+  stock_remaining: number | null
+}
+
+export type LoyaltyLedgerEntry = {
+  id: string
+  amount: number
+  balance_after: number
+  source: string
+  description: string | null
+  created_at: string
+}
+
 function loyaltyAuthHeaders(tenant: string) {
   if (typeof window === 'undefined') return {}
   const token = localStorage.getItem(`loyalty:${tenant}:token`)
@@ -956,8 +974,38 @@ export const loyaltyPortalCustomer = {
       { email, password, tenant_slug: tenant },
     ),
 
+  setPassword: (tenant: string, newPassword: string) =>
+    publicApiClient.post(
+      '/loyalty-portal/auth/set-password',
+      { new_password: newPassword },
+      { headers: loyaltyAuthHeaders(tenant) },
+    ),
+
   me: (tenant: string) =>
     publicApiClient.get<LoyaltyPortalProfile>('/loyalty-portal/me', {
+      headers: loyaltyAuthHeaders(tenant),
+    }),
+
+  rewards: (tenant: string) =>
+    publicApiClient.get<{ items: LoyaltyRewardItem[] }>('/loyalty-portal/rewards', {
+      headers: loyaltyAuthHeaders(tenant),
+    }),
+
+  redeem: (tenant: string, rewardId: string) =>
+    publicApiClient.post<{ reward_name?: string }>(
+      `/loyalty-portal/rewards/${rewardId}/redeem`,
+      {},
+      { headers: loyaltyAuthHeaders(tenant) },
+    ),
+
+  history: (tenant: string, limit = 50) =>
+    publicApiClient.get<{ items: LoyaltyLedgerEntry[]; has_more: boolean }>(
+      '/loyalty-portal/history',
+      { headers: loyaltyAuthHeaders(tenant), params: { limit } },
+    ),
+
+  qr: (tenant: string) =>
+    publicApiClient.get<{ qr_data_url: string; expires_at: string }>('/loyalty-portal/qr', {
       headers: loyaltyAuthHeaders(tenant),
     }),
 }

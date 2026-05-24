@@ -137,6 +137,12 @@ export function LoyaltyTiersSection({
                       : ''}
                   . Start earning more on your next visit.
                 </p>
+                <a
+                  href={`/rewards/${encodeURIComponent(tenantSlug)}/login`}
+                  className="mt-4 block w-full rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-900 font-semibold py-2.5 text-sm text-center"
+                >
+                  Open rewards wallet
+                </a>
                 <button
                   type="button"
                   onClick={closeModal}

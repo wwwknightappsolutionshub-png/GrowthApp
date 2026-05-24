@@ -1,0 +1,19 @@
+{
+  "name": "Rewards Wallet",
+  "short_name": "Rewards",
+  "description": "Your loyalty rewards wallet",
+  "start_url": "/rewards/",
+  "scope": "/rewards/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2563EB",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/rewards/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
