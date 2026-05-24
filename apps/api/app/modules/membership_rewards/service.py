@@ -799,10 +799,6 @@ async def submit_loyalty_enrollment(
     from app.modules.booking.feedback import refer_url_for_slug
 
     tier = (tier_code or "").strip().lower()
-    tiers = await list_tiers(db, tenant.id)
-    tier_row = next((t for t in tiers if t.code == tier), None)
-    if not tier_row:
-        raise BadRequestException(f"Invalid tier: {tier_code}")
 
     if not (email or "").strip() and not (phone or "").strip():
         raise BadRequestException("Email or phone is required")
@@ -816,6 +812,11 @@ async def submit_loyalty_enrollment(
     settings = await _get_or_create_settings(db, tenant.id)
     if not settings.landing_published:
         raise NotFoundException("Membership page is not published")
+
+    tiers = await list_tiers(db, tenant.id)
+    tier_row = next((t for t in tiers if t.code == tier), None)
+    if not tier_row:
+        raise BadRequestException(f"Invalid tier: {tier_code}")
 
     first_name, last_name = _split_name(name)
     customer_id = await resolve_customer_for_booking(
@@ -847,14 +848,17 @@ async def submit_loyalty_enrollment(
     await leads_service.create_lead_public(db=db, tenant=tenant, data=lead_data, ip_address=ip_address)
 
     if (email or "").strip():
-        await send_loyalty_welcome_email(
-            to=email.strip(),
-            customer_name=first_name,
-            tenant_name=tenant.name or "Our business",
-            tier_name=tier_name,
-            refer_win_url=refer_url_for_slug(tenant.slug),
-            memberships_url=memberships_public_url(tenant.slug),
-        )
+        try:
+            await send_loyalty_welcome_email(
+                to=email.strip(),
+                customer_name=first_name,
+                tenant_name=tenant.name or "Our business",
+                tier_name=tier_name,
+                refer_win_url=refer_url_for_slug(tenant.slug),
+                memberships_url=memberships_public_url(tenant.slug),
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception("Loyalty welcome email failed for %s", email)
 
 
 # ── Subscriptions (tenant-level customer plans) ──────────────────────────────

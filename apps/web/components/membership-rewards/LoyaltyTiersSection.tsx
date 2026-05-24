@@ -29,10 +29,12 @@ export function LoyaltyTiersSection({
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   function closeModal() {
     setSelectedTier(null)
     setStatus('idle')
+    setErrorMessage(null)
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -50,8 +52,12 @@ export function LoyaltyTiersSection({
       setName('')
       setEmail('')
       setPhone('')
-    } catch {
+    } catch (err: unknown) {
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
+        'Something went wrong. Please try again.'
       setStatus('error')
+      setErrorMessage(typeof detail === 'string' ? detail : 'Something went wrong. Please try again.')
     }
   }
 
@@ -142,7 +148,7 @@ export function LoyaltyTiersSection({
                   />
                   <p className="text-xs text-gray-500">Provide email or phone so we can reach you.</p>
                   {status === 'error' && (
-                    <p className="text-sm text-red-600">Something went wrong. Please try again.</p>
+                    <p className="text-sm text-red-600">{errorMessage ?? 'Something went wrong. Please try again.'}</p>
                   )}
                   <div className="flex gap-2 pt-1">
                     <button

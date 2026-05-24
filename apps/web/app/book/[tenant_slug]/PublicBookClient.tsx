@@ -1,7 +1,8 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
+import { CheckCircle2 } from 'lucide-react'
 import { publicBooking } from '@/lib/api-client'
 import {
   extractBookingFormFromWidget,
@@ -35,6 +36,11 @@ function UnavailablePanel({ slug, detail }: { slug: string; detail: string }) {
 }
 
 export function PublicBookClient({ slug, initialWidget, loadStatus }: Props) {
+  const [confirmed, setConfirmed] = useState<{
+    message: string
+    manageUrl?: string
+  } | null>(null)
+
   const {
     data: widget,
     isPending,
@@ -62,13 +68,17 @@ export function PublicBookClient({ slug, initialWidget, loadStatus }: Props) {
     mutationFn: (payload: Record<string, unknown>) =>
       publicBooking.create(slug, payload).then((r) => r.data),
     onSuccess: (data: { message?: string; manage_url?: string; payment?: { client_secret?: string } }) => {
-      toast.success(data.message || 'Booking confirmed')
+      const message = data.message || 'Booking confirmed! We will be in touch shortly.'
       if (data.payment?.client_secret && data.manage_url) {
+        toast.success(message)
         toast.message('Deposit required', {
           description: 'Complete payment from your booking management link.',
         })
+        window.location.href = data.manage_url
+        return
       }
-      if (data.manage_url) window.location.href = data.manage_url
+      toast.success(message)
+      setConfirmed({ message, manageUrl: data.manage_url })
     },
     onError: (e: { response?: { data?: { detail?: string } }; message?: string }) =>
       toast.error(e.response?.data?.detail ?? e.message ?? 'Could not complete booking'),
@@ -112,6 +122,33 @@ export function PublicBookClient({ slug, initialWidget, loadStatus }: Props) {
           <div className="h-10 bg-slate-100 rounded-lg" />
           <div className="h-10 bg-slate-100 rounded-lg" />
           <div className="h-24 bg-slate-100 rounded-lg" />
+        </div>
+      </PublicBookShell>
+    )
+  }
+
+  if (confirmed) {
+    return (
+      <PublicBookShell
+        variant="booking"
+        tenantName={active?.tenant_name || 'Book online'}
+        subtitle="Your appointment request has been received."
+        accent={accent}
+      >
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-6 text-center space-y-3">
+          <CheckCircle2 className="w-10 h-10 text-emerald-600 mx-auto" aria-hidden />
+          <p className="text-emerald-900 font-semibold">{confirmed.message}</p>
+          <p className="text-sm text-emerald-800/80">
+            We&apos;ll confirm your appointment by email or phone shortly.
+          </p>
+          {confirmed.manageUrl ? (
+            <a
+              href={confirmed.manageUrl}
+              className="inline-block text-sm text-emerald-700 underline hover:text-emerald-900 mt-2"
+            >
+              Need to reschedule or cancel later?
+            </a>
+          ) : null}
         </div>
       </PublicBookShell>
     )
