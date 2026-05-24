@@ -885,7 +885,7 @@ export const membershipRewards = {
   ) => publicApiClient.post(`/public/memberships/${tenantSlug}/interest`, data),
   submitLoyaltyEnroll: (
     tenantSlug: string,
-    data: { name: string; email?: string; phone?: string; tier_code: string },
+    data: { name: string; email: string; phone?: string; tier_code: string },
   ) =>
     publicApiClient.post<{
       message: string
@@ -893,6 +893,8 @@ export const membershipRewards = {
       tier_name: string
       signup_bonus_points: number
       points_balance: number
+      portal_account_created?: boolean
+      rewards_email_sent?: boolean
     }>(`/public/memberships/${tenantSlug}/loyalty-enroll`, data),
 }
 

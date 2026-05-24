@@ -78,6 +78,12 @@ async def provision_from_booking(
         return None
 
     email = (customer.email or "").strip()
+    booking = await db.get(Booking, booking_id)
+    if not email and booking and (booking.customer_email or "").strip():
+        email = booking.customer_email.strip()
+        customer.email = email
+        await db.flush()
+
     if not email:
         return None
 

@@ -574,14 +574,22 @@ async def submit_loyalty_enrollment(
     from app.modules.booking.crm_link import _split_name, resolve_customer_for_booking
     from app.modules.leads.schemas import LeadCreate
     from app.modules.leads import service as leads_service
-    from app.modules.membership_rewards.loyalty_email import send_loyalty_welcome_email
-    from app.modules.membership_rewards.landing import memberships_public_url
-    from app.modules.booking.feedback import refer_url_for_slug
+    from app.modules.membership_rewards.customer_auth.provisioning import ensure_portal_account
+    from app.modules.membership_rewards.services.customer_loyalty_service import (
+        contact_already_enrolled_in_loyalty,
+        is_loyalty_program_enrolled,
+    )
 
     tier = (tier_code or "").strip().lower()
+    email_norm = (email or "").strip()
+    phone_norm = (phone or "").strip()
 
-    if not (email or "").strip() and not (phone or "").strip():
+    if not email_norm and not phone_norm:
         raise BadRequestException("Email or phone is required")
+    if not email_norm:
+        raise BadRequestException(
+            "Email is required to create your rewards wallet and receive your login link."
+        )
 
     tenant = (
         await db.execute(select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True))  # noqa: E712
@@ -602,18 +610,30 @@ async def submit_loyalty_enrollment(
     if not tier_row:
         raise BadRequestException(f"Invalid tier: {tier_code}")
 
+    if await contact_already_enrolled_in_loyalty(
+        db, tenant.id, email=email_norm, phone=phone_norm
+    ):
+        raise BadRequestException(
+            "This email or phone number is already registered in our loyalty program."
+        )
+
     first_name, last_name = _split_name(name)
     customer_id = await resolve_customer_for_booking(
         db,
         tenant.id,
         customer_id=None,
         customer_name=name,
-        customer_email=email,
-        customer_phone=phone,
+        customer_email=email_norm,
+        customer_phone=phone_norm or None,
         channel="loyalty_program",
     )
     if not customer_id:
         raise BadRequestException("Could not create customer record")
+
+    if await is_loyalty_program_enrolled(db, tenant.id, customer_id):
+        raise BadRequestException(
+            "This email or phone number is already registered in our loyalty program."
+        )
 
     loyalty = await get_or_create_loyalty(db, tenant.id, customer_id)
     loyalty.tier_code = tier
@@ -623,8 +643,8 @@ async def submit_loyalty_enrollment(
     lead_data = LeadCreate(
         first_name=first_name,
         last_name=last_name,
-        email=email,
-        phone=phone,
+        email=email_norm,
+        phone=phone_norm or None,
         message=f"Joined loyalty program — selected {tier_name} tier",
         service_needed="loyalty",
         source="memberships_loyalty",
@@ -647,23 +667,20 @@ async def submit_loyalty_enrollment(
         points_balance = entry.balance_after
         awarded_bonus = True
     else:
+        await db.commit()
         loyalty_row = await get_customer_loyalty(db, tenant.id, customer_id)
         points_balance = loyalty_row.points_balance
 
-    if (email or "").strip():
-        try:
-            await send_loyalty_welcome_email(
-                to=email.strip(),
-                customer_name=first_name,
-                tenant_name=tenant.name or "Our business",
-                tier_name=tier_name,
-                signup_bonus_points=signup_bonus if awarded_bonus else 0,
-                points_balance=points_balance,
-                refer_win_url=refer_url_for_slug(tenant.slug),
-                memberships_url=memberships_public_url(tenant.slug),
-            )
-        except Exception:  # noqa: BLE001
-            logger.exception("Loyalty welcome email failed for %s", email)
+    portal = await ensure_portal_account(
+        db,
+        tenant_id=tenant.id,
+        customer_id=customer_id,
+        email=email_norm,
+        customer_name=first_name,
+        tier_code=tier,
+        source="loyalty_enroll",
+        award_signup_bonus=False,
+    )
 
     return {
         "message": "Welcome! You're enrolled in our loyalty program.",
@@ -671,6 +688,8 @@ async def submit_loyalty_enrollment(
         "tier_name": tier_name,
         "signup_bonus_points": signup_bonus if awarded_bonus else 0,
         "points_balance": points_balance,
+        "portal_account_created": portal.get("credentials_created", False),
+        "rewards_email_sent": portal.get("magic_link_sent", False),
     }
 
 

@@ -4,10 +4,12 @@ from __future__ import annotations
 
 import uuid
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.crm.models import Customer
+from app.modules.membership_rewards.customer_auth.credentials import get_credentials
+from app.modules.membership_rewards.engines.reward_rules import has_loyalty_signup_bonus
 from app.modules.membership_rewards.models import MrCustomerLoyalty, MrPointsLedger
 
 
@@ -80,3 +82,87 @@ async def count_members_with_points(db: AsyncSession, tenant_id: uuid.UUID) -> i
         ).scalar()
         or 0
     )
+
+
+async def find_customer_by_contact(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    *,
+    email: str | None,
+    phone: str | None,
+) -> Customer | None:
+    """Find an existing CRM customer by normalized email and/or phone."""
+    normalized_email = (email or "").strip().lower() or None
+    normalized_phone = (phone or "").strip() or None
+    if not normalized_email and not normalized_phone:
+        return None
+
+    clauses = []
+    if normalized_email:
+        clauses.append(func.lower(Customer.email) == normalized_email)
+    if normalized_phone:
+        clauses.append(Customer.phone == normalized_phone)
+
+    return (
+        await db.execute(
+            select(Customer).where(
+                Customer.tenant_id == tenant_id,
+                Customer.deleted_at.is_(None),
+                or_(*clauses),
+            )
+        )
+    ).scalar_one_or_none()
+
+
+async def contact_already_enrolled_in_loyalty(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    *,
+    email: str | None,
+    phone: str | None,
+) -> bool:
+    """Return True if any customer matching email or phone is already in the loyalty program."""
+    normalized_email = (email or "").strip().lower() or None
+    normalized_phone = (phone or "").strip() or None
+
+    if normalized_email:
+        matches = (
+            await db.execute(
+                select(Customer).where(
+                    Customer.tenant_id == tenant_id,
+                    Customer.deleted_at.is_(None),
+                    func.lower(Customer.email) == normalized_email,
+                )
+            )
+        ).scalars().all()
+        for customer in matches:
+            if await is_loyalty_program_enrolled(db, tenant_id, customer.id):
+                return True
+
+    if normalized_phone:
+        matches = (
+            await db.execute(
+                select(Customer).where(
+                    Customer.tenant_id == tenant_id,
+                    Customer.deleted_at.is_(None),
+                    Customer.phone == normalized_phone,
+                )
+            )
+        ).scalars().all()
+        for customer in matches:
+            if await is_loyalty_program_enrolled(db, tenant_id, customer.id):
+                return True
+
+    return False
+
+
+async def is_loyalty_program_enrolled(
+    db: AsyncSession, tenant_id: uuid.UUID, customer_id: uuid.UUID
+) -> bool:
+    """True if the customer already completed public loyalty tier enrollment."""
+    loyalty = await db.get(MrCustomerLoyalty, {"tenant_id": tenant_id, "customer_id": customer_id})
+    if loyalty and loyalty.tier_updated_at is not None:
+        return True
+    if await has_loyalty_signup_bonus(db, tenant_id, customer_id):
+        return True
+    return await get_credentials(db, tenant_id, customer_id) is not None

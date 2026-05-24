@@ -223,7 +223,7 @@ class MembershipInterestRequest(BaseModel):
 
 class LoyaltyEnrollRequest(BaseModel):
     name: str
-    email: str | None = None
+    email: str
     phone: str | None = None
     tier_code: str
 
@@ -234,6 +234,8 @@ class LoyaltyEnrollResponse(BaseModel):
     tier_name: str
     signup_bonus_points: int
     points_balance: int
+    portal_account_created: bool = False
+    rewards_email_sent: bool = False
 
 
 class CheckoutRequest(BaseModel):

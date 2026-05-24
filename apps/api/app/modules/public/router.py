@@ -8,6 +8,7 @@ from app.core.database import get_db, set_rls_context
 from app.core.exceptions import NotFoundException
 from app.core.middleware import limiter
 from app.modules.auth.schemas import MessageResponse
+from app.modules.membership_rewards.schemas import LoyaltyEnrollRequest
 from app.modules.tenants.models import Tenant
 
 router = APIRouter(prefix="/public", tags=["Public"])
@@ -328,15 +329,14 @@ async def submit_membership_interest(
 @limiter.limit("10/minute")
 async def submit_loyalty_enrollment(
     tenant_slug: str,
+    data: LoyaltyEnrollRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
 ):
     """Enroll in loyalty program from public /p/{tenant}/memberships page."""
-    from app.modules.membership_rewards.schemas import LoyaltyEnrollRequest, LoyaltyEnrollResponse
+    from app.modules.membership_rewards.schemas import LoyaltyEnrollResponse
     from app.modules.membership_rewards import service as mr_service
 
-    body = await request.json()
-    data = LoyaltyEnrollRequest(**body)
     ip = request.client.host if request.client else None
     result = await mr_service.submit_loyalty_enrollment(
         db,

@@ -30,9 +30,11 @@ export function LoyaltyTiersSection({
   const [phone, setPhone] = useState('')
   const [status, setStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [submittedEmail, setSubmittedEmail] = useState('')
   const [enrollResult, setEnrollResult] = useState<{
     signup_bonus_points: number
     points_balance: number
+    rewards_email_sent?: boolean
   } | null>(null)
 
   function closeModal() {
@@ -40,22 +42,26 @@ export function LoyaltyTiersSection({
     setStatus('idle')
     setErrorMessage(null)
     setEnrollResult(null)
+    setSubmittedEmail('')
   }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!selectedTier) return
     setStatus('loading')
+    setErrorMessage(null)
     try {
       const res = await membershipRewards.submitLoyaltyEnroll(tenantSlug, {
         name,
-        email: email || undefined,
-        phone: phone || undefined,
+        email: email.trim(),
+        phone: phone.trim() || undefined,
         tier_code: selectedTier.code,
       })
+      setSubmittedEmail(email.trim())
       setEnrollResult({
         signup_bonus_points: res.data.signup_bonus_points,
         points_balance: res.data.points_balance,
+        rewards_email_sent: res.data.rewards_email_sent,
       })
       setStatus('done')
       setName('')
@@ -118,8 +124,12 @@ export function LoyaltyTiersSection({
                   {enrollResult && enrollResult.signup_bonus_points > 0
                     ? ` with ${enrollResult.signup_bonus_points} membership points (${enrollResult.points_balance} total)`
                     : ''}
-                  {email.trim() ? ' and sent a welcome email with your balance, Refer & Win, and membership details' : ''}
-                  — start earning more on your next visit.
+                  {submittedEmail && enrollResult?.rewards_email_sent !== false
+                    ? `. Check ${submittedEmail} for your rewards wallet link, QR code, and login details`
+                    : submittedEmail
+                      ? `. We saved your details — ask staff for your rewards wallet link if you don't see an email shortly`
+                      : ''}
+                  . Start earning more on your next visit.
                 </p>
                 <button
                   type="button"
@@ -135,7 +145,7 @@ export function LoyaltyTiersSection({
                   Join {selectedTier.name} tier
                 </h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  Free to join. We&apos;ll save your details and add you to our loyalty leaderboard.
+                  Free to join. We&apos;ll create your rewards wallet and email you a login link with a QR code.
                 </p>
                 <form onSubmit={onSubmit} className="mt-4 space-y-3">
                   <input
@@ -147,18 +157,21 @@ export function LoyaltyTiersSection({
                   />
                   <input
                     type="email"
-                    placeholder="Email"
+                    required
+                    placeholder="Email *"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full rounded-lg border border-gray-300 bg-white text-gray-900 px-3 py-2 text-sm placeholder:text-gray-400"
                   />
                   <input
-                    placeholder="Phone"
+                    placeholder="Phone (optional)"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     className="w-full rounded-lg border border-gray-300 bg-white text-gray-900 px-3 py-2 text-sm placeholder:text-gray-400"
                   />
-                  <p className="text-xs text-gray-500">Provide email or phone so we can reach you.</p>
+                  <p className="text-xs text-gray-500">
+                    Email is required so we can send your rewards wallet link and prevent duplicate sign-ups.
+                  </p>
                   {status === 'error' && (
                     <p className="text-sm text-red-600">{errorMessage ?? 'Something went wrong. Please try again.'}</p>
                   )}
@@ -172,7 +185,7 @@ export function LoyaltyTiersSection({
                     </button>
                     <button
                       type="submit"
-                      disabled={status === 'loading' || (!email.trim() && !phone.trim())}
+                      disabled={status === 'loading' || !email.trim() || !name.trim()}
                       className="flex-1 rounded-lg bg-emerald-800 text-white font-semibold py-2.5 text-sm hover:bg-emerald-900 disabled:opacity-50"
                     >
                       {status === 'loading' ? 'Submitting…' : 'Submit'}
