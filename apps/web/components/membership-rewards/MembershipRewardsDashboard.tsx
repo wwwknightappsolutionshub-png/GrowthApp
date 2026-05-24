@@ -574,7 +574,15 @@ function SubscriptionsSection() {
 function RewardsCatalogSection() {
   const qc = useQueryClient()
   const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
   const [cost, setCost] = useState('')
+  const [stock, setStock] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editCost, setEditCost] = useState('')
+  const [editStock, setEditStock] = useState('')
+  const [editActive, setEditActive] = useState(true)
 
   const catalogQ = useQuery({
     queryKey: ['mr-catalog'],
@@ -586,35 +594,81 @@ function RewardsCatalogSection() {
     queryFn: async () => (await membershipRewards.listRedemptions({ limit: 30 })).data.items,
   })
 
+  const invalidate = () => {
+    void qc.invalidateQueries({ queryKey: ['mr-catalog'] })
+    void qc.invalidateQueries({ queryKey: ['mr-redemptions'] })
+  }
+
   const create = useMutation({
     mutationFn: () =>
       membershipRewards.createCatalogItem({
         name,
+        description: description.trim() || undefined,
         points_cost: parseInt(cost || '0', 10),
         reward_type: 'discount',
         is_active: true,
+        stock_remaining: stock.trim() === '' ? null : parseInt(stock, 10),
       }),
     onSuccess: () => {
       toast.success('Reward added')
       setName('')
+      setDescription('')
       setCost('')
-      qc.invalidateQueries({ queryKey: ['mr-catalog'] })
+      setStock('')
+      invalidate()
     },
     onError: () => toast.error('Could not add reward'),
   })
+
+  const update = useMutation({
+    mutationFn: (id: string) =>
+      membershipRewards.updateCatalogItem(id, {
+        name: editName,
+        description: editDescription.trim() || null,
+        points_cost: parseInt(editCost || '0', 10),
+        is_active: editActive,
+        stock_remaining: editStock.trim() === '' ? null : parseInt(editStock, 10),
+      }),
+    onSuccess: () => {
+      toast.success('Reward updated')
+      setEditingId(null)
+      invalidate()
+    },
+    onError: () => toast.error('Could not update reward'),
+  })
+
+  const remove = useMutation({
+    mutationFn: (id: string) => membershipRewards.deleteCatalogItem(id),
+    onSuccess: () => {
+      toast.success('Reward removed')
+      invalidate()
+    },
+    onError: () => toast.error('Could not remove reward'),
+  })
+
+  function startEdit(item: RewardCatalogItem) {
+    setEditingId(item.id)
+    setEditName(item.name)
+    setEditDescription(item.description ?? '')
+    setEditCost(String(item.points_cost))
+    setEditStock(item.stock_remaining != null ? String(item.stock_remaining) : '')
+    setEditActive(item.is_active)
+  }
 
   return (
     <div className="space-y-6">
       <Panel title="Rewards catalog">
         <form
-          className="grid gap-3 sm:grid-cols-3 items-end"
+          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 items-end"
           onSubmit={(e) => {
             e.preventDefault()
             create.mutate()
           }}
         >
           <Field label="Reward name" value={name} onChange={setName} placeholder="£10 off next visit" />
+          <Field label="Description" value={description} onChange={setDescription} placeholder="Optional details" />
           <Field label="Points cost" value={cost} onChange={setCost} placeholder="500" type="number" />
+          <Field label="Stock (optional)" value={stock} onChange={setStock} placeholder="Unlimited" type="number" />
           <button
             type="submit"
             disabled={create.isPending || !name.trim()}
@@ -627,10 +681,100 @@ function RewardsCatalogSection() {
           {(catalogQ.data ?? []).map((item: RewardCatalogItem) => (
             <li
               key={item.id}
-              className="flex justify-between rounded-lg border border-white/10 px-4 py-3 text-sm"
+              className="rounded-lg border border-white/10 px-4 py-3 text-sm space-y-2"
             >
-              <span className="text-white font-medium">{item.name}</span>
-              <span className="text-brand-teal-300">{item.points_cost} pts</span>
+              {editingId === item.id ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <input
+                    className="rounded border border-white/10 bg-brand-forest-950 px-2 py-1 text-white"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                  />
+                  <input
+                    className="rounded border border-white/10 bg-brand-forest-950 px-2 py-1 text-white"
+                    value={editCost}
+                    type="number"
+                    onChange={(e) => setEditCost(e.target.value)}
+                  />
+                  <input
+                    className="sm:col-span-2 rounded border border-white/10 bg-brand-forest-950 px-2 py-1 text-white"
+                    value={editDescription}
+                    placeholder="Description"
+                    onChange={(e) => setEditDescription(e.target.value)}
+                  />
+                  <input
+                    className="rounded border border-white/10 bg-brand-forest-950 px-2 py-1 text-white"
+                    value={editStock}
+                    type="number"
+                    placeholder="Stock (blank = unlimited)"
+                    onChange={(e) => setEditStock(e.target.value)}
+                  />
+                  <label className="flex items-center gap-2 text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={editActive}
+                      onChange={(e) => setEditActive(e.target.checked)}
+                    />
+                    Active
+                  </label>
+                  <div className="sm:col-span-2 flex gap-2">
+                    <button
+                      type="button"
+                      className="rounded bg-brand-teal-600 px-3 py-1 text-xs text-white"
+                      onClick={() => update.mutate(item.id)}
+                      disabled={update.isPending}
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded border border-white/15 px-3 py-1 text-xs text-slate-300"
+                      onClick={() => setEditingId(null)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <p className="text-white font-medium">
+                      {item.name}
+                      {!item.is_active ? (
+                        <span className="ml-2 text-xs text-slate-400">(inactive)</span>
+                      ) : null}
+                    </p>
+                    {item.description ? (
+                      <p className="text-xs text-slate-400 mt-0.5">{item.description}</p>
+                    ) : null}
+                    <p className="text-xs text-slate-500 mt-1">
+                      {item.points_cost} pts
+                      {item.stock_remaining != null ? ` · ${item.stock_remaining} left` : ''}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      className="text-xs text-brand-teal-300 hover:text-brand-teal-200"
+                      onClick={() => startEdit(item)}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      className="text-xs text-red-300 hover:text-red-200"
+                      onClick={() => {
+                        if (window.confirm(`Remove "${item.name}" from the catalog?`)) {
+                          remove.mutate(item.id)
+                        }
+                      }}
+                      disabled={remove.isPending}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              )}
             </li>
           ))}
           {!catalogQ.data?.length && <p className="text-sm text-slate-500">No rewards in catalog.</p>}

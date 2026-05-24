@@ -55,15 +55,15 @@ export default function RewardsCatalogPage({ params }: { params: { tenant: strin
   return (
     <LoyaltyAuthGate tenant={tenant}>
       <div className="space-y-3">
-        <h1 className="text-lg font-semibold">Rewards catalog</h1>
+        <h1 className="text-lg font-semibold text-brand">Rewards catalog</h1>
 
         {lastCode?.fulfillment_code ? (
-          <section className="card border-emerald-200 bg-emerald-50 text-center">
-            <p className="text-sm font-semibold text-emerald-900">Your redemption code</p>
-            <p className="mt-2 font-mono text-2xl font-bold tracking-widest text-emerald-800">
+          <section className="card card-accent text-center">
+            <p className="text-sm font-semibold text-brand">Your redemption code</p>
+            <p className="mt-2 font-mono text-2xl font-bold tracking-widest text-brand">
               {lastCode.fulfillment_code}
             </p>
-            <p className="mt-2 text-xs text-emerald-700">
+            <p className="mt-2 text-xs text-[hsl(var(--muted-foreground))]">
               Show this code to staff to collect {lastCode.reward_name ?? 'your reward'}.
               {lastCode.code_expires_at ? ` Valid until ${formatWhen(lastCode.code_expires_at)}.` : ''}
             </p>
@@ -72,12 +72,15 @@ export default function RewardsCatalogPage({ params }: { params: { tenant: strin
 
         {pending?.items.length ? (
           <section className="card space-y-2">
-            <h2 className="text-sm font-semibold">Pending in-store pickup</h2>
+            <h2 className="text-sm font-semibold text-brand">Pending in-store pickup</h2>
             {pending.items.map((item) => (
-              <div key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
-                <p className="font-medium">{item.reward_name}</p>
-                <p className="mt-1 font-mono text-lg tracking-wider">{item.fulfillment_code}</p>
-                <p className="mt-1 text-xs text-slate-500">
+              <div
+                key={item.id}
+                className="rounded-lg border border-[hsl(var(--brand-teal)/0.25)] bg-[hsl(var(--brand-teal)/0.06)] p-3 text-sm"
+              >
+                <p className="font-medium text-[hsl(var(--foreground))]">{item.reward_name}</p>
+                <p className="mt-1 font-mono text-lg tracking-wider text-brand">{item.fulfillment_code}</p>
+                <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
                   {item.points_spent} pts · expires {formatWhen(item.code_expires_at)}
                 </p>
               </div>
@@ -86,7 +89,7 @@ export default function RewardsCatalogPage({ params }: { params: { tenant: strin
         ) : null}
 
         {isLoading ? (
-          <p className="text-sm text-slate-500">Loading rewards…</p>
+          <p className="text-sm text-[hsl(var(--muted-foreground))]">Loading rewards…</p>
         ) : data?.items.length ? (
           data.items.map((item) => {
             const canAfford = (profile?.points_balance ?? 0) >= item.points_cost
@@ -94,11 +97,11 @@ export default function RewardsCatalogPage({ params }: { params: { tenant: strin
             return (
               <article key={item.id} className="card flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="font-semibold">{item.name}</h2>
+                  <h2 className="font-semibold text-brand">{item.name}</h2>
                   {item.description ? (
-                    <p className="mt-1 text-sm text-slate-600">{item.description}</p>
+                    <p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">{item.description}</p>
                   ) : null}
-                  <p className="mt-2 text-sm font-medium" style={{ color: 'var(--tenant-primary)' }}>
+                  <p className="mt-2 text-sm font-medium text-accent">
                     {item.points_cost.toLocaleString()} pts
                   </p>
                 </div>
@@ -114,7 +117,7 @@ export default function RewardsCatalogPage({ params }: { params: { tenant: strin
             )
           })
         ) : (
-          <p className="text-sm text-slate-500">No rewards available yet.</p>
+          <p className="text-sm text-[hsl(var(--muted-foreground))]">No rewards available yet.</p>
         )}
       </div>
     </LoyaltyAuthGate>

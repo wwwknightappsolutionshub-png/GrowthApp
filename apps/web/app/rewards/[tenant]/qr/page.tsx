@@ -22,15 +22,17 @@ export default function RewardsQrPage({ params }: { params: { tenant: string } }
   return (
     <LoyaltyAuthGate tenant={tenant}>
       <div className="space-y-4 text-center">
-        <h1 className="text-lg font-semibold">In-store QR</h1>
-        <p className="text-sm text-slate-600">Show this code to staff to identify your account.</p>
+        <h1 className="text-lg font-semibold text-brand">In-store QR</h1>
+        <p className="text-sm text-[hsl(var(--muted-foreground))]">
+          Show this code to staff to identify your account.
+        </p>
         {isLoading ? (
-          <p className="text-sm text-slate-500">Generating QR…</p>
+          <p className="text-sm text-[hsl(var(--muted-foreground))]">Generating QR…</p>
         ) : data ? (
-          <div className="card mx-auto inline-block p-6">
+          <div className="card card-accent mx-auto inline-block p-6">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={data.qr_data_url} alt="Loyalty QR code" className="mx-auto h-56 w-56" />
-            <p className="mt-3 text-xs text-slate-500">
+            <img src={data.qr_data_url} alt="Loyalty QR code" className="mx-auto h-56 w-56 rounded-lg" />
+            <p className="mt-3 text-xs text-[hsl(var(--muted-foreground))]">
               Refreshes automatically · expires {formatWhen(data.expires_at)}
             </p>
           </div>

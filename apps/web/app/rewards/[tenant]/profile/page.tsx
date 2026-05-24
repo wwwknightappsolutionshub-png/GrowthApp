@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { GoogleReviewCard } from '@/components/loyalty-portal/GoogleReviewCard'
 import { useLoyaltyBranding } from '@/components/loyalty-portal/LoyaltyBrandingProvider'
 import { LoyaltyAuthGate } from '@/components/loyalty-portal/LoyaltyAuthGate'
 import { loyaltyPortalCustomer } from '@/lib/api-client'
@@ -28,6 +29,10 @@ export default function RewardsProfilePage({ params }: { params: { tenant: strin
   const { data } = useQuery({
     queryKey: ['loyalty-me', tenant],
     queryFn: () => loyaltyPortalCustomer.me(tenant).then((r) => r.data),
+  })
+  const { data: upsell } = useQuery({
+    queryKey: ['loyalty-upsell', tenant],
+    queryFn: () => loyaltyPortalCustomer.upsell(tenant).then((r) => r.data),
   })
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -124,35 +129,35 @@ export default function RewardsProfilePage({ params }: { params: { tenant: strin
   return (
     <LoyaltyAuthGate tenant={tenant}>
       <div className="space-y-4">
-        <h1 className="text-lg font-semibold">Profile</h1>
+        <h1 className="text-lg font-semibold text-brand">Profile</h1>
         <section className="card space-y-1 text-sm">
           <p>
-            <span className="text-slate-500">Name</span>{' '}
+            <span className="text-[hsl(var(--muted-foreground))]">Name</span>{' '}
             <span className="font-medium">
               {data?.first_name} {data?.last_name ?? ''}
             </span>
           </p>
           {data?.email ? (
             <p>
-              <span className="text-slate-500">Email</span>{' '}
+              <span className="text-[hsl(var(--muted-foreground))]">Email</span>{' '}
               <span className="font-medium">{data.email}</span>
             </p>
           ) : null}
           {data?.phone ? (
             <p>
-              <span className="text-slate-500">Phone</span>{' '}
+              <span className="text-[hsl(var(--muted-foreground))]">Phone</span>{' '}
               <span className="font-medium">{data.phone}</span>
             </p>
           ) : null}
           <p>
-            <span className="text-slate-500">Business</span>{' '}
+            <span className="text-[hsl(var(--muted-foreground))]">Business</span>{' '}
             <span className="font-medium">{branding?.tenant_name}</span>
           </p>
         </section>
 
         <section className="card space-y-3">
           <h2 className="text-sm font-semibold">Birthday &amp; preferences</h2>
-          <label className="block text-xs text-slate-500">
+          <label className="block text-xs text-[hsl(var(--muted-foreground))]">
             Date of birth
             <input
               type="date"
@@ -169,7 +174,7 @@ export default function RewardsProfilePage({ params }: { params: { tenant: strin
           >
             Save birthday
           </button>
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-[hsl(var(--muted-foreground))]">
             Add your birthday to receive a yearly bonus points gift from {branding?.tenant_name}.
           </p>
 
@@ -199,10 +204,10 @@ export default function RewardsProfilePage({ params }: { params: { tenant: strin
               value: data?.expiring_points_reminders ?? true,
             },
           ].map((pref) => (
-            <div key={pref.key} className="flex items-center justify-between gap-3 border-t border-slate-100 pt-3">
+            <div key={pref.key} className="flex items-center justify-between gap-3 border-t border-[hsl(var(--border))] pt-3">
               <div>
                 <p className="text-sm font-medium">{pref.label}</p>
-                <p className="text-xs text-slate-500">{pref.hint}</p>
+                <p className="text-xs text-[hsl(var(--muted-foreground))]">{pref.hint}</p>
               </div>
               <button
                 type="button"
@@ -219,7 +224,7 @@ export default function RewardsProfilePage({ params }: { params: { tenant: strin
         <section className="card flex items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold">Push notifications</h2>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
               Get alerts for points, rewards, and tier upgrades.
             </p>
           </div>
@@ -259,6 +264,13 @@ export default function RewardsProfilePage({ params }: { params: { tenant: strin
               Save password
             </button>
           </section>
+        ) : null}
+
+        {upsell?.google_review_available && upsell.google_review_url ? (
+          <GoogleReviewCard
+            reviewUrl={upsell.google_review_url}
+            tenantName={branding?.tenant_name}
+          />
         ) : null}
 
         <button type="button" className="btn-secondary w-full" onClick={logout}>

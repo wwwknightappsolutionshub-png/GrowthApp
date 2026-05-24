@@ -36,6 +36,7 @@ from app.modules.membership_rewards.schemas import (
     PortalPreferencesResponse,
     PortalPreferencesUpdate,
     PortalQrResponse,
+    PortalUpsellResponse,
     PortalSetPasswordRequest,
     PushSubscribeRequest,
     PushSubscribeResponse,
@@ -57,6 +58,7 @@ from app.modules.membership_rewards.services.customer_preferences_service import
     preferences_payload,
     update_preferences,
 )
+from app.modules.membership_rewards.services.portal_upsell_service import build_portal_upsell
 
 router = APIRouter(prefix="/loyalty-portal", tags=["Loyalty Portal"])
 
@@ -125,6 +127,12 @@ async def portal_set_password(
 async def portal_me(ctx: CurrentCustomerContext, db: AsyncSession = Depends(get_db)):
     customer, tenant = ctx
     return await build_customer_profile(db, tenant, customer)
+
+
+@router.get("/me/upsell", response_model=PortalUpsellResponse)
+async def portal_upsell(ctx: CurrentCustomerContext, db: AsyncSession = Depends(get_db)):
+    customer, tenant = ctx
+    return await build_portal_upsell(db, tenant, customer)
 
 
 @router.get("/me/preferences", response_model=PortalPreferencesResponse)

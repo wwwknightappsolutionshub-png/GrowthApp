@@ -1,27 +1,113 @@
 .rewards-portal {
-  --tenant-primary: #2563eb;
-  --rewards-bg: #f8fafc;
-  --rewards-fg: #0f172a;
-  --rewards-card: #ffffff;
+  /* Tenant accent (overridden by LoyaltyBrandingProvider when loaded) */
+  --tenant-primary: #025422;
+  --wallet-primary: hsl(var(--brand-forest));
+  --wallet-primary-fg: hsl(var(--brand-forest-foreground));
+  --wallet-accent: hsl(var(--brand-teal));
+  --wallet-accent-fg: hsl(var(--brand-teal-foreground));
+  --wallet-bg: hsl(220 14% 97%);
+  --wallet-fg: hsl(var(--foreground));
+  --wallet-muted: hsl(var(--muted-foreground));
+  --wallet-card: hsl(var(--card));
+  --wallet-border: hsl(var(--border));
 }
 
 .rewards-portal .card {
-  @apply rounded-xl border border-slate-200 bg-white p-4 shadow-sm;
+  @apply rounded-xl border p-4 shadow-sm;
+  background-color: var(--wallet-card);
+  border-color: var(--wallet-border);
+}
+
+.rewards-portal .card-accent {
+  border-color: hsl(var(--brand-teal) / 0.35);
+  background: linear-gradient(
+    135deg,
+    hsl(var(--brand-forest) / 0.06) 0%,
+    hsl(var(--brand-teal) / 0.08) 100%
+  );
+}
+
+.rewards-portal .card-membership {
+  border-color: hsl(var(--brand-forest) / 0.25);
+  background: hsl(var(--brand-forest) / 0.06);
+}
+
+.rewards-portal .card-review {
+  border-color: hsl(var(--brand-teal) / 0.4);
+  background: hsl(var(--brand-teal) / 0.08);
 }
 
 .rewards-portal .btn-primary {
-  @apply inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-opacity disabled:opacity-50;
-  background-color: var(--tenant-primary);
+  @apply inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-opacity disabled:opacity-50;
+  background-color: var(--wallet-primary);
+  color: var(--wallet-primary-fg);
+}
+
+.rewards-portal .btn-primary:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+
+.rewards-portal .btn-accent {
+  @apply inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-opacity disabled:opacity-50;
+  background-color: var(--wallet-accent);
+  color: var(--wallet-accent-fg);
 }
 
 .rewards-portal .btn-secondary {
-  @apply inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition-opacity disabled:opacity-50;
+  @apply inline-flex items-center justify-center rounded-lg border px-4 py-2.5 text-sm font-semibold transition-opacity disabled:opacity-50;
+  border-color: var(--wallet-border);
+  background-color: var(--wallet-card);
+  color: hsl(var(--foreground));
+}
+
+.rewards-portal .btn-secondary:hover:not(:disabled) {
+  background-color: hsl(var(--muted));
 }
 
 .rewards-portal .input {
-  @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2;
+  @apply w-full rounded-lg border px-3 py-2.5 text-sm outline-none focus:ring-2;
+  border-color: var(--wallet-border);
+  background-color: var(--wallet-card);
+  color: hsl(var(--foreground));
 }
 
 .rewards-portal .input:focus {
-  border-color: var(--tenant-primary);
+  border-color: var(--wallet-accent);
+  --tw-ring-color: hsl(var(--brand-teal) / 0.35);
+}
+
+.rewards-portal .wallet-header {
+  background: linear-gradient(
+    135deg,
+    hsl(var(--brand-forest)) 0%,
+    hsl(141 70% 22%) 55%,
+    hsl(165 45% 28%) 100%
+  );
+  color: hsl(var(--brand-forest-foreground));
+  border-bottom: none;
+}
+
+.rewards-portal .wallet-nav {
+  border-color: var(--wallet-border);
+  background-color: hsl(var(--card) / 0.98);
+}
+
+.rewards-portal .wallet-nav-link-active {
+  color: hsl(var(--brand-forest));
+}
+
+.rewards-portal .wallet-nav-link-active svg {
+  color: hsl(var(--brand-teal));
+}
+
+.rewards-portal .text-brand {
+  color: hsl(var(--brand-forest));
+}
+
+.rewards-portal .text-accent {
+  color: hsl(var(--brand-teal));
+}
+
+.rewards-portal .progress-fill {
+  background: linear-gradient(90deg, hsl(var(--brand-forest)), hsl(var(--brand-teal)));
 }

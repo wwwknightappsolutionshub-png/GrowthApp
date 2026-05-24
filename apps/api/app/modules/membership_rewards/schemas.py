@@ -137,6 +137,16 @@ class CatalogItemCreate(BaseModel):
     stock_remaining: int | None = None
 
 
+class CatalogItemUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    points_cost: int | None = None
+    reward_type: str | None = None
+    config: dict | None = None
+    is_active: bool | None = None
+    stock_remaining: int | None = None
+
+
 class CatalogItemResponse(BaseModel):
     id: uuid.UUID
     name: str
@@ -504,3 +514,35 @@ class RedemptionFulfillResponse(BaseModel):
     customer_name: str | None = None
     points_spent: int
     message: str
+
+
+class PortalSubscriptionSummary(BaseModel):
+    plan_id: str
+    plan_name: str
+    plan_description: str | None = None
+    billing_cycle: str
+    price_pence: int
+    discount_percent: int = 0
+    benefits: list[str] = Field(default_factory=list)
+    status: str
+    current_period_end: str | None = None
+
+
+class PortalTargetedOffer(BaseModel):
+    type: str
+    title: str
+    body: str
+    cta_label: str
+    cta_url: str
+
+
+class PortalUpsellResponse(BaseModel):
+    memberships_url: str
+    refer_win_url: str
+    booking_url: str
+    google_review_url: str | None = None
+    google_review_available: bool = False
+    has_membership_plans: bool = False
+    active_subscription: PortalSubscriptionSummary | None = None
+    targeted_offers: list[PortalTargetedOffer] = Field(default_factory=list)
+    affordable_rewards_count: int = 0

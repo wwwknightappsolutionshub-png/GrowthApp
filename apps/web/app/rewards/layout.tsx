@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#2563EB',
+  themeColor: '#025422',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -18,7 +18,7 @@ export const viewport: Viewport = {
 
 export default function RewardsRootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rewards-portal min-h-dvh bg-slate-50 text-slate-900">
+    <div className="rewards-portal surface-light min-h-dvh bg-[hsl(220_14%_97%)] text-[hsl(var(--foreground))]">
       {children}
       <LoyaltyPWASetup />
     </div>

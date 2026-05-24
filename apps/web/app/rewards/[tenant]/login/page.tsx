@@ -48,13 +48,13 @@ export default function RewardsLoginPage({ params }: { params: { tenant: string 
   }
 
   if (isLoading) {
-    return <p className="text-sm text-slate-500">Loading…</p>
+    return <p className="text-sm text-[hsl(var(--muted-foreground))]">Loading…</p>
   }
 
   if (!branding?.loyalty_enabled) {
     return (
       <div className="card">
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-[hsl(var(--muted-foreground))]">
           Rewards are not available for {branding?.tenant_name ?? 'this business'} yet.
         </p>
       </div>
@@ -64,9 +64,9 @@ export default function RewardsLoginPage({ params }: { params: { tenant: string 
   return (
     <div className="mx-auto max-w-sm space-y-4 pt-8">
       <div className="text-center">
-        <h1 className="text-xl font-bold">{branding.tenant_name}</h1>
-        <p className="mt-1 text-sm text-slate-600">Sign in to your rewards wallet</p>
-        <p className="mt-2 text-xs text-slate-500">
+        <h1 className="text-xl font-bold text-brand">{branding.tenant_name}</h1>
+        <p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">Sign in to your rewards wallet</p>
+        <p className="mt-2 text-xs text-[hsl(var(--muted-foreground))]">
           Use the magic link from your welcome email, or request a new one below.
         </p>
       </div>
@@ -114,7 +114,7 @@ export default function RewardsLoginPage({ params }: { params: { tenant: string 
 
         <button
           type="button"
-          className="w-full text-center text-xs text-slate-500 underline"
+          className="w-full text-center text-xs text-[hsl(var(--muted-foreground))] underline"
           onClick={() => setMode(mode === 'magic' ? 'password' : 'magic')}
         >
           {mode === 'magic' ? 'Use password instead' : 'Use magic link instead'}

@@ -362,6 +362,53 @@ async def create_catalog_item(
     return row
 
 
+async def _get_catalog_item(
+    db: AsyncSession, tenant_id: uuid.UUID, item_id: uuid.UUID
+) -> MrRewardCatalog:
+    row = (
+        await db.execute(
+            select(MrRewardCatalog).where(
+                MrRewardCatalog.id == item_id,
+                MrRewardCatalog.tenant_id == tenant_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if not row:
+        raise NotFoundException("Reward catalog item not found")
+    return row
+
+
+async def update_catalog_item(
+    db: AsyncSession, tenant_id: uuid.UUID, item_id: uuid.UUID, data
+) -> MrRewardCatalog:
+    row = await _get_catalog_item(db, tenant_id, item_id)
+    for field, value in data.model_dump(exclude_none=True).items():
+        setattr(row, field, value)
+    await db.commit()
+    await db.refresh(row)
+    return row
+
+
+async def delete_catalog_item(db: AsyncSession, tenant_id: uuid.UUID, item_id: uuid.UUID) -> None:
+    from app.modules.membership_rewards.models import MrRewardRedemption
+
+    row = await _get_catalog_item(db, tenant_id, item_id)
+    has_redemptions = (
+        await db.execute(
+            select(MrRewardRedemption.id).where(
+                MrRewardRedemption.catalog_item_id == item_id,
+                MrRewardRedemption.tenant_id == tenant_id,
+            ).limit(1)
+        )
+    ).scalar_one_or_none()
+    if has_redemptions:
+        row.is_active = False
+        await db.commit()
+        return
+    await db.delete(row)
+    await db.commit()
+
+
 # ── Landing (public) ─────────────────────────────────────────────────────────
 
 

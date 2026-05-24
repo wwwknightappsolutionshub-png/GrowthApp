@@ -821,6 +821,9 @@ export const membershipRewards = {
   listCatalog: () => apiClient.get<{ items: RewardCatalogItem[] }>('/membership-rewards/catalog'),
   createCatalogItem: (data: object) =>
     apiClient.post<RewardCatalogItem>('/membership-rewards/catalog', data),
+  updateCatalogItem: (id: string, data: object) =>
+    apiClient.patch<RewardCatalogItem>(`/membership-rewards/catalog/${id}`, data),
+  deleteCatalogItem: (id: string) => apiClient.delete(`/membership-rewards/catalog/${id}`),
   customerLoyalty: (customerId: string) =>
     apiClient.get<{
       customer_id: string
@@ -959,6 +962,34 @@ export type LoyaltyPortalPreferences = {
   expiring_points_reminders: boolean
 }
 
+export type LoyaltyPortalUpsell = {
+  memberships_url: string
+  refer_win_url: string
+  booking_url: string
+  google_review_url: string | null
+  google_review_available: boolean
+  has_membership_plans: boolean
+  active_subscription: {
+    plan_id: string
+    plan_name: string
+    plan_description: string | null
+    billing_cycle: string
+    price_pence: number
+    discount_percent: number
+    benefits: string[]
+    status: string
+    current_period_end: string | null
+  } | null
+  targeted_offers: {
+    type: string
+    title: string
+    body: string
+    cta_label: string
+    cta_url: string
+  }[]
+  affordable_rewards_count: number
+}
+
 export type LoyaltyRewardItem = {
   id: string
   name: string
@@ -1024,6 +1055,11 @@ export const loyaltyPortalCustomer = {
 
   me: (tenant: string) =>
     publicApiClient.get<LoyaltyPortalProfile>('/loyalty-portal/me', {
+      headers: loyaltyAuthHeaders(tenant),
+    }),
+
+  upsell: (tenant: string) =>
+    publicApiClient.get<LoyaltyPortalUpsell>('/loyalty-portal/me/upsell', {
       headers: loyaltyAuthHeaders(tenant),
     }),
 

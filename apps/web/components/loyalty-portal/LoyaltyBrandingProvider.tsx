@@ -20,9 +20,9 @@ export function LoyaltyBrandingProvider({ tenant, children }: { tenant: string; 
   })
 
   useEffect(() => {
-    if (data?.primary_color) {
-      document.documentElement.style.setProperty('--tenant-primary', data.primary_color)
-    }
+    const primary = data?.primary_color || '#025422'
+    document.documentElement.style.setProperty('--tenant-primary', primary)
+    /* Keep global wallet buttons on brand forest; tenant color accents progress/UI */
   }, [data?.primary_color])
 
   const value = useMemo(

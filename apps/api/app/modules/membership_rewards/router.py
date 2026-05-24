@@ -13,6 +13,7 @@ from app.modules.membership_rewards.schemas import (
     AnalyticsResponse,
     CatalogItemCreate,
     CatalogItemResponse,
+    CatalogItemUpdate,
     CatalogListResponse,
     CustomerLoyaltyResponse,
     EarnRulesUpdate,
@@ -303,6 +304,35 @@ async def create_catalog_item(
 ):
     _, tenant, _ = ctx
     return await service.create_catalog_item(db, tenant.id, data)
+
+
+@router.patch(
+    "/catalog/{item_id}",
+    response_model=CatalogItemResponse,
+    dependencies=[Depends(require_membership_rewards)],
+)
+async def update_catalog_item(
+    item_id: uuid.UUID,
+    data: CatalogItemUpdate,
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+):
+    _, tenant, _ = ctx
+    return await service.update_catalog_item(db, tenant.id, item_id, data)
+
+
+@router.delete(
+    "/catalog/{item_id}",
+    status_code=204,
+    dependencies=[Depends(require_membership_rewards)],
+)
+async def delete_catalog_item(
+    item_id: uuid.UUID,
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+):
+    _, tenant, _ = ctx
+    await service.delete_catalog_item(db, tenant.id, item_id)
 
 
 @router.get(

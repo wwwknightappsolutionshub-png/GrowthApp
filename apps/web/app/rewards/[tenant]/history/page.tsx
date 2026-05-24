@@ -24,9 +24,9 @@ export default function RewardsHistoryPage({ params }: { params: { tenant: strin
   return (
     <LoyaltyAuthGate tenant={tenant}>
       <div className="space-y-3">
-        <h1 className="text-lg font-semibold">Points history</h1>
+        <h1 className="text-lg font-semibold text-brand">Points history</h1>
         {isLoading ? (
-          <p className="text-sm text-slate-500">Loading history…</p>
+          <p className="text-sm text-[hsl(var(--muted-foreground))]">Loading history…</p>
         ) : data?.items.length ? (
           <ul className="space-y-2">
             {data.items.map((entry) => (
@@ -35,27 +35,27 @@ export default function RewardsHistoryPage({ params }: { params: { tenant: strin
                   <p className="text-sm font-medium">
                     {entry.description ?? entry.source.replace(/_/g, ' ')}
                   </p>
-                  <p className="text-xs text-slate-500">{formatWhen(entry.created_at)}</p>
+                  <p className="text-xs text-[hsl(var(--muted-foreground))]">{formatWhen(entry.created_at)}</p>
                   {entry.expires_at ? (
-                    <p className="text-xs text-amber-600">Expires {formatWhen(entry.expires_at)}</p>
+                    <p className="text-xs text-[hsl(var(--warning))]">Expires {formatWhen(entry.expires_at)}</p>
                   ) : null}
                 </div>
                 <div className="text-right">
                   <p
                     className={`text-sm font-semibold tabular-nums ${
-                      entry.amount >= 0 ? 'text-emerald-600' : 'text-red-600'
+                      entry.amount >= 0 ? 'text-[hsl(var(--success))]' : 'text-[hsl(var(--destructive))]'
                     }`}
                   >
                     {entry.amount >= 0 ? '+' : ''}
                     {entry.amount}
                   </p>
-                  <p className="text-xs text-slate-500">Bal {entry.balance_after}</p>
+                  <p className="text-xs text-[hsl(var(--muted-foreground))]">Bal {entry.balance_after}</p>
                 </div>
               </li>
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-slate-500">No activity yet.</p>
+          <p className="text-sm text-[hsl(var(--muted-foreground))]">No activity yet.</p>
         )}
       </div>
     </LoyaltyAuthGate>
