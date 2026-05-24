@@ -862,7 +862,7 @@ export const membershipRewards = {
     send_email?: boolean
     path?: string
   }) =>
-    apiClient.post<{ customers: number; push_sent: number; email_sent: number }>(
+    apiClient.post<{ customers: number; push_sent: number; in_app_sent: number; email_sent: number }>(
       '/membership-rewards/customers/broadcast',
       data,
     ),
