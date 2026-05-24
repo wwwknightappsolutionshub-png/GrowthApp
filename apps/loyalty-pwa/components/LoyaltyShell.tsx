@@ -2,13 +2,14 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Gift, History, Home, QrCode, User } from 'lucide-react'
+import { Gift, History, Home, QrCode, User, Users } from 'lucide-react'
 import clsx from 'clsx'
 import { useBranding } from '@/components/BrandingProvider'
 
 const NAV = [
   { href: 'dashboard', label: 'Home', icon: Home },
   { href: 'rewards', label: 'Rewards', icon: Gift },
+  { href: 'refer', label: 'Refer', icon: Users },
   { href: 'history', label: 'History', icon: History },
   { href: 'qr', label: 'QR', icon: QrCode },
   { href: 'profile', label: 'Profile', icon: User },
@@ -21,22 +22,23 @@ export function LoyaltyShell({ tenant, children }: { tenant: string; children: R
 
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col">
-      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur">
+      <header className="wallet-header sticky top-0 z-10 px-4 py-3 backdrop-blur">
         <div className="flex items-center gap-3">
           {branding?.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={branding.logo_url} alt="" className="h-8 w-8 rounded-full object-cover" />
+            <img
+              src={branding.logo_url}
+              alt=""
+              className="h-9 w-9 rounded-full border-2 border-white/30 object-cover"
+            />
           ) : (
-            <div
-              className="flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold text-white"
-              style={{ backgroundColor: 'var(--tenant-primary)' }}
-            >
+            <div className="flex h-9 w-9 items-center justify-center rounded-full border border-white/25 bg-white/15 text-sm font-bold text-white">
               {(branding?.tenant_name ?? tenant).slice(0, 1).toUpperCase()}
             </div>
           )}
           <div>
-            <p className="text-sm font-semibold">{branding?.tenant_name ?? 'Rewards'}</p>
-            <p className="text-xs text-slate-500">Member wallet</p>
+            <p className="text-sm font-semibold text-white">{branding?.tenant_name ?? 'Rewards'}</p>
+            <p className="text-xs text-white/75">Member wallet</p>
           </div>
         </div>
       </header>
@@ -44,8 +46,8 @@ export function LoyaltyShell({ tenant, children }: { tenant: string; children: R
       <main className="flex-1 px-4 py-4 pb-24">{children}</main>
 
       {!hideNav ? (
-        <nav className="fixed bottom-0 left-0 right-0 z-10 border-t border-slate-200 bg-white">
-          <div className="mx-auto flex max-w-lg justify-around px-2 py-2">
+        <nav className="wallet-nav fixed bottom-0 left-0 right-0 z-10 border-t backdrop-blur">
+          <div className="mx-auto flex max-w-lg justify-around px-1 py-2">
             {NAV.map(({ href, label, icon: Icon }) => {
               const path = `/${tenant}/${href}`
               const active = pathname === path || pathname.startsWith(`${path}/`)
@@ -54,8 +56,8 @@ export function LoyaltyShell({ tenant, children }: { tenant: string; children: R
                   key={href}
                   href={path}
                   className={clsx(
-                    'flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-[10px] font-medium',
-                    active ? 'text-[var(--tenant-primary)]' : 'text-slate-500',
+                    'flex flex-col items-center gap-0.5 rounded-lg px-1.5 py-1.5 text-[10px] font-medium transition-colors',
+                    active ? 'wallet-nav-link-active' : 'text-muted',
                   )}
                 >
                   <Icon className="h-5 w-5" />

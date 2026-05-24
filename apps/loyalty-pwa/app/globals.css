@@ -3,11 +3,14 @@
 @tailwind utilities;
 
 :root {
-  --tenant-primary: #2563eb;
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --tenant-primary: #025422;
+  --brand-forest: #025422;
+  --brand-teal: #20ccce;
+  --background: #f5f7fa;
+  --foreground: #111827;
   --card: #ffffff;
-  --muted: #64748b;
+  --muted: #6b7280;
+  --border: #e5e7eb;
 }
 
 body {
@@ -16,18 +19,77 @@ body {
 }
 
 .card {
-  @apply rounded-xl border border-slate-200 bg-[var(--card)] p-4 shadow-sm;
+  @apply rounded-xl border bg-[var(--card)] p-4 shadow-sm;
+  border-color: var(--border);
+}
+
+.card-accent {
+  border-color: color-mix(in srgb, var(--brand-teal) 35%, white);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand-forest) 6%, white), color-mix(in srgb, var(--brand-teal) 8%, white));
+}
+
+.card-review {
+  border-color: color-mix(in srgb, var(--brand-teal) 40%, white);
+  background: color-mix(in srgb, var(--brand-teal) 8%, white);
 }
 
 .btn-primary {
   @apply inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-opacity disabled:opacity-50;
-  background-color: var(--tenant-primary);
+  background-color: var(--brand-forest);
+}
+
+.btn-accent {
+  @apply inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition-opacity disabled:opacity-50;
+  background-color: var(--brand-teal);
+  color: #0a2e2e;
 }
 
 .btn-secondary {
-  @apply inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800;
+  @apply inline-flex items-center justify-center rounded-lg border bg-white px-4 py-2.5 text-sm font-semibold;
+  border-color: var(--border);
+  color: var(--foreground);
 }
 
 .input {
-  @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[var(--tenant-primary)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--tenant-primary)_25%,transparent)];
+  @apply w-full rounded-lg border bg-white px-3 py-2.5 text-sm outline-none focus:ring-2;
+  border-color: var(--border);
+}
+
+.input:focus {
+  border-color: var(--brand-teal);
+  --tw-ring-color: color-mix(in srgb, var(--brand-teal) 35%, transparent);
+}
+
+.text-brand {
+  color: var(--brand-forest);
+}
+
+.text-accent {
+  color: var(--brand-teal);
+}
+
+.text-muted {
+  color: var(--muted);
+}
+
+.wallet-header {
+  background: linear-gradient(135deg, #025422 0%, #0d6b38 55%, #1a7a6d 100%);
+  color: white;
+}
+
+.wallet-nav {
+  border-color: var(--border);
+  background-color: rgba(255, 255, 255, 0.98);
+}
+
+.wallet-nav-link-active {
+  color: var(--brand-forest);
+}
+
+.wallet-nav-link-active svg {
+  color: var(--brand-teal);
+}
+
+.progress-fill {
+  background: linear-gradient(90deg, var(--brand-forest), var(--brand-teal));
 }

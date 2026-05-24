@@ -546,3 +546,23 @@ class PortalUpsellResponse(BaseModel):
     active_subscription: PortalSubscriptionSummary | None = None
     targeted_offers: list[PortalTargetedOffer] = Field(default_factory=list)
     affordable_rewards_count: int = 0
+
+
+class CustomerBroadcastRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=120)
+    body: str = Field(..., min_length=1, max_length=2000)
+    send_push: bool = True
+    send_email: bool = False
+    path: str = "dashboard"
+
+
+class CustomerBroadcastPreviewResponse(BaseModel):
+    customers: int
+    push_subscribers: int
+    email_opted_in: int
+
+
+class CustomerBroadcastResponse(BaseModel):
+    customers: int
+    push_sent: int
+    email_sent: int

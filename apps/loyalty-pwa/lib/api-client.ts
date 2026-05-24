@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import axios, { type AxiosInstance } from 'axios'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? ''
@@ -24,12 +25,43 @@ export type CustomerProfile = {
   phone: string | null
   points_balance: number
   points_lifetime: number
+  points_earned: number
+  points_redeemed: number
+  points_expiring_soon: number
+  pending_redemptions: number
   tier_code: string
   tier_name: string
   tier_benefits: unknown[]
+  next_tier_name: string | null
+  points_to_next_tier: number
+  tier_progress_percent: number
   must_change_password: boolean
+  push_notifications_enabled: boolean
+  date_of_birth: string | null
+  marketing_email: boolean
+  marketing_sms: boolean
+  birthday_participation: boolean
+  expiring_points_reminders: boolean
   tenant_slug: string
   tenant_name: string
+}
+
+export type PortalUpsell = {
+  memberships_url: string
+  refer_win_url: string
+  booking_url: string
+  google_review_url: string | null
+  google_review_available: boolean
+  has_membership_plans: boolean
+  active_subscription: {
+    plan_name: string
+    plan_description: string | null
+    price_pence: number
+    billing_cycle: string
+    current_period_end: string | null
+    benefits: string[]
+  } | null
+  targeted_offers: Array<{ type: string; title: string; body: string; cta_label: string; cta_url: string }>
 }
 
 export type RewardItem = {
@@ -41,6 +73,14 @@ export type RewardItem = {
   stock_remaining: number | null
 }
 
+export type PendingRedemption = {
+  id: string
+  reward_name: string
+  fulfillment_code: string
+  points_spent: number
+  code_expires_at: string | null
+}
+
 export type LedgerEntry = {
   id: string
   amount: number
@@ -48,6 +88,7 @@ export type LedgerEntry = {
   source: string
   description: string | null
   created_at: string
+  expires_at?: string | null
 }
 
 function authHeaders(tenant: string) {
@@ -85,13 +126,37 @@ export const loyaltyPortal = {
   me: (tenant: string) =>
     api.get<CustomerProfile>('/loyalty-portal/me', { headers: authHeaders(tenant) }),
 
+  upsell: (tenant: string) =>
+    api.get<PortalUpsell>('/loyalty-portal/me/upsell', { headers: authHeaders(tenant) }),
+
+  updatePreferences: (
+    tenant: string,
+    data: Partial<{
+      date_of_birth: string | null
+      marketing_email: boolean
+      marketing_sms: boolean
+      birthday_participation: boolean
+      expiring_points_reminders: boolean
+    }>,
+  ) =>
+    api.patch('/loyalty-portal/me/preferences', data, { headers: authHeaders(tenant) }),
+
   rewards: (tenant: string) =>
     api.get<{ items: RewardItem[] }>('/loyalty-portal/rewards', {
       headers: authHeaders(tenant),
     }),
 
   redeem: (tenant: string, rewardId: string) =>
-    api.post(`/loyalty-portal/rewards/${rewardId}/redeem`, {}, { headers: authHeaders(tenant) }),
+    api.post<{
+      reward_name?: string
+      fulfillment_code?: string
+      code_expires_at?: string
+    }>(`/loyalty-portal/rewards/${rewardId}/redeem`, {}, { headers: authHeaders(tenant) }),
+
+  pendingRedemptions: (tenant: string) =>
+    api.get<{ items: PendingRedemption[] }>('/loyalty-portal/redemptions/pending', {
+      headers: authHeaders(tenant),
+    }),
 
   history: (tenant: string, limit = 50) =>
     api.get<{ items: LedgerEntry[]; has_more: boolean }>('/loyalty-portal/history', {
@@ -104,9 +169,15 @@ export const loyaltyPortal = {
       headers: authHeaders(tenant),
     }),
 
+  pushPublicKey: () =>
+    api.get<{ public_key: string; configured: boolean }>('/notifications/push/public-key'),
+
   pushSubscribe: (
     tenant: string,
     subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
   ) =>
     api.post('/loyalty-portal/push/subscribe', subscription, { headers: authHeaders(tenant) }),
+
+  pushUnsubscribe: (tenant: string) =>
+    api.post('/loyalty-portal/push/unsubscribe', {}, { headers: authHeaders(tenant) }),
 }

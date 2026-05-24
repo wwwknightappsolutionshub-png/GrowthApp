@@ -25,6 +25,7 @@ import { LoyaltyTiersEditor } from '@/components/membership-rewards/LoyaltyTiers
 import { MembershipAnalyticsSection } from '@/components/membership-rewards/MembershipAnalyticsSection'
 import { MembershipCustomersSection } from '@/components/membership-rewards/MembershipCustomersSection'
 import { MembershipTrialBanner } from '@/components/membership-rewards/MembershipTrialBanner'
+import { CustomerBroadcastSection } from '@/components/membership-rewards/CustomerBroadcastSection'
 import { MembershipTrialModal } from '@/components/membership-rewards/MembershipTrialModal'
 import { ModuleCardGrid, type ModuleCardItem } from '@/components/modules/ModuleCardGrid'
 import {
@@ -201,6 +202,7 @@ export function MembershipRewardsDashboard() {
               View public memberships page <ExternalLink className="w-4 h-4" />
             </a>
           )}
+          <CustomerBroadcastSection />
           <ModuleCardGrid items={moduleCards} />
         </>
       )}

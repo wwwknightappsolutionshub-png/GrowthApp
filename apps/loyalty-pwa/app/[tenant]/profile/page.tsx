@@ -1,13 +1,23 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useBranding } from '@/components/BrandingProvider'
+import { GoogleReviewCard } from '@/components/GoogleReviewCard'
 import { AuthGate } from '@/components/AuthGate'
 import { clearToken } from '@/lib/auth'
 import { loyaltyPortal } from '@/lib/api-client'
+
+function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = window.atob(base64)
+  const outputArray = new Uint8Array(rawData.length)
+  for (let i = 0; i < rawData.length; i += 1) outputArray[i] = rawData.charCodeAt(i)
+  return outputArray.buffer as ArrayBuffer
+}
 
 export default function ProfilePage({ params }: { params: { tenant: string } }) {
   const tenant = params.tenant
@@ -18,8 +28,24 @@ export default function ProfilePage({ params }: { params: { tenant: string } }) 
     queryKey: ['loyalty-me', tenant],
     queryFn: () => loyaltyPortal.me(tenant).then((r) => r.data),
   })
+  const { data: upsell } = useQuery({
+    queryKey: ['loyalty-upsell', tenant],
+    queryFn: () => loyaltyPortal.upsell(tenant).then((r) => r.data),
+  })
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
+  const [dob, setDob] = useState('')
+  const [pushBusy, setPushBusy] = useState(false)
+
+  const savePrefs = useMutation({
+    mutationFn: (payload: Parameters<typeof loyaltyPortal.updatePreferences>[1]) =>
+      loyaltyPortal.updatePreferences(tenant, payload),
+    onSuccess: () => {
+      toast.success('Preferences saved')
+      void qc.invalidateQueries({ queryKey: ['loyalty-me', tenant] })
+    },
+    onError: () => toast.error('Could not save preferences'),
+  })
 
   const setPw = useMutation({
     mutationFn: () => loyaltyPortal.setPassword(tenant, password),
@@ -32,6 +58,55 @@ export default function ProfilePage({ params }: { params: { tenant: string } }) 
     onError: () => toast.error('Could not update password'),
   })
 
+  async function togglePush(enabled: boolean) {
+    setPushBusy(true)
+    try {
+      if (!enabled) {
+        await loyaltyPortal.pushUnsubscribe(tenant)
+        toast.success('Push notifications disabled')
+        void qc.invalidateQueries({ queryKey: ['loyalty-me', tenant] })
+        return
+      }
+      if (!('Notification' in window) || !('PushManager' in window) || !('serviceWorker' in navigator)) {
+        toast.error('Push notifications are not supported on this device')
+        return
+      }
+      const keyRes = await loyaltyPortal.pushPublicKey()
+      if (!keyRes.data.configured || !keyRes.data.public_key) {
+        toast.error('Push alerts are not configured on this server yet')
+        return
+      }
+      const permission = await window.Notification.requestPermission()
+      if (permission !== 'granted') {
+        toast.error('Notification permission was denied')
+        return
+      }
+      const registration = await navigator.serviceWorker.register('/rewards/sw.js')
+      await navigator.serviceWorker.ready
+      const subscription =
+        (await registration.pushManager.getSubscription()) ||
+        (await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToArrayBuffer(keyRes.data.public_key),
+        }))
+      const json = subscription.toJSON()
+      await loyaltyPortal.pushSubscribe(tenant, {
+        endpoint: json.endpoint || subscription.endpoint,
+        keys: { p256dh: json.keys?.p256dh || '', auth: json.keys?.auth || '' },
+      })
+      toast.success('Push notifications enabled')
+      void qc.invalidateQueries({ queryKey: ['loyalty-me', tenant] })
+    } catch {
+      toast.error('Could not update push notification settings')
+    } finally {
+      setPushBusy(false)
+    }
+  }
+
+  useEffect(() => {
+    if (data?.date_of_birth) setDob(data.date_of_birth.slice(0, 10))
+  }, [data?.date_of_birth])
+
   function logout() {
     clearToken(tenant)
     router.replace(`/${tenant}/login`)
@@ -40,57 +115,65 @@ export default function ProfilePage({ params }: { params: { tenant: string } }) 
   return (
     <AuthGate tenant={tenant}>
       <div className="space-y-4">
-        <h1 className="text-lg font-semibold">Profile</h1>
+        <h1 className="text-lg font-semibold text-brand">Profile</h1>
+
         <section className="card space-y-1 text-sm">
-          <p>
-            <span className="text-slate-500">Name</span>{' '}
-            <span className="font-medium">
-              {data?.first_name} {data?.last_name ?? ''}
-            </span>
-          </p>
-          {data?.email ? (
-            <p>
-              <span className="text-slate-500">Email</span>{' '}
-              <span className="font-medium">{data.email}</span>
-            </p>
-          ) : null}
-          <p>
-            <span className="text-slate-500">Business</span>{' '}
-            <span className="font-medium">{branding?.tenant_name}</span>
-          </p>
+          <p><span className="text-muted">Name</span> <span className="font-medium">{data?.first_name} {data?.last_name ?? ''}</span></p>
+          {data?.email ? <p><span className="text-muted">Email</span> <span className="font-medium">{data.email}</span></p> : null}
+          {data?.phone ? <p><span className="text-muted">Phone</span> <span className="font-medium">{data.phone}</span></p> : null}
+          <p><span className="text-muted">Business</span> <span className="font-medium">{branding?.tenant_name}</span></p>
+        </section>
+
+        <section className="card space-y-3">
+          <h2 className="text-sm font-semibold">Birthday &amp; preferences</h2>
+          <label className="block text-xs text-muted">
+            Date of birth
+            <input type="date" className="input mt-1" value={dob} onChange={(e) => setDob(e.target.value)} />
+          </label>
+          <button type="button" className="btn-secondary w-full text-xs" disabled={savePrefs.isPending} onClick={() => savePrefs.mutate({ date_of_birth: dob || null })}>
+            Save birthday
+          </button>
+          {[
+            { key: 'marketing_email' as const, label: 'Marketing emails', value: data?.marketing_email ?? true },
+            { key: 'marketing_sms' as const, label: 'Marketing SMS', value: data?.marketing_sms ?? false },
+            { key: 'birthday_participation' as const, label: 'Birthday rewards', value: data?.birthday_participation ?? true },
+            { key: 'expiring_points_reminders' as const, label: 'Expiring points reminders', value: data?.expiring_points_reminders ?? true },
+          ].map((pref) => (
+            <div key={pref.key} className="flex items-center justify-between gap-3 border-t pt-3">
+              <p className="text-sm font-medium">{pref.label}</p>
+              <button type="button" className="btn-secondary shrink-0 text-xs" disabled={savePrefs.isPending} onClick={() => savePrefs.mutate({ [pref.key]: !pref.value })}>
+                {pref.value ? 'On' : 'Off'}
+              </button>
+            </div>
+          ))}
+        </section>
+
+        <section className="card flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold">Push notifications</h2>
+            <p className="mt-1 text-xs text-muted">Get alerts for points, rewards, offers, and tier upgrades.</p>
+          </div>
+          <button type="button" className="btn-secondary shrink-0 text-xs" disabled={pushBusy} onClick={() => void togglePush(!data?.push_notifications_enabled)}>
+            {data?.push_notifications_enabled ? 'Disable' : 'Enable'}
+          </button>
         </section>
 
         {data?.must_change_password ? (
           <section className="card space-y-3">
             <h2 className="text-sm font-semibold">Set a new password</h2>
-            <input
-              type="password"
-              className="input"
-              placeholder="New password (min 8 chars)"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <input
-              type="password"
-              className="input"
-              placeholder="Confirm password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-            />
-            <button
-              type="button"
-              className="btn-primary w-full"
-              disabled={password.length < 8 || password !== confirm || setPw.isPending}
-              onClick={() => setPw.mutate()}
-            >
+            <input type="password" className="input" placeholder="New password (min 8 chars)" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <input type="password" className="input" placeholder="Confirm password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+            <button type="button" className="btn-primary w-full" disabled={password.length < 8 || password !== confirm || setPw.isPending} onClick={() => setPw.mutate()}>
               Save password
             </button>
           </section>
         ) : null}
 
-        <button type="button" className="btn-secondary w-full" onClick={logout}>
-          Sign out
-        </button>
+        {upsell?.google_review_available && upsell.google_review_url ? (
+          <GoogleReviewCard reviewUrl={upsell.google_review_url} tenantName={branding?.tenant_name} />
+        ) : null}
+
+        <button type="button" className="btn-secondary w-full" onClick={logout}>Sign out</button>
       </div>
     </AuthGate>
   )

@@ -44,6 +44,9 @@ from app.modules.membership_rewards.schemas import (
     TierListResponse,
     TierResponse,
     TierUpdate,
+    CustomerBroadcastRequest,
+    CustomerBroadcastPreviewResponse,
+    CustomerBroadcastResponse,
 )
 
 router = APIRouter(prefix="/membership-rewards", tags=["Membership & Rewards"])
@@ -483,3 +486,39 @@ async def cancel_subscription(
 ):
     _, tenant, _ = ctx
     return await service.cancel_subscription(db, tenant.id, subscription_id)
+
+
+@router.get(
+    "/customers/broadcast/preview",
+    response_model=CustomerBroadcastPreviewResponse,
+    dependencies=[Depends(require_membership_rewards)],
+)
+async def preview_customer_broadcast(ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+    from app.modules.membership_rewards.services.customer_broadcast_service import count_broadcast_recipients
+
+    _, tenant, _ = ctx
+    return await count_broadcast_recipients(db, tenant.id)
+
+
+@router.post(
+    "/customers/broadcast",
+    response_model=CustomerBroadcastResponse,
+    dependencies=[Depends(require_membership_rewards)],
+)
+async def send_customer_broadcast(
+    data: CustomerBroadcastRequest,
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+):
+    from app.modules.membership_rewards.services.customer_broadcast_service import broadcast_to_loyalty_customers
+
+    _, tenant, _ = ctx
+    return await broadcast_to_loyalty_customers(
+        db,
+        tenant_id=tenant.id,
+        title=data.title,
+        body=data.body,
+        send_push=data.send_push,
+        send_email=data.send_email,
+        path=data.path,
+    )

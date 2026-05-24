@@ -25,6 +25,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.dependencies import SuperAdmin
 from app.core.rbac import CommTemplate, Broadcast
+from app.modules.admin.broadcast_dispatch_service import (
+    dispatch_broadcast,
+    preview_broadcast_recipients,
+)
 
 router = APIRouter(prefix="/api/admin/communications", tags=["Admin — Communications"])
 
@@ -46,11 +50,12 @@ class TemplateUpdate(BaseModel):
 
 class BroadcastCreate(BaseModel):
     name: str
-    channel: str
+    channel: str  # in_app | push | push_only | email | sms
     template_id: Optional[uuid.UUID] = None
     body: str
     target_filter: dict = {}
     scheduled_at: Optional[datetime] = None
+    send_now: bool = True
 
 
 @router.get("/templates")
@@ -132,4 +137,26 @@ async def create_broadcast(body: BroadcastCreate, _: SuperAdmin, db: AsyncSessio
     db.add(b)
     await db.commit()
     await db.refresh(b)
-    return {"id": str(b.id), "name": b.name, "status": b.status}
+    result = {"id": str(b.id), "name": b.name, "status": b.status}
+    if body.send_now and not body.scheduled_at:
+        dispatched = await dispatch_broadcast(db, b.id)
+        result.update(dispatched)
+    return result
+
+
+@router.get("/broadcasts/preview-recipients")
+async def preview_recipients(
+    _: SuperAdmin,
+    db: AsyncSession = Depends(get_db),
+    audience: str = Query("tenant_owners"),
+):
+    count = await preview_broadcast_recipients(db, audience)
+    return {"audience": audience, "count": count}
+
+
+@router.post("/broadcasts/{broadcast_id}/send")
+async def send_broadcast(broadcast_id: uuid.UUID, _: SuperAdmin, db: AsyncSession = Depends(get_db)):
+    try:
+        return await dispatch_broadcast(db, broadcast_id)
+    except ValueError as exc:
+        raise HTTPException(404, str(exc)) from exc

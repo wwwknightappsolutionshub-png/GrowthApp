@@ -824,6 +824,21 @@ export const membershipRewards = {
   updateCatalogItem: (id: string, data: object) =>
     apiClient.patch<RewardCatalogItem>(`/membership-rewards/catalog/${id}`, data),
   deleteCatalogItem: (id: string) => apiClient.delete(`/membership-rewards/catalog/${id}`),
+  previewCustomerBroadcast: () =>
+    apiClient.get<{ customers: number; push_subscribers: number; email_opted_in: number }>(
+      '/membership-rewards/customers/broadcast/preview',
+    ),
+  sendCustomerBroadcast: (data: {
+    title: string
+    body: string
+    send_push?: boolean
+    send_email?: boolean
+    path?: string
+  }) =>
+    apiClient.post<{ customers: number; push_sent: number; email_sent: number }>(
+      '/membership-rewards/customers/broadcast',
+      data,
+    ),
   customerLoyalty: (customerId: string) =>
     apiClient.get<{
       customer_id: string
@@ -1740,6 +1755,11 @@ export const adminApi = {
   deleteCommTemplate: (id: string) => adminApiClient.delete(`/communications/templates/${id}`),
   listBroadcasts: (p?: object) => adminApiClient.get<BroadcastItem[]>('/communications/broadcasts', { params: p }),
   createBroadcast: (body: object) => adminApiClient.post<BroadcastItem>('/communications/broadcasts', body),
+  sendBroadcast: (id: string) => adminApiClient.post<{ status: string; recipient_count: number }>(`/communications/broadcasts/${id}/send`),
+  previewBroadcastRecipients: (audience: string) =>
+    adminApiClient.get<{ audience: string; count: number }>('/communications/broadcasts/preview-recipients', {
+      params: { audience },
+    }),
 
   // Operations
   listSystemLogs: (p?: object) => adminApiClient.get<SystemLog[]>('/operations/logs', { params: p }),
