@@ -116,6 +116,13 @@ class TierResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class TierUpdate(BaseModel):
+    name: str | None = None
+    min_points_lifetime: int | None = None
+    benefits: list | None = None
+    sort_order: int | None = None
+
+
 class TierListResponse(BaseModel):
     items: list[TierResponse]
 

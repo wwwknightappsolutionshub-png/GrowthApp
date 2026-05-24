@@ -50,9 +50,14 @@ export function MembershipLandingEditor({ tenantSlug }: { tenantSlug?: string })
         benefits,
         cta_label: ctaLabel,
         cta_href: ctaHref || null,
+        ...(landingQ.data?.published ? { published: true } : {}),
       }),
     onSuccess: () => {
-      toast.success('Landing saved')
+      toast.success(
+        landingQ.data?.published
+          ? 'Live page updated — changes are visible now'
+          : 'Landing saved',
+      )
       qc.invalidateQueries({ queryKey: ['mr-landing'] })
     },
     onError: () => toast.error('Could not save landing'),
@@ -253,21 +258,16 @@ export function MembershipLandingEditor({ tenantSlug }: { tenantSlug?: string })
       </div>
 
       {(landingQ.data?.tiers?.length ?? 0) > 0 && (
-        <div>
-          <p className="text-xs font-semibold text-slate-300 uppercase tracking-wide mb-2">
-            Loyalty tiers (shown on public page)
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {landingQ.data?.tiers?.map((t) => (
-              <span
-                key={t.code}
-                className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-300 capitalize"
-              >
-                {t.name} · {t.min_points_lifetime}+ pts
-              </span>
-            ))}
-          </div>
-        </div>
+        <p className="text-xs text-slate-500">
+          Loyalty tiers are edited under{' '}
+          <a
+            href="/dashboard/membership-rewards?section=loyalty"
+            className="text-brand-teal-300 hover:underline"
+          >
+            Loyalty → tier settings
+          </a>
+          .
+        </p>
       )}
 
       <div className="flex flex-wrap gap-3 pt-2 border-t border-white/10">
@@ -275,9 +275,13 @@ export function MembershipLandingEditor({ tenantSlug }: { tenantSlug?: string })
           type="button"
           onClick={() => save.mutate()}
           disabled={save.isPending}
-          className="rounded-lg border border-white/20 px-4 py-2 text-sm text-white hover:bg-white/5"
+          className={
+            landingQ.data?.published
+              ? 'inline-flex items-center gap-2 rounded-lg bg-brand-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-teal-500 disabled:opacity-50'
+              : 'rounded-lg border border-white/20 px-4 py-2 text-sm text-white hover:bg-white/5 disabled:opacity-50'
+          }
         >
-          Save draft
+          {landingQ.data?.published ? 'Update & Save' : 'Save draft'}
         </button>
         <button
           type="button"
@@ -292,10 +296,14 @@ export function MembershipLandingEditor({ tenantSlug }: { tenantSlug?: string })
           type="button"
           onClick={() => publish.mutate()}
           disabled={publish.isPending}
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-teal-500"
+          className={
+            landingQ.data?.published
+              ? 'hidden'
+              : 'inline-flex items-center gap-2 rounded-lg bg-brand-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-teal-500'
+          }
         >
           <Sparkles className="w-4 h-4" />
-          {landingQ.data?.published ? 'Re-publish' : 'Publish'}
+          Publish
         </button>
       </div>
 

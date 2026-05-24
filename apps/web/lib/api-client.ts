@@ -797,6 +797,21 @@ export const membershipRewards = {
   publishLanding: () => apiClient.post<MembershipLandingConfig>('/membership-rewards/landing/publish'),
   regenerateLanding: () =>
     apiClient.post<MembershipLandingConfig>('/membership-rewards/landing/regenerate'),
+  listTiers: () =>
+    apiClient.get<{
+      items: {
+        id: string
+        code: string
+        name: string
+        min_points_lifetime: number
+        benefits: unknown[]
+        sort_order: number
+      }[]
+    }>('/membership-rewards/tiers'),
+  updateTier: (
+    id: string,
+    data: { name?: string; min_points_lifetime?: number; benefits?: unknown[]; sort_order?: number },
+  ) => apiClient.patch(`/membership-rewards/tiers/${id}`, data),
   submitInterest: (
     tenantSlug: string,
     data: {

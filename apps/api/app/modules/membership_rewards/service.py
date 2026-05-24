@@ -364,6 +364,31 @@ async def list_tiers(db: AsyncSession, tenant_id: uuid.UUID) -> list[MrLoyaltyTi
     return list((await db.execute(q)).scalars().all())
 
 
+async def _get_tier(db: AsyncSession, tenant_id: uuid.UUID, tier_id: uuid.UUID) -> MrLoyaltyTier:
+    row = (
+        await db.execute(
+            select(MrLoyaltyTier).where(
+                MrLoyaltyTier.id == tier_id,
+                MrLoyaltyTier.tenant_id == tenant_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if not row:
+        raise NotFoundException("Tier not found")
+    return row
+
+
+async def update_tier(
+    db: AsyncSession, tenant_id: uuid.UUID, tier_id: uuid.UUID, data
+) -> MrLoyaltyTier:
+    row = await _get_tier(db, tenant_id, tier_id)
+    for field, value in data.model_dump(exclude_none=True).items():
+        setattr(row, field, value)
+    await db.commit()
+    await db.refresh(row)
+    return row
+
+
 async def list_catalog(db: AsyncSession, tenant_id: uuid.UUID) -> list[MrRewardCatalog]:
     q = (
         select(MrRewardCatalog)
@@ -608,9 +633,15 @@ async def update_landing_config(
 ) -> MrLandingConfig:
     cfg = await _ensure_landing_config(db, tenant_id)
     settings = await _get_or_create_settings(db, tenant_id)
-    for k, v in data.model_dump(exclude_unset=True).items():
+    payload = data.model_dump(exclude_unset=True)
+    content_fields = {"title", "meta_description", "hero", "benefits", "cta_label", "cta_href"}
+    if content_fields & payload.keys():
+        cfg.auto_generated = False
+    was_published = cfg.published
+    for k, v in payload.items():
         setattr(cfg, k, v)
-    if data.published is True:
+    if was_published or data.published is True:
+        cfg.published = True
         settings.landing_published = True
     elif data.published is False:
         settings.landing_published = False
@@ -763,10 +794,14 @@ async def submit_loyalty_enrollment(
     from app.modules.booking.crm_link import _split_name, resolve_customer_for_booking
     from app.modules.leads.schemas import LeadCreate
     from app.modules.leads import service as leads_service
-    from app.modules.membership_rewards.constants import TIER_CODES
+    from app.modules.membership_rewards.loyalty_email import send_loyalty_welcome_email
+    from app.modules.membership_rewards.landing import memberships_public_url
+    from app.modules.booking.feedback import refer_url_for_slug
 
     tier = (tier_code or "").strip().lower()
-    if tier not in TIER_CODES:
+    tiers = await list_tiers(db, tenant.id)
+    tier_row = next((t for t in tiers if t.code == tier), None)
+    if not tier_row:
         raise BadRequestException(f"Invalid tier: {tier_code}")
 
     if not (email or "").strip() and not (phone or "").strip():
@@ -799,7 +834,7 @@ async def submit_loyalty_enrollment(
     loyalty.tier_code = tier
     loyalty.tier_updated_at = datetime.now(timezone.utc)
 
-    tier_name = tier.capitalize()
+    tier_name = tier_row.name
     lead_data = LeadCreate(
         first_name=first_name,
         last_name=last_name,
@@ -810,6 +845,16 @@ async def submit_loyalty_enrollment(
         source="memberships_loyalty",
     )
     await leads_service.create_lead_public(db=db, tenant=tenant, data=lead_data, ip_address=ip_address)
+
+    if (email or "").strip():
+        await send_loyalty_welcome_email(
+            to=email.strip(),
+            customer_name=first_name,
+            tenant_name=tenant.name or "Our business",
+            tier_name=tier_name,
+            refer_win_url=refer_url_for_slug(tenant.slug),
+            memberships_url=memberships_public_url(tenant.slug),
+        )
 
 
 # ── Subscriptions (tenant-level customer plans) ──────────────────────────────

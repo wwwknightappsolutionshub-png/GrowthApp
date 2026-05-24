@@ -18,6 +18,7 @@ import { toast } from 'sonner'
 
 import { TenantWelcomeHeader } from '@/components/dashboard/TenantWelcomeHeader'
 import { MembershipLandingEditor } from '@/components/membership-rewards/MembershipLandingEditor'
+import { LoyaltyTiersEditor } from '@/components/membership-rewards/LoyaltyTiersEditor'
 import { MembershipTrialBanner } from '@/components/membership-rewards/MembershipTrialBanner'
 import { MembershipTrialModal } from '@/components/membership-rewards/MembershipTrialModal'
 import { ModuleCardGrid, type ModuleCardItem } from '@/components/modules/ModuleCardGrid'
@@ -536,7 +537,9 @@ function LoyaltySection() {
   })
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="space-y-6">
+      <LoyaltyTiersEditor />
+      <div className="grid gap-6 lg:grid-cols-2">
       <Panel title="Leaderboard">
         {boardQ.isLoading ? (
           <LoaderRow />
@@ -603,6 +606,7 @@ function LoyaltySection() {
         </form>
         <EarnRulesEditor />
       </Panel>
+      </div>
     </div>
   )
 }

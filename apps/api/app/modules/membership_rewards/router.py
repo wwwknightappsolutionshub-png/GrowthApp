@@ -35,6 +35,7 @@ from app.modules.membership_rewards.schemas import (
     SettingsResponse,
     TierListResponse,
     TierResponse,
+    TierUpdate,
 )
 
 router = APIRouter(prefix="/membership-rewards", tags=["Membership & Rewards"])
@@ -159,6 +160,17 @@ async def list_tiers(ctx: CurrentTenantContext, db: AsyncSession = Depends(get_d
     _, tenant, _ = ctx
     items = await service.list_tiers(db, tenant.id)
     return {"items": items}
+
+
+@router.patch("/tiers/{tier_id}", response_model=TierResponse, dependencies=[Depends(require_membership_rewards)])
+async def update_tier(
+    tier_id: uuid.UUID,
+    data: TierUpdate,
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+):
+    _, tenant, _ = ctx
+    return await service.update_tier(db, tenant.id, tier_id, data)
 
 
 @router.get("/catalog", response_model=CatalogListResponse, dependencies=[Depends(require_membership_rewards)])

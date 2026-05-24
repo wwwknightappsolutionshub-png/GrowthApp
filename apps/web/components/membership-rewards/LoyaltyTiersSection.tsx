@@ -99,7 +99,9 @@ export function LoyaltyTiersSection({
                 </h3>
                 <p className="mt-2 text-sm text-gray-600">
                   Welcome to the {selectedTier.name} tier. We&apos;ve added you to our loyalty
-                  leaderboard — start earning points on your next visit.
+                  leaderboard
+                  {email.trim() ? ' and sent a welcome email with Refer & Win and membership details' : ''}
+                  — start earning points on your next visit.
                 </p>
                 <button
                   type="button"
