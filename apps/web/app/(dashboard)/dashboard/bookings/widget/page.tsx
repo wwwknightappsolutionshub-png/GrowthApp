@@ -35,6 +35,8 @@ export default function BookingWidgetPage() {
             review_label?: string
             referral_url?: string
             rate_url?: string
+            memberships_url?: string
+            memberships_label?: string
           },
       ),
   })
@@ -58,8 +60,8 @@ export default function BookingWidgetPage() {
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   const embedCode = `<script src="${origin}/embed/booking-widget.js" data-tenant="${slug}" data-book-url="${bookUrl}"></script>`
 
-  const qrTargets = useMemo(
-    () => [
+  const qrTargets = useMemo(() => {
+    const items = [
       {
         id: 'booking',
         label: links?.booking_label ?? 'Public booking page',
@@ -78,9 +80,17 @@ export default function BookingWidgetPage() {
         description: 'Opens Google review (GMB connected)',
         value: links?.rate_url ?? '',
       },
-    ],
-    [links],
-  )
+    ]
+    if (links?.memberships_url) {
+      items.push({
+        id: 'memberships',
+        label: links.memberships_label ?? 'Membership & Rewards',
+        description: 'Public membership & loyalty landing page',
+        value: links.memberships_url,
+      })
+    }
+    return items
+  }, [links])
 
   const copy = (text: string, id: string) => {
     navigator.clipboard.writeText(text)
@@ -167,12 +177,17 @@ export default function BookingWidgetPage() {
       <BookingsPanel>
         <h2 className="text-lg font-bold text-white flex items-center justify-center gap-2 mb-1">
           <QrCode className="w-5 h-5 text-brand-teal-300" />
-          Three QR use cases
+          QR codes
         </h2>
         <p className="text-sm text-brand-teal-100/65 mb-6 text-center">
           Print or share — each code opens a distinct customer journey.
+          {qrTargets.length > 3 ? ' Membership QR appears when your landing page is published.' : ''}
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <div
+          className={`grid grid-cols-1 gap-5 ${
+            qrTargets.length >= 4 ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-3'
+          }`}
+        >
           {qrTargets.map((t) => (
             <div
               key={t.id}

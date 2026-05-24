@@ -93,11 +93,11 @@ async def get_booking_link(ctx: CurrentTenantContext):
     return {"url": marketing.booking_link_for_tenant(tenant.slug), "slug": tenant.slug}
 
 
-def _booking_links_payload(tenant) -> dict:
+def _booking_links_payload(tenant, *, memberships_url: str | None = None) -> dict:
     from app.modules.booking.feedback import refer_url_for_slug
 
     base_book = marketing.booking_link_for_tenant(tenant.slug)
-    return {
+    payload = {
         "slug": tenant.slug,
         "booking_url": base_book,
         "referral_url": refer_url_for_slug(tenant.slug),
@@ -107,13 +107,32 @@ def _booking_links_payload(tenant) -> dict:
         "booking_label": "Book appointment",
         "slug_archived": "-deleted-" in (tenant.slug or ""),
     }
+    if memberships_url:
+        payload["memberships_url"] = memberships_url
+        payload["memberships_label"] = "Membership & Rewards"
+    return payload
+
+
+async def _memberships_url_for_tenant(db: AsyncSession, tenant_id) -> str | None:
+    from app.modules.membership_rewards.landing import memberships_public_url
+    from app.modules.membership_rewards.models import MrTenantSettings
+    from app.modules.tenants.models import Tenant
+
+    settings = await db.get(MrTenantSettings, tenant_id)
+    if not settings or not settings.landing_published:
+        return None
+    tenant = await db.get(Tenant, tenant_id)
+    if not tenant:
+        return None
+    return memberships_public_url(tenant.slug)
 
 
 @router.get("/links")
-async def get_booking_qr_links(ctx: CurrentTenantContext):
-    """Distinct public URLs for booking, referral, and rate-us QR codes."""
+async def get_booking_qr_links(ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+    """Distinct public URLs for booking, referral, rate-us, and memberships QR codes."""
     _, tenant, _ = ctx
-    return _booking_links_payload(tenant)
+    memberships_url = await _memberships_url_for_tenant(db, tenant.id)
+    return _booking_links_payload(tenant, memberships_url=memberships_url)
 
 
 @router.post("/links/restore-slug")
@@ -134,7 +153,8 @@ async def restore_tenant_booking_slug(ctx: CurrentTenantContext, db: AsyncSessio
         db.add(tenant)
         await db.commit()
     await db.refresh(tenant)
-    return _booking_links_payload(tenant)
+    memberships_url = await _memberships_url_for_tenant(db, tenant.id)
+    return _booking_links_payload(tenant, memberships_url=memberships_url)
 
 
 @router.get("/form")

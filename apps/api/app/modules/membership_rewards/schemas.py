@@ -214,6 +214,13 @@ class MembershipInterestRequest(BaseModel):
     plan_id: uuid.UUID | None = None
 
 
+class LoyaltyEnrollRequest(BaseModel):
+    name: str
+    email: str | None = None
+    phone: str | None = None
+    tier_code: str
+
+
 class CheckoutRequest(BaseModel):
     success_url: str
     cancel_url: str

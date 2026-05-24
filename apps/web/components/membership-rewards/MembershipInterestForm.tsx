@@ -63,13 +63,13 @@ export function MembershipInterestForm({
           placeholder="First name *"
           value={firstName}
           onChange={(e) => setFirstName(e.target.value)}
-          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+          className="w-full rounded-lg border border-gray-300 bg-white text-gray-900 px-3 py-2 text-sm placeholder:text-gray-400"
         />
         <input
           placeholder="Last name"
           value={lastName}
           onChange={(e) => setLastName(e.target.value)}
-          className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+          className="w-full rounded-lg border border-gray-300 bg-white text-gray-900 px-3 py-2 text-sm placeholder:text-gray-400"
         />
       </div>
       <input
@@ -77,20 +77,20 @@ export function MembershipInterestForm({
         placeholder="Email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+        className="w-full rounded-lg border border-gray-300 bg-white text-gray-900 px-3 py-2 text-sm placeholder:text-gray-400"
       />
       <input
         placeholder="Phone"
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
-        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+        className="w-full rounded-lg border border-gray-300 bg-white text-gray-900 px-3 py-2 text-sm placeholder:text-gray-400"
       />
       <textarea
         placeholder="Message (optional)"
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         rows={3}
-        className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm"
+        className="w-full rounded-lg border border-gray-300 bg-white text-gray-900 px-3 py-2 text-sm placeholder:text-gray-400"
       />
       {status === 'error' && (
         <p className="text-sm text-red-600">Something went wrong. Please try again.</p>

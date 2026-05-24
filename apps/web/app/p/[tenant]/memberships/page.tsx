@@ -2,6 +2,8 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 
 import { MembershipInterestForm } from '@/components/membership-rewards/MembershipInterestForm'
+import { LoyaltyTiersSection } from '@/components/membership-rewards/LoyaltyTiersSection'
+import { ReferWinSection } from '@/components/membership-rewards/ReferWinSection'
 
 type MembershipPlan = {
   id: string
@@ -29,6 +31,8 @@ type MembershipPageJson = {
   benefits: { title?: string; body?: string }[]
   cta_label: string
   cta_href: string | null
+  refer_win_url?: string
+  memberships_url?: string
   plans: MembershipPlan[]
   tiers: MembershipTier[]
 }
@@ -81,7 +85,7 @@ export default async function PublicMembershipsPage({
   const subheadline = page.hero?.subheadline
 
   return (
-    <main className="min-h-screen bg-white text-gray-900 antialiased">
+    <main className="surface-light min-h-screen bg-white text-gray-900 antialiased">
       <section className="bg-gradient-to-br from-emerald-800 to-emerald-950 text-white px-6 py-20 text-center">
         <p className="text-sm uppercase tracking-widest text-emerald-200 mb-3">{page.tenant_name}</p>
         <h1 className="text-4xl md:text-5xl font-bold max-w-3xl mx-auto">{headline}</h1>
@@ -110,23 +114,10 @@ export default async function PublicMembershipsPage({
       ) : null}
 
       {page.tiers?.length > 0 ? (
-        <section className="px-6 py-12 border-y border-gray-100 bg-emerald-50/50">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-xl font-bold text-emerald-900 mb-6">Loyalty tiers</h2>
-            <div className="flex flex-wrap justify-center gap-4">
-              {page.tiers.map((t) => (
-                <div
-                  key={t.code}
-                  className="rounded-xl bg-white border border-emerald-100 px-5 py-4 min-w-[140px] shadow-sm"
-                >
-                  <p className="font-semibold text-emerald-900 capitalize">{t.name}</p>
-                  <p className="text-xs text-gray-500 mt-1">{t.min_points_lifetime}+ lifetime points</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <LoyaltyTiersSection tenantSlug={page.tenant_slug} tiers={page.tiers} />
       ) : null}
+
+      {page.refer_win_url ? <ReferWinSection referWinUrl={page.refer_win_url} /> : null}
 
       {page.plans.length > 0 ? (
         <section className="bg-gray-50 px-6 py-16">

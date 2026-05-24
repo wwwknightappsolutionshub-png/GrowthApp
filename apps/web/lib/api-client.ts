@@ -808,6 +808,10 @@ export const membershipRewards = {
       plan_id?: string
     },
   ) => publicApiClient.post(`/public/memberships/${tenantSlug}/interest`, data),
+  submitLoyaltyEnroll: (
+    tenantSlug: string,
+    data: { name: string; email?: string; phone?: string; tier_code: string },
+  ) => publicApiClient.post(`/public/memberships/${tenantSlug}/loyalty-enroll`, data),
 }
 
 export const accounting = {

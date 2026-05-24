@@ -562,7 +562,8 @@ async def _recalc_tier(
     for t in tiers:
         if loyalty.points_lifetime >= t.min_points_lifetime:
             best = t
-    if loyalty.tier_code != best.code:
+    current_order = next((t.sort_order for t in tiers if t.code == loyalty.tier_code), 0)
+    if best.sort_order > current_order:
         loyalty.tier_code = best.code
         loyalty.tier_updated_at = datetime.now(timezone.utc)
 
@@ -635,6 +636,9 @@ async def get_public_memberships_page(db: AsyncSession, tenant_slug: str) -> dic
 
     plans = await list_plans(db, tenant.id, active_only=True)
     tiers = await list_tiers(db, tenant.id)
+    from app.modules.booking.feedback import refer_url_for_slug
+    from app.modules.membership_rewards.landing import memberships_public_url
+
     return {
         "tenant_slug": tenant.slug,
         "tenant_name": tenant.name,
@@ -644,6 +648,8 @@ async def get_public_memberships_page(db: AsyncSession, tenant_slug: str) -> dic
         "benefits": cfg.benefits or [],
         "cta_label": cfg.cta_label,
         "cta_href": cfg.cta_href,
+        "refer_win_url": refer_url_for_slug(tenant.slug),
+        "memberships_url": memberships_public_url(tenant.slug),
         "tiers": [
             {
                 "code": t.code,
@@ -741,6 +747,69 @@ async def submit_membership_interest(
         source="memberships_page",
     )
     await leads_service.create_lead_public(db=db, tenant=tenant, data=data, ip_address=ip_address)
+
+
+async def submit_loyalty_enrollment(
+    db: AsyncSession,
+    tenant_slug: str,
+    *,
+    name: str,
+    email: str | None,
+    phone: str | None,
+    tier_code: str,
+    ip_address: str | None,
+) -> None:
+    """Enroll a customer in the loyalty program from the public memberships page."""
+    from app.modules.booking.crm_link import _split_name, resolve_customer_for_booking
+    from app.modules.leads.schemas import LeadCreate
+    from app.modules.leads import service as leads_service
+    from app.modules.membership_rewards.constants import TIER_CODES
+
+    tier = (tier_code or "").strip().lower()
+    if tier not in TIER_CODES:
+        raise BadRequestException(f"Invalid tier: {tier_code}")
+
+    if not (email or "").strip() and not (phone or "").strip():
+        raise BadRequestException("Email or phone is required")
+
+    tenant = (
+        await db.execute(select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True))  # noqa: E712
+    ).scalar_one_or_none()
+    if not tenant:
+        raise NotFoundException("Business not found")
+
+    settings = await _get_or_create_settings(db, tenant.id)
+    if not settings.landing_published:
+        raise NotFoundException("Membership page is not published")
+
+    first_name, last_name = _split_name(name)
+    customer_id = await resolve_customer_for_booking(
+        db,
+        tenant.id,
+        customer_id=None,
+        customer_name=name,
+        customer_email=email,
+        customer_phone=phone,
+        channel="loyalty_program",
+    )
+    if not customer_id:
+        raise BadRequestException("Could not create customer record")
+
+    loyalty = await _get_loyalty(db, tenant.id, customer_id)
+    loyalty.tier_code = tier
+    loyalty.tier_updated_at = datetime.now(timezone.utc)
+
+    tier_name = tier.capitalize()
+    lead_data = LeadCreate(
+        first_name=first_name,
+        last_name=last_name,
+        email=email,
+        phone=phone,
+        message=f"Joined loyalty program — selected {tier_name} tier",
+        service_needed="loyalty",
+        source="memberships_loyalty",
+    )
+    await leads_service.create_lead_public(db=db, tenant=tenant, data=lead_data, ip_address=ip_address)
 
 
 # ── Subscriptions (tenant-level customer plans) ──────────────────────────────
