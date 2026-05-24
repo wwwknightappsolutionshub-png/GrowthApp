@@ -115,6 +115,13 @@ export function MembershipLandingEditor({ tenantSlug }: { tenantSlug?: string })
           <p className="text-sm text-slate-400 mt-1">
             Auto-updates when you add plans. Live at{' '}
             <code className="text-brand-teal-300">/p/{tenantSlug ?? 'your-business'}/memberships</code>
+            {tenantSlug ? (
+              <>
+                {' '}
+                (alias{' '}
+                <code className="text-brand-teal-300">/p/{tenantSlug}/loyalty</code>)
+              </>
+            ) : null}
           </p>
         </div>
         {landingQ.data?.auto_generated ? (

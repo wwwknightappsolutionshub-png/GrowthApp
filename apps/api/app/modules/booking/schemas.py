@@ -28,6 +28,7 @@ class PublicBookingCreate(BaseModel):
     intake_responses: dict[str, Any] = Field(default_factory=dict)
     custom_fields: dict[str, Any] = Field(default_factory=dict)
     prepaid_pence: int = 0
+    join_loyalty_program: bool | None = None
 
 
 class BookingCreate(PublicBookingCreate):

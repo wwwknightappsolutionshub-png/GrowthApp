@@ -6,12 +6,15 @@ import { useSearchParams } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  BarChart3,
   Award,
   Crown,
   ExternalLink,
   Gift,
   LayoutGrid,
   Loader2,
+  QrCode,
+  Settings,
   Users,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -19,6 +22,8 @@ import { toast } from 'sonner'
 import { TenantWelcomeHeader } from '@/components/dashboard/TenantWelcomeHeader'
 import { MembershipLandingEditor } from '@/components/membership-rewards/MembershipLandingEditor'
 import { LoyaltyTiersEditor } from '@/components/membership-rewards/LoyaltyTiersEditor'
+import { MembershipAnalyticsSection } from '@/components/membership-rewards/MembershipAnalyticsSection'
+import { MembershipCustomersSection } from '@/components/membership-rewards/MembershipCustomersSection'
 import { MembershipTrialBanner } from '@/components/membership-rewards/MembershipTrialBanner'
 import { MembershipTrialModal } from '@/components/membership-rewards/MembershipTrialModal'
 import { ModuleCardGrid, type ModuleCardItem } from '@/components/modules/ModuleCardGrid'
@@ -34,10 +39,13 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 
 const SECTIONS = [
   { id: '', label: 'Overview' },
+  { id: 'analytics', label: 'Analytics' },
+  { id: 'customers', label: 'Customers' },
   { id: 'plans', label: 'Plans' },
   { id: 'subscriptions', label: 'Subscriptions' },
-  { id: 'rewards', label: 'Rewards catalog' },
-  { id: 'loyalty', label: 'Loyalty' },
+  { id: 'rewards', label: 'Rewards' },
+  { id: 'loyalty', label: 'Tiers' },
+  { id: 'settings', label: 'Settings' },
   { id: 'landing', label: 'Landing page' },
 ] as const
 
@@ -47,6 +55,7 @@ const EARN_RULE_LABELS: Record<string, string> = {
   membership_signup: 'Membership signup',
   refer_win: 'Refer & Win submission',
   review_left: 'Review submitted',
+  qr_checkin: 'In-store QR check-in',
 }
 
 export function MembershipRewardsDashboard() {
@@ -86,6 +95,24 @@ export function MembershipRewardsDashboard() {
 
   const moduleCards: ModuleCardItem[] = [
     {
+      title: 'Analytics',
+      description: 'Points trends, tier mix, top customers, and redemption rate.',
+      href: '/dashboard/membership-rewards?section=analytics',
+      icon: BarChart3,
+    },
+    {
+      title: 'Loyalty customers',
+      description: 'Search members, adjust points, and redeem rewards.',
+      href: '/dashboard/membership-rewards?section=customers',
+      icon: Users,
+    },
+    {
+      title: 'Scan member QR',
+      description: 'Check in customers in-store and award visit points.',
+      href: '/dashboard/membership-rewards/scan',
+      icon: QrCode,
+    },
+    {
       title: 'Membership plans',
       description: 'Create weekly, monthly, or yearly plans with included services and discounts.',
       href: '/dashboard/membership-rewards?section=plans',
@@ -99,15 +126,21 @@ export function MembershipRewardsDashboard() {
     },
     {
       title: 'Rewards catalog',
-      description: 'Define what members can redeem with their points.',
+      description: 'Define what members can redeem and view redemption history.',
       href: '/dashboard/membership-rewards?section=rewards',
       icon: Gift,
     },
     {
-      title: 'Loyalty leaderboard',
-      description: 'View tiers, balances, and manually adjust points.',
+      title: 'Loyalty tiers',
+      description: 'Configure Bronze–Platinum thresholds and benefits.',
       href: '/dashboard/membership-rewards?section=loyalty',
       icon: Award,
+    },
+    {
+      title: 'Program settings',
+      description: 'Earn rules and points expiration policy.',
+      href: '/dashboard/membership-rewards?section=settings',
+      icon: Settings,
     },
     {
       title: 'Public landing page',
@@ -170,9 +203,12 @@ export function MembershipRewardsDashboard() {
       )}
 
       {section === 'plans' && <PlansSection />}
+      {section === 'analytics' && <MembershipAnalyticsSection />}
+      {section === 'customers' && <MembershipCustomersSection />}
       {section === 'subscriptions' && <SubscriptionsSection />}
       {section === 'rewards' && <RewardsCatalogSection />}
       {section === 'loyalty' && <LoyaltySection />}
+      {section === 'settings' && <SettingsSection />}
       {section === 'landing' && (
         <MembershipLandingEditor tenantSlug={tenant?.slug} />
       )}
@@ -542,6 +578,11 @@ function RewardsCatalogSection() {
     queryFn: async () => (await membershipRewards.listCatalog()).data.items,
   })
 
+  const redemptionsQ = useQuery({
+    queryKey: ['mr-redemptions'],
+    queryFn: async () => (await membershipRewards.listRedemptions({ limit: 30 })).data.items,
+  })
+
   const create = useMutation({
     mutationFn: () =>
       membershipRewards.createCatalogItem({
@@ -560,80 +601,84 @@ function RewardsCatalogSection() {
   })
 
   return (
-    <Panel title="Rewards catalog">
-      <form
-        className="grid gap-3 sm:grid-cols-3 items-end"
-        onSubmit={(e) => {
-          e.preventDefault()
-          create.mutate()
-        }}
-      >
-        <Field label="Reward name" value={name} onChange={setName} placeholder="£10 off next visit" />
-        <Field label="Points cost" value={cost} onChange={setCost} placeholder="500" type="number" />
-        <button
-          type="submit"
-          disabled={create.isPending || !name.trim()}
-          className="rounded-lg bg-brand-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-teal-500 disabled:opacity-50"
+    <div className="space-y-6">
+      <Panel title="Rewards catalog">
+        <form
+          className="grid gap-3 sm:grid-cols-3 items-end"
+          onSubmit={(e) => {
+            e.preventDefault()
+            create.mutate()
+          }}
         >
-          Add reward
-        </button>
-      </form>
-      <ul className="space-y-2">
-        {(catalogQ.data ?? []).map((item: RewardCatalogItem) => (
-          <li
-            key={item.id}
-            className="flex justify-between rounded-lg border border-white/10 px-4 py-3 text-sm"
+          <Field label="Reward name" value={name} onChange={setName} placeholder="£10 off next visit" />
+          <Field label="Points cost" value={cost} onChange={setCost} placeholder="500" type="number" />
+          <button
+            type="submit"
+            disabled={create.isPending || !name.trim()}
+            className="rounded-lg bg-brand-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-teal-500 disabled:opacity-50"
           >
-            <span className="text-white font-medium">{item.name}</span>
-            <span className="text-brand-teal-300">{item.points_cost} pts</span>
-          </li>
-        ))}
-        {!catalogQ.data?.length && <p className="text-sm text-slate-500">No rewards in catalog.</p>}
-      </ul>
-    </Panel>
+            Add reward
+          </button>
+        </form>
+        <ul className="space-y-2 mt-4">
+          {(catalogQ.data ?? []).map((item: RewardCatalogItem) => (
+            <li
+              key={item.id}
+              className="flex justify-between rounded-lg border border-white/10 px-4 py-3 text-sm"
+            >
+              <span className="text-white font-medium">{item.name}</span>
+              <span className="text-brand-teal-300">{item.points_cost} pts</span>
+            </li>
+          ))}
+          {!catalogQ.data?.length && <p className="text-sm text-slate-500">No rewards in catalog.</p>}
+        </ul>
+      </Panel>
+
+      <Panel title="Redemption history">
+        {redemptionsQ.isLoading ? (
+          <LoaderRow />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-slate-400 border-b border-white/10">
+                  <th className="py-2 text-left">Customer</th>
+                  <th className="py-2 text-left">Reward</th>
+                  <th className="py-2 text-right">Points</th>
+                  <th className="py-2 text-right">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(redemptionsQ.data ?? []).map((r) => (
+                  <tr key={r.id} className="border-b border-white/5 text-slate-200">
+                    <td className="py-2">{r.customer_name || r.customer_id.slice(0, 8)}</td>
+                    <td className="py-2">{r.reward_name}</td>
+                    <td className="py-2 text-right">{r.points_spent}</td>
+                    <td className="py-2 text-right capitalize text-xs">{r.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!redemptionsQ.data?.length && (
+              <p className="text-sm text-slate-500 py-4">No redemptions yet.</p>
+            )}
+          </div>
+        )}
+      </Panel>
+    </div>
   )
 }
 
 function LoyaltySection() {
-  const qc = useQueryClient()
-  const [customerId, setCustomerId] = useState('')
-  const [amount, setAmount] = useState('')
-  const [note, setNote] = useState('')
-
   const boardQ = useQuery({
     queryKey: ['mr-leaderboard'],
     queryFn: async () => (await membershipRewards.leaderboard(25)).data.items,
-  })
-  const customersQ = useQuery({
-    queryKey: ['crm-customers-mr'],
-    queryFn: async () =>
-      (await crm.listCustomers({ page: 1, page_size: 100 })).data as {
-        items: { id: string; first_name: string; last_name?: string }[]
-      },
-  })
-
-  const adjust = useMutation({
-    mutationFn: () =>
-      membershipRewards.adjustPoints({
-        customer_id: customerId,
-        amount: parseInt(amount || '0', 10),
-        source: 'adjustment',
-        description: note || 'Manual adjustment',
-      }),
-    onSuccess: () => {
-      toast.success('Points updated')
-      setAmount('')
-      setNote('')
-      qc.invalidateQueries({ queryKey: ['mr-leaderboard'] })
-    },
-    onError: () => toast.error('Could not adjust points'),
   })
 
   return (
     <div className="space-y-6">
       <LoyaltyTiersEditor />
-      <div className="grid gap-6 lg:grid-cols-2">
-      <Panel title="Leaderboard">
+      <Panel title="Leaderboard preview">
         {boardQ.isLoading ? (
           <LoaderRow />
         ) : (
@@ -642,6 +687,7 @@ function LoyaltySection() {
               <tr className="text-slate-400 border-b border-white/10">
                 <th className="py-2 text-left">Member</th>
                 <th className="py-2 text-right">Balance</th>
+                <th className="py-2 text-right">Lifetime</th>
                 <th className="py-2 text-right">Tier</th>
               </tr>
             </thead>
@@ -650,57 +696,29 @@ function LoyaltySection() {
                 <tr key={row.customer_id} className="border-b border-white/5 text-slate-200">
                   <td className="py-2">{row.customer_name || row.customer_id.slice(0, 8)}</td>
                   <td className="py-2 text-right">{row.points_balance}</td>
+                  <td className="py-2 text-right">{row.points_lifetime}</td>
                   <td className="py-2 text-right capitalize">{row.tier_code}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-      </Panel>
-      <Panel title="Adjust points">
-        <form
-          className="space-y-3"
-          onSubmit={(e) => {
-            e.preventDefault()
-            adjust.mutate()
-          }}
+        <Link
+          href="/dashboard/membership-rewards?section=customers"
+          className="inline-block mt-4 text-xs font-medium text-brand-teal-300 hover:text-brand-teal-200"
         >
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Customer</label>
-            <select
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
-              className="w-full rounded-lg border border-white/10 bg-brand-forest-950 px-3 py-2 text-sm text-white"
-              required
-            >
-              <option value="">Select customer</option>
-              {(customersQ.data?.items ?? []).map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.first_name} {c.last_name ?? ''}
-                </option>
-              ))}
-            </select>
-          </div>
-          <Field
-            label="Amount (+ earn, − deduct)"
-            value={amount}
-            onChange={setAmount}
-            placeholder="100"
-            type="number"
-          />
-          <Field label="Note" value={note} onChange={setNote} placeholder="Birthday bonus" />
-          <button
-            type="submit"
-            disabled={adjust.isPending || !customerId}
-            className="rounded-lg bg-brand-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-teal-500 disabled:opacity-50"
-          >
-            Apply adjustment
-          </button>
-        </form>
-        <EarnRulesEditor />
+          Manage all customers →
+        </Link>
       </Panel>
-      </div>
     </div>
+  )
+}
+
+function SettingsSection() {
+  return (
+    <Panel title="Program settings">
+      <EarnRulesEditor />
+    </Panel>
   )
 }
 
@@ -710,9 +728,11 @@ function EarnRulesEditor() {
     queryKey: ['mr-settings'],
     queryFn: async () => (await membershipRewards.settings()).data as {
       earn_rules: Record<string, number>
+      points_expire_days: number | null
     },
   })
   const [rules, setRules] = useState<Record<string, string>>({})
+  const [expireDays, setExpireDays] = useState('')
 
   const save = useMutation({
     mutationFn: () => {
@@ -720,10 +740,14 @@ function EarnRulesEditor() {
       for (const [k, v] of Object.entries(rules)) {
         parsed[k] = parseInt(v || '0', 10)
       }
-      return membershipRewards.updateSettings({ earn_rules: parsed })
+      const days = expireDays.trim() === '' ? null : parseInt(expireDays, 10)
+      return membershipRewards.updateSettings({
+        earn_rules: parsed,
+        points_expire_days: days,
+      })
     },
     onSuccess: () => {
-      toast.success('Earn rules saved')
+      toast.success('Settings saved')
       qc.invalidateQueries({ queryKey: ['mr-settings'] })
     },
   })
@@ -735,33 +759,49 @@ function EarnRulesEditor() {
       initial[k] = String(v)
     }
     setRules(initial)
+    setExpireDays(
+      settingsQ.data.points_expire_days != null ? String(settingsQ.data.points_expire_days) : '',
+    )
   }, [settingsQ.data])
 
   const keys = Object.keys(EARN_RULE_LABELS)
 
   return (
-    <div className="mt-6 pt-6 border-t border-white/10">
-      <h3 className="text-sm font-semibold text-white mb-3">Points earn rules</h3>
-      <div className="space-y-2">
-        {keys.map((key) => (
-          <div key={key} className="flex items-center justify-between gap-2">
-            <label className="text-xs text-slate-400 flex-1">{EARN_RULE_LABELS[key]}</label>
-            <input
-              type="number"
-              value={rules[key] ?? ''}
-              onChange={(e) => setRules((r) => ({ ...r, [key]: e.target.value }))}
-              className="w-20 rounded border border-white/10 bg-brand-forest-950 px-2 py-1 text-sm text-white text-right"
-            />
-          </div>
-        ))}
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-semibold text-white mb-3">Points earn rules</h3>
+        <div className="space-y-2 max-w-md">
+          {keys.map((key) => (
+            <div key={key} className="flex items-center justify-between gap-2">
+              <label className="text-xs text-slate-400 flex-1">{EARN_RULE_LABELS[key]}</label>
+              <input
+                type="number"
+                value={rules[key] ?? ''}
+                onChange={(e) => setRules((r) => ({ ...r, [key]: e.target.value }))}
+                className="w-20 rounded border border-white/10 bg-brand-forest-950 px-2 py-1 text-sm text-white text-right"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="max-w-md">
+        <label className="block text-xs text-slate-400 mb-1">Points expire after (days)</label>
+        <input
+          type="number"
+          value={expireDays}
+          onChange={(e) => setExpireDays(e.target.value)}
+          placeholder="Leave empty for no expiration"
+          className="w-full rounded-lg border border-white/10 bg-brand-forest-950 px-3 py-2 text-sm text-white"
+        />
+        <p className="text-xs text-slate-500 mt-1">Expired points are swept nightly from customer balances.</p>
       </div>
       <button
         type="button"
         onClick={() => save.mutate()}
         disabled={save.isPending}
-        className="mt-3 text-xs font-semibold text-brand-teal-300 hover:text-brand-teal-200"
+        className="rounded-lg bg-brand-teal-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-teal-500 disabled:opacity-50"
       >
-        Save earn rules
+        Save settings
       </button>
     </div>
   )

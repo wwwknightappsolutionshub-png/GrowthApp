@@ -12,6 +12,64 @@ importers:
         specifier: ^1.13.3
         version: 1.13.4
 
+  apps/loyalty-pwa:
+    dependencies:
+      '@tanstack/react-query':
+        specifier: ^5.51.1
+        version: 5.100.10(react@18.3.1)
+      axios:
+        specifier: ^1.7.2
+        version: 1.16.0
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
+      lucide-react:
+        specifier: ^0.411.0
+        version: 0.411.0(react@18.3.1)
+      next:
+        specifier: 14.2.5
+        version: 14.2.5(@babel/core@7.29.0)(@playwright/test@1.60.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      react:
+        specifier: ^18.3.1
+        version: 18.3.1
+      react-dom:
+        specifier: ^18.3.1
+        version: 18.3.1(react@18.3.1)
+      sonner:
+        specifier: ^1.5.0
+        version: 1.7.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      tailwind-merge:
+        specifier: ^2.4.0
+        version: 2.6.1
+    devDependencies:
+      '@types/node':
+        specifier: ^20.14.10
+        version: 20.19.40
+      '@types/react':
+        specifier: ^18.3.3
+        version: 18.3.28
+      '@types/react-dom':
+        specifier: ^18.3.0
+        version: 18.3.7(@types/react@18.3.28)
+      autoprefixer:
+        specifier: ^10.4.19
+        version: 10.5.0(postcss@8.5.14)
+      eslint:
+        specifier: ^8.57.0
+        version: 8.57.1
+      eslint-config-next:
+        specifier: 14.2.5
+        version: 14.2.5(eslint@8.57.1)(typescript@5.9.3)
+      postcss:
+        specifier: ^8.4.39
+        version: 8.5.14
+      tailwindcss:
+        specifier: ^3.4.6
+        version: 3.4.19
+      typescript:
+        specifier: ^5.5.3
+        version: 5.9.3
+
   apps/web:
     dependencies:
       '@dnd-kit/core':

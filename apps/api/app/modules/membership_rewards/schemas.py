@@ -287,3 +287,159 @@ class LoyaltyLeaderboardEntry(BaseModel):
 
 class LoyaltyLeaderboardResponse(BaseModel):
     items: list[LoyaltyLeaderboardEntry]
+
+
+class AnalyticsRedemptionEntry(BaseModel):
+    id: str
+    customer_id: str
+    customer_name: str | None
+    reward_name: str
+    points_spent: int
+    status: str
+    created_at: str | None
+
+
+class AnalyticsResponse(BaseModel):
+    points_by_source: dict[str, int]
+    tier_distribution: dict[str, int]
+    members_total: int
+    members_with_balance: int
+    redemptions_total: int
+    redemptions_30d: int
+    redemption_rate_percent: float
+    points_issued_30d: int
+    points_redeemed_30d: int
+    expiring_points_soon: int
+    top_customers: list[LoyaltyLeaderboardEntry]
+    recent_redemptions: list[AnalyticsRedemptionEntry]
+
+
+class LoyaltyCustomerEntry(BaseModel):
+    customer_id: str
+    customer_name: str | None
+    email: str | None
+    phone: str | None
+    points_balance: int
+    points_lifetime: int
+    tier_code: str
+
+
+class LoyaltyCustomerListResponse(BaseModel):
+    items: list[LoyaltyCustomerEntry]
+    total: int
+    limit: int
+    offset: int
+
+
+class RedemptionListResponse(BaseModel):
+    items: list[AnalyticsRedemptionEntry]
+
+
+# ── Customer portal (Phase 4) ─────────────────────────────────────────────────
+
+
+class MessageResponse(BaseModel):
+    message: str
+
+
+class MagicLinkRequest(BaseModel):
+    email: str
+    tenant_slug: str
+    next_path: str | None = None
+
+
+class MagicLinkVerifyRequest(BaseModel):
+    token: str
+    tenant_slug: str
+
+
+class PortalLoginRequest(BaseModel):
+    email: str
+    password: str
+    tenant_slug: str
+
+
+class PortalSetPasswordRequest(BaseModel):
+    new_password: str = Field(min_length=8)
+
+
+class PortalAuthResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    customer_id: str
+    must_change_password: bool | None = None
+
+
+class LoyaltyBrandingResponse(BaseModel):
+    tenant_slug: str
+    tenant_name: str
+    logo_url: str | None = None
+    primary_color: str
+    rewards_portal_url: str
+    loyalty_enabled: bool
+
+
+class CustomerPortalMeResponse(BaseModel):
+    customer_id: uuid.UUID
+    first_name: str
+    last_name: str | None = None
+    email: str | None = None
+    phone: str | None = None
+    points_balance: int
+    points_lifetime: int
+    tier_code: str
+    tier_name: str
+    tier_benefits: list = Field(default_factory=list)
+    must_change_password: bool = False
+    tenant_slug: str
+    tenant_name: str
+
+
+class CustomerPortalRedeemResponse(BaseModel):
+    id: uuid.UUID
+    status: str
+    points_spent: int
+    reward_name: str | None = None
+
+
+class PortalHistoryResponse(BaseModel):
+    items: list[PointsLedgerEntry]
+    limit: int
+    offset: int
+    has_more: bool
+
+
+class PortalQrResponse(BaseModel):
+    token: str
+    expires_at: str
+    qr_data_url: str
+    payload: str
+
+
+class PushSubscribeKeys(BaseModel):
+    p256dh: str
+    auth: str
+
+
+class PushSubscribeRequest(BaseModel):
+    endpoint: str
+    keys: PushSubscribeKeys
+
+
+class PushSubscribeResponse(BaseModel):
+    id: uuid.UUID
+    endpoint: str
+
+
+class QrScanRequest(BaseModel):
+    payload: str = Field(min_length=8)
+
+
+class QrScanResponse(BaseModel):
+    scan_id: uuid.UUID
+    customer_id: uuid.UUID
+    customer_name: str | None
+    points_awarded: int
+    points_balance: int
+    tier_code: str
+    message: str

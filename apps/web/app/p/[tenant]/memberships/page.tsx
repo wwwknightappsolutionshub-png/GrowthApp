@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation'
 import { MembershipInterestForm } from '@/components/membership-rewards/MembershipInterestForm'
 import { LoyaltyTiersSection } from '@/components/membership-rewards/LoyaltyTiersSection'
 import { ReferWinSection } from '@/components/membership-rewards/ReferWinSection'
+import { RewardsWalletSection } from '@/components/membership-rewards/RewardsWalletSection'
 
 type MembershipPlan = {
   id: string
@@ -33,6 +34,8 @@ type MembershipPageJson = {
   cta_href: string | null
   refer_win_url?: string
   memberships_url?: string
+  loyalty_url?: string
+  rewards_portal_url?: string | null
   plans: MembershipPlan[]
   tiers: MembershipTier[]
 }
@@ -118,6 +121,13 @@ export default async function PublicMembershipsPage({
       ) : null}
 
       {page.refer_win_url ? <ReferWinSection referWinUrl={page.refer_win_url} /> : null}
+
+      {page.rewards_portal_url ? (
+        <RewardsWalletSection
+          tenantName={page.tenant_name}
+          rewardsPortalUrl={page.rewards_portal_url}
+        />
+      ) : null}
 
       {page.plans.length > 0 ? (
         <section className="bg-gray-50 px-6 py-16">

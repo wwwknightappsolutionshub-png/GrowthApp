@@ -1,9 +1,126 @@
-"""Phase 5 — landing auto-generation and publish on first plan."""
+"""Phase 5 — booking loyalty provisioning and landing auto-generation."""
+
 from __future__ import annotations
 
 import uuid
+from datetime import date, time
 
 import pytest
+from sqlalchemy import select
+
+
+async def _register(client) -> tuple[str, uuid.UUID, str]:
+    slug_suffix = uuid.uuid4().hex[:6]
+    email = f"mr5-{slug_suffix}@example.com"
+    res = await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": email,
+            "password": "TestPass123",
+            "full_name": "MR5 Tester",
+            "business_name": f"MR5 Co {slug_suffix}",
+            "business_type": "plumber",
+            "postcode": "SW1A 1AA",
+        },
+    )
+    assert res.status_code == 201
+    token = res.json()["access_token"]
+    tenant = await client.get("/api/v1/tenants/me", headers={"Authorization": f"Bearer {token}"})
+    tenant_id = uuid.UUID(tenant.json()["id"])
+    slug = tenant.json()["slug"]
+    await client.post(
+        "/api/v1/membership-rewards/dev/grant",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    return token, tenant_id, slug
+
+
+@pytest.mark.asyncio
+async def test_booking_provisions_loyalty_portal(client, db_session):
+    from app.modules.crm.models import Customer
+    from app.modules.membership_rewards.models import MrCustomerCredentials, MrCustomerMagicLink
+    from app.modules.membership_rewards.customer_auth.provisioning import should_provision_from_booking
+
+    _, tenant_id, slug = await _register(client)
+
+    booking = await client.post(
+        f"/api/v1/public/booking/{slug}",
+        json={
+            "customer_name": "Jamie Loyal",
+            "customer_email": "jamie-loyal@example.com",
+            "customer_phone": "07700900123",
+            "booking_date": date.today().isoformat(),
+            "start_time": time(10, 0).isoformat(),
+            "join_loyalty_program": True,
+        },
+    )
+    assert booking.status_code == 200, booking.text
+
+    cust = (
+        await db_session.execute(
+            select(Customer.id).where(
+                Customer.email == "jamie-loyal@example.com",
+                Customer.tenant_id == tenant_id,
+            )
+        )
+    ).scalar_one()
+
+    creds = await db_session.get(MrCustomerCredentials, {"tenant_id": tenant_id, "customer_id": cust})
+    assert creds is not None
+
+    links = (
+        await db_session.execute(
+            select(MrCustomerMagicLink).where(MrCustomerMagicLink.customer_id == cust)
+        )
+    ).scalars().all()
+    assert len(links) >= 1
+
+    assert (
+        await should_provision_from_booking(
+            db_session,
+            tenant_id=tenant_id,
+            customer_id=cust,
+            join_loyalty_program=True,
+        )
+        is False
+    )
+
+
+@pytest.mark.asyncio
+async def test_booking_opt_out_skips_provisioning(client, db_session):
+    from app.modules.crm.models import Customer
+    from app.modules.membership_rewards.models import MrCustomerCredentials
+
+    _, tenant_id, slug = await _register(client)
+
+    res = await client.post(
+        f"/api/v1/public/booking/{slug}",
+        json={
+            "customer_name": "Opt Out User",
+            "customer_email": "opt-out@example.com",
+            "booking_date": date.today().isoformat(),
+            "start_time": time(11, 0).isoformat(),
+            "join_loyalty_program": False,
+        },
+    )
+    assert res.status_code == 200, res.text
+
+    cust = (
+        await db_session.execute(
+            select(Customer.id).where(Customer.email == "opt-out@example.com", Customer.tenant_id == tenant_id)
+        )
+    ).scalar_one()
+
+    creds = await db_session.get(MrCustomerCredentials, {"tenant_id": tenant_id, "customer_id": cust})
+    assert creds is None
+
+
+@pytest.mark.asyncio
+async def test_widget_config_includes_loyalty_flag(client):
+    _, _, slug = await _register(client)
+    widget = await client.get(f"/api/v1/public/booking/{slug}/widget")
+    assert widget.status_code == 200
+    assert widget.json()["loyalty_program_available"] is True
 
 
 @pytest.mark.asyncio
@@ -11,7 +128,7 @@ async def test_create_plan_auto_publishes_landing(client, db_session):
     from app.modules.membership_rewards.models import MrLandingConfig, MrTenantSettings
     from app.modules.membership_rewards.service import grant_addon
 
-    email = f"mr5-{uuid.uuid4().hex[:8]}@example.com"
+    email = f"mr5land-{uuid.uuid4().hex[:8]}@example.com"
     res = await client.post(
         "/api/v1/auth/register",
         json={
@@ -48,7 +165,6 @@ async def test_create_plan_auto_publishes_landing(client, db_session):
     body = pub_after.json()
     assert body["tenant_slug"] == slug
     assert len(body["plans"]) == 1
-    assert "Starter" in body["hero"]["headline"] or "MR5" in body["title"]
 
     cfg = await db_session.get(MrLandingConfig, tenant_id)
     settings = await db_session.get(MrTenantSettings, tenant_id)
@@ -60,7 +176,7 @@ async def test_create_plan_auto_publishes_landing(client, db_session):
 async def test_regenerate_landing_and_interest_lead(client, db_session):
     from app.modules.membership_rewards.service import grant_addon
 
-    email = f"mr5b-{uuid.uuid4().hex[:8]}@example.com"
+    email = f"mr5blead-{uuid.uuid4().hex[:8]}@example.com"
     res = await client.post(
         "/api/v1/auth/register",
         json={

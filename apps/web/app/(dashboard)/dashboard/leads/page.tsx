@@ -22,6 +22,7 @@ import {
   Clock,
   XCircle,
 } from 'lucide-react'
+import { LoyaltyPublicLinksBanner } from '@/components/membership-rewards/LoyaltyPublicLinksBanner'
 
 // ── Lead score badge ─────────────────────────────────────────────────────────
 function LeadScoreBadge({
@@ -348,6 +349,8 @@ export default function LeadsPage() {
         </div>
         <span className="text-sm text-muted-foreground">{data?.total ?? 0} total</span>
       </div>
+
+      <LoyaltyPublicLinksBanner />
 
       {catalog && <LeadSourcesCatalog catalog={catalog} />}
 

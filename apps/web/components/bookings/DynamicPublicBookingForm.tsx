@@ -31,6 +31,8 @@ type Props = {
   depositEnabled?: boolean
   defaultDepositPence?: number
   accent: string
+  loyaltyProgramAvailable?: boolean
+  loyaltyProgramLabel?: string
   onSubmit: (payload: Record<string, unknown>) => void
   isPending?: boolean
 }
@@ -46,10 +48,13 @@ export function DynamicPublicBookingForm({
   depositEnabled,
   defaultDepositPence = 0,
   accent,
+  loyaltyProgramAvailable = false,
+  loyaltyProgramLabel = 'Join our rewards program — earn points on every visit',
   onSubmit,
   isPending,
 }: Props) {
   const [values, setValues] = useState<Record<string, string>>({})
+  const [joinLoyalty, setJoinLoyalty] = useState(true)
 
   const fields = useMemo(() => mergePublicBookingFields(schema), [schema])
   const fieldsById = useMemo(() => Object.fromEntries(fields.map((f) => [f.id, f])), [fields])
@@ -88,6 +93,9 @@ export function DynamicPublicBookingForm({
 
   const handleSubmit = () => {
     const payload: Record<string, unknown> = { ...values, channel: 'widget' }
+    if (loyaltyProgramAvailable) {
+      payload.join_loyalty_program = joinLoyalty
+    }
     if (values.slot_id) {
       const slot = slots.find((s) => s.id === values.slot_id)
       if (slot) {
@@ -263,6 +271,18 @@ export function DynamicPublicBookingForm({
         <p className="text-xs text-slate-600 bg-emerald-50 border border-emerald-100 rounded-lg px-3 py-2">
           Deposit <strong>{formatCurrency(depositPence)}</strong> may be required to secure your slot.
         </p>
+      ) : null}
+
+      {loyaltyProgramAvailable ? (
+        <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-sm text-slate-700 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={joinLoyalty}
+            onChange={(e) => setJoinLoyalty(e.target.checked)}
+            className="mt-0.5 rounded border-slate-300"
+          />
+          <span>{loyaltyProgramLabel}</span>
+        </label>
       ) : null}
 
       <button

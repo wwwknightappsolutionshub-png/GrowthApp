@@ -172,6 +172,8 @@ async def create_public_booking(tenant_slug: str, request: Request, db: AsyncSes
     schema = await resolve_tenant_booking_form(db, tenant)
     booking_fields, extras = map_submission_to_booking(normalized, schema)
     merged = {**booking_fields, **extras, "channel": body.get("channel") or "widget"}
+    if "join_loyalty_program" in body:
+        merged["join_loyalty_program"] = body.get("join_loyalty_program")
     try:
         data = PublicBookingCreate(**merged)
     except Exception as exc:
@@ -276,6 +278,22 @@ async def get_public_memberships_page(tenant_slug: str, db: AsyncSession = Depen
     from app.modules.membership_rewards import service as mr_service
 
     return await mr_service.get_public_memberships_page(db, tenant_slug)
+
+
+@router.get("/loyalty/{tenant_slug}")
+async def get_public_loyalty_page(tenant_slug: str, db: AsyncSession = Depends(get_db)):
+    """Alias of memberships landing — /p/{tenant}/loyalty."""
+    from app.modules.membership_rewards import service as mr_service
+
+    return await mr_service.get_public_memberships_page(db, tenant_slug)
+
+
+@router.get("/loyalty/{tenant_slug}/branding")
+async def get_loyalty_branding(tenant_slug: str, db: AsyncSession = Depends(get_db)):
+    """Tenant branding for customer rewards PWA."""
+    from app.modules.membership_rewards.services.portal_service import get_portal_branding
+
+    return await get_portal_branding(db, tenant_slug)
 
 
 @router.post("/memberships/{tenant_slug}/interest", response_model=MessageResponse, status_code=201)

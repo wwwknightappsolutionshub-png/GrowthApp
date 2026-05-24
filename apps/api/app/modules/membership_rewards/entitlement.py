@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.dependencies import CurrentTenantContext
-from app.core.exceptions import ForbiddenException
+from app.core.exceptions import ForbiddenException, NotFoundException
 from app.modules.accounting.models import TenantAddon
 from app.modules.membership_rewards.constants import FEATURE_MEMBERSHIP_REWARDS
 
@@ -35,6 +35,12 @@ async def tenant_has_membership_rewards(db: AsyncSession, tenant_id: uuid.UUID) 
         if exp < now:
             return False
     return True
+
+
+async def require_public_membership_rewards(db: AsyncSession, tenant_id: uuid.UUID) -> None:
+    """Block public MR surfaces when trial expired or add-on inactive."""
+    if not await tenant_has_membership_rewards(db, tenant_id):
+        raise NotFoundException("Membership page is not available")
 
 
 async def require_membership_rewards(

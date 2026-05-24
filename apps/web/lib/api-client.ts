@@ -707,6 +707,45 @@ export type MembershipTierSummary = {
   benefits: unknown[]
 }
 
+export type MembershipAnalytics = {
+  points_by_source: Record<string, number>
+  tier_distribution: Record<string, number>
+  members_total: number
+  members_with_balance: number
+  redemptions_total: number
+  redemptions_30d: number
+  redemption_rate_percent: number
+  points_issued_30d: number
+  points_redeemed_30d: number
+  expiring_points_soon: number
+  top_customers: {
+    customer_id: string
+    customer_name: string | null
+    points_balance: number
+    points_lifetime: number
+    tier_code: string
+  }[]
+  recent_redemptions: {
+    id: string
+    customer_id: string
+    customer_name: string | null
+    reward_name: string
+    points_spent: number
+    status: string
+    created_at: string | null
+  }[]
+}
+
+export type LoyaltyCustomerRow = {
+  customer_id: string
+  customer_name: string | null
+  email: string | null
+  phone: string | null
+  points_balance: number
+  points_lifetime: number
+  tier_code: string
+}
+
 export type MembershipLandingConfig = {
   title: string
   meta_description: string | null
@@ -737,6 +776,16 @@ export const membershipRewards = {
       active_plans: number
       landing_published: boolean
     }>('/membership-rewards/dashboard'),
+  analytics: () => apiClient.get<MembershipAnalytics>('/membership-rewards/analytics'),
+  listLoyaltyCustomers: (params?: { search?: string; limit?: number; offset?: number }) =>
+    apiClient.get<{ items: LoyaltyCustomerRow[]; total: number; limit: number; offset: number }>(
+      '/membership-rewards/loyalty/customers',
+      { params },
+    ),
+  listRedemptions: (params?: { status?: string; limit?: number }) =>
+    apiClient.get<{
+      items: MembershipAnalytics['recent_redemptions']
+    }>('/membership-rewards/redemptions', { params }),
   leaderboard: (limit = 20) =>
     apiClient.get<{
       items: {
@@ -813,6 +862,16 @@ export const membershipRewards = {
     id: string,
     data: { name?: string; min_points_lifetime?: number; benefits?: unknown[]; sort_order?: number },
   ) => apiClient.patch(`/membership-rewards/tiers/${id}`, data),
+  scanQr: (payload: string) =>
+    apiClient.post<{
+      scan_id: string
+      customer_id: string
+      customer_name: string | null
+      points_awarded: number
+      points_balance: number
+      tier_code: string
+      message: string
+    }>('/membership-rewards/qr/scan', { payload }),
   submitInterest: (
     tenantSlug: string,
     data: {

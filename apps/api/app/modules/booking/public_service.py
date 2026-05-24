@@ -22,6 +22,10 @@ async def get_widget_config(db: AsyncSession, tenant: Tenant) -> PublicWidgetCon
 
     booking_form = await resolve_tenant_booking_form(db, tenant)
 
+    from app.modules.membership_rewards.entitlement import tenant_has_membership_rewards
+
+    loyalty_available = await tenant_has_membership_rewards(db, tenant.id)
+
     return PublicWidgetConfigResponse(
         tenant_slug=tenant.slug,
         tenant_name=tenant.name,
@@ -34,6 +38,7 @@ async def get_widget_config(db: AsyncSession, tenant: Tenant) -> PublicWidgetCon
         booking_form=booking_form,
         deposit_enabled=settings.deposit_enabled,
         default_deposit_pence=settings.default_deposit_pence,
+        loyalty_program_available=loyalty_available,
     )
 
 

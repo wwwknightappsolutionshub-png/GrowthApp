@@ -37,6 +37,7 @@ SYSTEM_FIELD_IDS = frozenset(
         "booking_date",
         "start_time",
         "service_description",
+        "join_loyalty_program",
     }
 )
 

@@ -25,6 +25,7 @@ DEFAULT_EARN_RULES: dict = {
     "membership_signup": 200,
     "refer_win": 100,
     "review_left": 75,
+    "qr_checkin": 25,
 }
 
 POINT_SOURCES = frozenset(
@@ -38,5 +39,9 @@ POINT_SOURCES = frozenset(
         "redeem",
         "adjustment",
         "expiration",
+        "qr_checkin",
     }
 )
+
+CUSTOMER_MAGIC_LINK_EXPIRE_MINUTES = 30
+CUSTOMER_QR_TOKEN_EXPIRE_MINUTES = 10

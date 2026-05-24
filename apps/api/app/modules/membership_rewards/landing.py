@@ -22,12 +22,29 @@ def frontend_base_url() -> str:
     return os.getenv("FRONTEND_URL", "https://app.customerflow.ai").rstrip("/")
 
 
+def rewards_portal_path(tenant_slug: str) -> str:
+    return f"/rewards/{tenant_slug}"
+
+
+def rewards_portal_url(tenant_slug: str) -> str:
+    return f"{frontend_base_url()}{rewards_portal_path(tenant_slug)}"
+
+
 def memberships_public_path(tenant_slug: str) -> str:
     return f"/p/{tenant_slug}/memberships"
 
 
+def loyalty_public_path(tenant_slug: str) -> str:
+    """Alias path — same published landing as memberships."""
+    return f"/p/{tenant_slug}/loyalty"
+
+
 def memberships_public_url(tenant_slug: str) -> str:
     return f"{frontend_base_url()}{memberships_public_path(tenant_slug)}"
+
+
+def loyalty_public_url(tenant_slug: str) -> str:
+    return f"{frontend_base_url()}{loyalty_public_path(tenant_slug)}"
 
 
 def default_booking_cta_url(tenant_slug: str) -> str:

@@ -63,7 +63,9 @@ async def create_booking(db: AsyncSession, tenant_id: uuid.UUID, data: BookingCr
 
     from app.modules.booking.crm_link import ensure_lead_for_booking, resolve_customer_for_booking
 
-    dump_pre = data.model_dump(exclude={"slot_id", "promo_code"}, exclude_none=False)
+    join_loyalty_program = getattr(data, "join_loyalty_program", None)
+
+    dump_pre = data.model_dump(exclude={"slot_id", "promo_code", "join_loyalty_program"}, exclude_none=False)
     if not dump_pre.get("customer_id"):
         resolved_cid = await resolve_customer_for_booking(
             db,
@@ -97,7 +99,7 @@ async def create_booking(db: AsyncSession, tenant_id: uuid.UUID, data: BookingCr
         slot.is_booked = True
         db.add(slot)
 
-    dump = data.model_dump(exclude={"slot_id", "promo_code"})
+    dump = data.model_dump(exclude={"slot_id", "promo_code", "join_loyalty_program"})
     duration = dump.pop("duration_minutes", None) or settings.default_duration_minutes
     timezone = dump.pop("timezone", None) or settings.timezone
     end_time = _calc_end_time(dump.get("start_time"), duration)
@@ -156,6 +158,18 @@ async def create_booking(db: AsyncSession, tenant_id: uuid.UUID, data: BookingCr
     await db.refresh(booking)
 
     await schedule_booking_notifications(db, booking)
+
+    try:
+        from app.modules.membership_rewards.hooks import on_booking_created_for_loyalty
+
+        await on_booking_created_for_loyalty(
+            db,
+            tenant_id=tenant_id,
+            booking=booking,
+            join_loyalty_program=join_loyalty_program,
+        )
+    except Exception:  # noqa: BLE001
+        pass
 
     from app.workers.queue import enqueue
 

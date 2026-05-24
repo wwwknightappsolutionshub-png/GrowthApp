@@ -166,3 +166,75 @@ async def test_revoke_addon(client, db_session):
     assert await tenant_has_membership_rewards(db_session, tenant_id)
     await mr_service.revoke_addon(db_session, tenant_id)
     assert not await tenant_has_membership_rewards(db_session, tenant_id)
+
+
+@pytest.mark.asyncio
+async def test_public_surfaces_blocked_when_trial_expired(client, db_session):
+    """Phase 7 — public landing, interest, and enroll hard-stop after trial expiry."""
+    from datetime import datetime, timedelta, timezone
+
+    from app.modules.accounting.models import TenantAddon
+    from app.modules.membership_rewards.constants import FEATURE_MEMBERSHIP_REWARDS
+    from app.modules.membership_rewards.models import MrMembershipPlan
+    from app.modules.membership_rewards.service import grant_addon, publish_landing
+    from sqlalchemy import select
+
+    token, tenant_id = await _register(client)
+    headers = {"Authorization": f"Bearer {token}"}
+    tenant = await client.get("/api/v1/tenants/me", headers=headers)
+    slug = tenant.json()["slug"]
+
+    await grant_addon(db_session, tenant_id)
+    db_session.add(
+        MrMembershipPlan(
+            tenant_id=tenant_id,
+            name="Public",
+            billing_cycle="monthly",
+            price_pence=1500,
+            is_active=True,
+        )
+    )
+    await db_session.commit()
+    await publish_landing(db_session, tenant_id)
+
+    ok = await client.get(f"/api/v1/public/memberships/{slug}")
+    assert ok.status_code == 200
+
+    row = (
+        await db_session.execute(
+            select(TenantAddon).where(
+                TenantAddon.tenant_id == tenant_id,
+                TenantAddon.feature_code == FEATURE_MEMBERSHIP_REWARDS,
+            )
+        )
+    ).scalar_one()
+    row.expires_at = datetime.now(timezone.utc) - timedelta(days=1)
+    await db_session.commit()
+
+    blocked_page = await client.get(f"/api/v1/public/memberships/{slug}")
+    assert blocked_page.status_code == 404
+
+    blocked_loyalty = await client.get(f"/api/v1/public/loyalty/{slug}")
+    assert blocked_loyalty.status_code == 404
+
+    interest = await client.post(
+        f"/api/v1/public/memberships/{slug}/interest",
+        json={"first_name": "Pat", "email": "pat@expired.test"},
+    )
+    assert interest.status_code == 404
+
+    enroll = await client.post(
+        f"/api/v1/public/memberships/{slug}/loyalty-enroll",
+        json={"name": "Pat", "email": "pat@expired.test", "tier_code": "bronze"},
+    )
+    assert enroll.status_code == 404
+
+    magic = await client.post(
+        "/api/v1/loyalty-portal/auth/magic-link",
+        json={"email": "pat@expired.test", "tenant_slug": slug},
+    )
+    assert magic.status_code == 200
+
+    branding = await client.get(f"/api/v1/public/loyalty/{slug}/branding")
+    assert branding.status_code == 200
+    assert branding.json()["loyalty_enabled"] is False

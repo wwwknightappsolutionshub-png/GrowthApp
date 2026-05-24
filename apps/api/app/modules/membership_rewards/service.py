@@ -17,14 +17,30 @@ from app.core.exceptions import BadRequestException, NotFoundException
 from app.modules.accounting.models import TenantAddon
 from app.modules.membership_rewards.constants import (
     BILLING_CYCLES,
-    DEFAULT_EARN_RULES,
-    DEFAULT_TIERS,
     FEATURE_MEMBERSHIP_REWARDS,
-    POINT_SOURCES,
     TRIAL_DAYS,
     WINBACK_DISCOUNT_PERCENT,
 )
 from app.modules.membership_rewards.entitlement import tenant_has_membership_rewards
+from app.modules.membership_rewards.engines.earning_engine import adjust_points, earn_points
+from app.modules.membership_rewards.engines.redemption_engine import redeem_reward
+from app.modules.membership_rewards.engines.reward_rules import (
+    has_loyalty_signup_bonus,
+    membership_signup_bonus_points,
+)
+from app.modules.membership_rewards.engines.tier_engine import list_tiers
+from app.modules.membership_rewards.services.customer_loyalty_service import (
+    get_customer_loyalty,
+    list_ledger,
+    list_loyalty_leaderboard,
+)
+from app.modules.membership_rewards.services.tenant_loyalty_settings import (
+    bootstrap_tenant,
+    ensure_landing_config as _ensure_landing_config,
+    get_or_create_settings as _get_or_create_settings,
+    get_settings,
+)
+from app.modules.crm.models import Customer
 from app.modules.membership_rewards.models import (
     MrCustomerLoyalty,
     MrCustomerSubscription,
@@ -37,7 +53,7 @@ from app.modules.membership_rewards.models import (
     MrTenantSettings,
     MrTrialReminders,
 )
-from app.modules.crm.models import Customer
+from app.modules.membership_rewards.services.customer_loyalty_service import get_or_create_loyalty
 from app.modules.membership_rewards.schemas import (
     CatalogItemCreate,
     EarnRulesUpdate,
@@ -206,85 +222,7 @@ async def start_trial_for_tenant(db: AsyncSession, tenant_id: uuid.UUID) -> Tena
     return addon
 
 
-async def bootstrap_tenant(db: AsyncSession, tenant_id: uuid.UUID) -> None:
-    await _get_or_create_settings(db, tenant_id)
-    await _ensure_default_tiers(db, tenant_id)
-    await _ensure_landing_config(db, tenant_id)
-    await db.flush()
-
-
-async def _get_or_create_settings(db: AsyncSession, tenant_id: uuid.UUID) -> MrTenantSettings:
-    row = await db.get(MrTenantSettings, tenant_id)
-    if not row:
-        row = MrTenantSettings(
-            tenant_id=tenant_id,
-            earn_rules=dict(DEFAULT_EARN_RULES),
-            landing_slug="memberships",
-        )
-        db.add(row)
-        await db.flush()
-    return row
-
-
-async def _ensure_default_tiers(db: AsyncSession, tenant_id: uuid.UUID) -> None:
-    count = (
-        await db.execute(
-            select(MrLoyaltyTier).where(MrLoyaltyTier.tenant_id == tenant_id).limit(1)
-        )
-    ).scalar_one_or_none()
-    if count:
-        return
-    for t in DEFAULT_TIERS:
-        db.add(
-            MrLoyaltyTier(
-                tenant_id=tenant_id,
-                code=t["code"],
-                name=t["name"],
-                min_points_lifetime=t["min_points_lifetime"],
-                sort_order=t["sort_order"],
-            )
-        )
-
-
-async def _ensure_landing_config(db: AsyncSession, tenant_id: uuid.UUID) -> MrLandingConfig:
-    from app.modules.membership_rewards.landing import build_landing_content, default_booking_cta_url
-
-    row = await db.get(MrLandingConfig, tenant_id)
-    tenant = await db.get(Tenant, tenant_id)
-    if not row:
-        plans = await list_plans(db, tenant_id, active_only=True)
-        tiers = (
-            await db.execute(
-                select(MrLoyaltyTier)
-                .where(MrLoyaltyTier.tenant_id == tenant_id)
-                .order_by(MrLoyaltyTier.sort_order)
-            )
-        ).scalars().all()
-        content = build_landing_content(tenant, list(plans), list(tiers)) if tenant else {}
-        row = MrLandingConfig(
-            tenant_id=tenant_id,
-            title=content.get("title", "Membership & Rewards"),
-            meta_description=content.get("meta_description"),
-            hero=content.get("hero", {}),
-            benefits=content.get("benefits", []),
-            cta_label=content.get("cta_label", "Join Our Membership Program"),
-            cta_href=content.get("cta_href")
-            or (default_booking_cta_url(tenant.slug) if tenant else None),
-            auto_generated=True,
-        )
-        db.add(row)
-        await db.flush()
-    elif tenant and not row.cta_href:
-        row.cta_href = default_booking_cta_url(tenant.slug)
-        await db.flush()
-    return row
-
-
 # ── Settings ─────────────────────────────────────────────────────────────────
-
-
-async def get_settings(db: AsyncSession, tenant_id: uuid.UUID) -> MrTenantSettings:
-    return await _get_or_create_settings(db, tenant_id)
 
 
 async def update_settings(db: AsyncSession, tenant_id: uuid.UUID, data: EarnRulesUpdate) -> MrTenantSettings:
@@ -377,17 +315,6 @@ async def _get_plan(db: AsyncSession, tenant_id: uuid.UUID, plan_id: uuid.UUID) 
 # ── Tiers & catalog ──────────────────────────────────────────────────────────
 
 
-async def list_tiers(db: AsyncSession, tenant_id: uuid.UUID) -> list[MrLoyaltyTier]:
-    await _ensure_default_tiers(db, tenant_id)
-    await db.flush()
-    q = (
-        select(MrLoyaltyTier)
-        .where(MrLoyaltyTier.tenant_id == tenant_id)
-        .order_by(MrLoyaltyTier.sort_order)
-    )
-    return list((await db.execute(q)).scalars().all())
-
-
 async def _get_tier(db: AsyncSession, tenant_id: uuid.UUID, tier_id: uuid.UUID) -> MrLoyaltyTier:
     row = (
         await db.execute(
@@ -430,191 +357,6 @@ async def create_catalog_item(
     await db.commit()
     await db.refresh(row)
     return row
-
-
-# ── Points ledger (separate from referrals cash) ─────────────────────────────
-
-
-async def _get_loyalty(db: AsyncSession, tenant_id: uuid.UUID, customer_id: uuid.UUID) -> MrCustomerLoyalty:
-    row = await db.get(MrCustomerLoyalty, {"tenant_id": tenant_id, "customer_id": customer_id})
-    if not row:
-        row = MrCustomerLoyalty(tenant_id=tenant_id, customer_id=customer_id)
-        db.add(row)
-        await db.flush()
-    return row
-
-
-async def earn_points(
-    db: AsyncSession,
-    tenant_id: uuid.UUID,
-    customer_id: uuid.UUID,
-    amount: int,
-    *,
-    source: str,
-    description: str | None = None,
-    reference_type: str | None = None,
-    reference_id: uuid.UUID | None = None,
-) -> MrPointsLedger:
-    if amount <= 0:
-        raise BadRequestException("earn amount must be positive")
-    if source not in POINT_SOURCES:
-        raise BadRequestException(f"invalid source: {source}")
-
-    loyalty = await _get_loyalty(db, tenant_id, customer_id)
-    loyalty.points_balance += amount
-    loyalty.points_lifetime += amount
-    balance = loyalty.points_balance
-
-    settings = await _get_or_create_settings(db, tenant_id)
-    expires_at = None
-    if settings.points_expire_days:
-        expires_at = datetime.now(timezone.utc) + timedelta(days=settings.points_expire_days)
-
-    entry = MrPointsLedger(
-        tenant_id=tenant_id,
-        customer_id=customer_id,
-        amount=amount,
-        balance_after=balance,
-        source=source,
-        reference_type=reference_type,
-        reference_id=reference_id,
-        description=description,
-        expires_at=expires_at,
-    )
-    db.add(entry)
-    await _recalc_tier(db, tenant_id, customer_id, loyalty)
-    await db.commit()
-    await db.refresh(entry)
-    return entry
-
-
-async def adjust_points(
-    db: AsyncSession,
-    tenant_id: uuid.UUID,
-    customer_id: uuid.UUID,
-    amount: int,
-    *,
-    source: str = "adjustment",
-    description: str | None = None,
-) -> MrPointsLedger:
-    if amount == 0:
-        raise BadRequestException("amount cannot be zero")
-    if source not in POINT_SOURCES:
-        raise BadRequestException(f"invalid source: {source}")
-
-    loyalty = await _get_loyalty(db, tenant_id, customer_id)
-    if amount < 0 and loyalty.points_balance + amount < 0:
-        raise BadRequestException("insufficient points balance")
-
-    loyalty.points_balance += amount
-    if amount > 0:
-        loyalty.points_lifetime += amount
-    balance = loyalty.points_balance
-
-    entry = MrPointsLedger(
-        tenant_id=tenant_id,
-        customer_id=customer_id,
-        amount=amount,
-        balance_after=balance,
-        source=source,
-        description=description,
-    )
-    db.add(entry)
-    await _recalc_tier(db, tenant_id, customer_id, loyalty)
-    await db.commit()
-    await db.refresh(entry)
-    return entry
-
-
-async def redeem_reward(
-    db: AsyncSession,
-    tenant_id: uuid.UUID,
-    customer_id: uuid.UUID,
-    catalog_item_id: uuid.UUID,
-) -> MrRewardRedemption:
-    item = (
-        await db.execute(
-            select(MrRewardCatalog).where(
-                MrRewardCatalog.id == catalog_item_id,
-                MrRewardCatalog.tenant_id == tenant_id,
-                MrRewardCatalog.is_active.is_(True),
-            )
-        )
-    ).scalar_one_or_none()
-    if not item:
-        raise NotFoundException("Reward not found")
-    if item.stock_remaining is not None and item.stock_remaining <= 0:
-        raise BadRequestException("Reward out of stock")
-
-    loyalty = await _get_loyalty(db, tenant_id, customer_id)
-    if loyalty.points_balance < item.points_cost:
-        raise BadRequestException("insufficient points")
-
-    loyalty.points_balance -= item.points_cost
-    db.add(
-        MrPointsLedger(
-            tenant_id=tenant_id,
-            customer_id=customer_id,
-            amount=-item.points_cost,
-            balance_after=loyalty.points_balance,
-            source="redeem",
-            reference_type="reward_catalog",
-            reference_id=item.id,
-            description=f"Redeemed: {item.name}",
-        )
-    )
-
-    if item.stock_remaining is not None:
-        item.stock_remaining -= 1
-
-    redemption = MrRewardRedemption(
-        tenant_id=tenant_id,
-        customer_id=customer_id,
-        catalog_item_id=item.id,
-        points_spent=item.points_cost,
-        status="fulfilled",
-    )
-    db.add(redemption)
-    await db.commit()
-    await db.refresh(redemption)
-    return redemption
-
-
-async def get_customer_loyalty(
-    db: AsyncSession, tenant_id: uuid.UUID, customer_id: uuid.UUID
-) -> MrCustomerLoyalty:
-    return await _get_loyalty(db, tenant_id, customer_id)
-
-
-async def list_ledger(
-    db: AsyncSession, tenant_id: uuid.UUID, customer_id: uuid.UUID, *, limit: int = 50
-) -> list[MrPointsLedger]:
-    q = (
-        select(MrPointsLedger)
-        .where(
-            MrPointsLedger.tenant_id == tenant_id,
-            MrPointsLedger.customer_id == customer_id,
-        )
-        .order_by(MrPointsLedger.created_at.desc())
-        .limit(min(limit, 200))
-    )
-    return list((await db.execute(q)).scalars().all())
-
-
-async def _recalc_tier(
-    db: AsyncSession, tenant_id: uuid.UUID, customer_id: uuid.UUID, loyalty: MrCustomerLoyalty
-) -> None:
-    tiers = await list_tiers(db, tenant_id)
-    if not tiers:
-        return
-    best = tiers[0]
-    for t in tiers:
-        if loyalty.points_lifetime >= t.min_points_lifetime:
-            best = t
-    current_order = next((t.sort_order for t in tiers if t.code == loyalty.tier_code), 0)
-    if best.sort_order > current_order:
-        loyalty.tier_code = best.code
-        loyalty.tier_updated_at = datetime.now(timezone.utc)
 
 
 # ── Landing (public) ─────────────────────────────────────────────────────────
@@ -681,6 +423,10 @@ async def get_public_memberships_page(db: AsyncSession, tenant_slug: str) -> dic
     if not tenant:
         raise NotFoundException("Business not found")
 
+    from app.modules.membership_rewards.entitlement import require_public_membership_rewards
+
+    await require_public_membership_rewards(db, tenant.id)
+
     settings = await _get_or_create_settings(db, tenant.id)
     if not settings.landing_published:
         raise NotFoundException("Membership page is not published")
@@ -692,7 +438,11 @@ async def get_public_memberships_page(db: AsyncSession, tenant_slug: str) -> dic
     plans = await list_plans(db, tenant.id, active_only=True)
     tiers = await list_tiers(db, tenant.id)
     from app.modules.booking.feedback import refer_url_for_slug
-    from app.modules.membership_rewards.landing import memberships_public_url
+    from app.modules.membership_rewards.landing import (
+        loyalty_public_url,
+        memberships_public_url,
+        rewards_portal_url,
+    )
 
     return {
         "tenant_slug": tenant.slug,
@@ -705,6 +455,8 @@ async def get_public_memberships_page(db: AsyncSession, tenant_slug: str) -> dic
         "cta_href": cfg.cta_href,
         "refer_win_url": refer_url_for_slug(tenant.slug),
         "memberships_url": memberships_public_url(tenant.slug),
+        "loyalty_url": loyalty_public_url(tenant.slug),
+        "rewards_portal_url": rewards_portal_url(tenant.slug),
         "tiers": [
             {
                 "code": t.code,
@@ -770,6 +522,10 @@ async def submit_membership_interest(
     if not tenant:
         raise NotFoundException("Business not found")
 
+    from app.modules.membership_rewards.entitlement import require_public_membership_rewards
+
+    await require_public_membership_rewards(db, tenant.id)
+
     settings = await _get_or_create_settings(db, tenant.id)
     if not settings.landing_published:
         raise NotFoundException("Membership page is not published")
@@ -804,34 +560,6 @@ async def submit_membership_interest(
     await leads_service.create_lead_public(db=db, tenant=tenant, data=data, ip_address=ip_address)
 
 
-async def _membership_signup_bonus_points(db: AsyncSession, tenant_id: uuid.UUID) -> int:
-    settings = await _get_or_create_settings(db, tenant_id)
-    rules = settings.earn_rules or {}
-    try:
-        raw = rules.get("membership_signup", DEFAULT_EARN_RULES["membership_signup"])
-        return max(0, int(raw))
-    except (TypeError, ValueError):
-        return DEFAULT_EARN_RULES["membership_signup"]
-
-
-async def _has_loyalty_signup_bonus(
-    db: AsyncSession, tenant_id: uuid.UUID, customer_id: uuid.UUID
-) -> bool:
-    row = (
-        await db.execute(
-            select(MrPointsLedger.id)
-            .where(
-                MrPointsLedger.tenant_id == tenant_id,
-                MrPointsLedger.customer_id == customer_id,
-                MrPointsLedger.source == "membership",
-                MrPointsLedger.reference_type == "loyalty_signup",
-            )
-            .limit(1)
-        )
-    ).scalar_one_or_none()
-    return row is not None
-
-
 async def submit_loyalty_enrollment(
     db: AsyncSession,
     tenant_slug: str,
@@ -861,6 +589,10 @@ async def submit_loyalty_enrollment(
     if not tenant:
         raise NotFoundException("Business not found")
 
+    from app.modules.membership_rewards.entitlement import require_public_membership_rewards
+
+    await require_public_membership_rewards(db, tenant.id)
+
     settings = await _get_or_create_settings(db, tenant.id)
     if not settings.landing_published:
         raise NotFoundException("Membership page is not published")
@@ -883,7 +615,7 @@ async def submit_loyalty_enrollment(
     if not customer_id:
         raise BadRequestException("Could not create customer record")
 
-    loyalty = await _get_loyalty(db, tenant.id, customer_id)
+    loyalty = await get_or_create_loyalty(db, tenant.id, customer_id)
     loyalty.tier_code = tier
     loyalty.tier_updated_at = datetime.now(timezone.utc)
 
@@ -899,10 +631,10 @@ async def submit_loyalty_enrollment(
     )
     await leads_service.create_lead_public(db=db, tenant=tenant, data=lead_data, ip_address=ip_address)
 
-    signup_bonus = await _membership_signup_bonus_points(db, tenant.id)
+    signup_bonus = await membership_signup_bonus_points(db, tenant.id)
     awarded_bonus = False
     points_balance = 0
-    if signup_bonus > 0 and not await _has_loyalty_signup_bonus(db, tenant.id, customer_id):
+    if signup_bonus > 0 and not await has_loyalty_signup_bonus(db, tenant.id, customer_id):
         entry = await earn_points(
             db,
             tenant.id,
@@ -1198,24 +930,32 @@ async def get_dashboard(db: AsyncSession, tenant_id: uuid.UUID) -> dict[str, Any
     }
 
 
-async def list_loyalty_leaderboard(
-    db: AsyncSession, tenant_id: uuid.UUID, *, limit: int = 20
+async def get_analytics(db: AsyncSession, tenant_id: uuid.UUID) -> dict[str, Any]:
+    from app.modules.membership_rewards.services.analytics import get_analytics as _get_analytics
+
+    return await _get_analytics(db, tenant_id)
+
+
+async def list_loyalty_customers(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    *,
+    search: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> dict[str, Any]:
+    from app.modules.membership_rewards.services.analytics import list_loyalty_customers as _list
+
+    return await _list(db, tenant_id, search=search, limit=limit, offset=offset)
+
+
+async def list_redemptions(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    *,
+    status: str | None = None,
+    limit: int = 50,
 ) -> list[dict[str, Any]]:
-    q = (
-        select(MrCustomerLoyalty, Customer)
-        .join(Customer, Customer.id == MrCustomerLoyalty.customer_id)
-        .where(MrCustomerLoyalty.tenant_id == tenant_id)
-        .order_by(MrCustomerLoyalty.points_lifetime.desc())
-        .limit(min(limit, 100))
-    )
-    rows = (await db.execute(q)).all()
-    return [
-        {
-            "customer_id": str(loyalty.customer_id),
-            "customer_name": f"{cust.first_name or ''} {cust.last_name or ''}".strip() or cust.email,
-            "points_balance": loyalty.points_balance,
-            "points_lifetime": loyalty.points_lifetime,
-            "tier_code": loyalty.tier_code,
-        }
-        for loyalty, cust in rows
-    ]
+    from app.modules.membership_rewards.services.analytics import list_redemptions as _list
+
+    return await _list(db, tenant_id, status=status, limit=limit)

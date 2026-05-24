@@ -195,6 +195,99 @@ class MrTrialReminders(Base):
     winback_discount_percent: Mapped[int] = mapped_column(Integer, default=50)
 
 
+class MrCustomerCredentials(Base):
+    __tablename__ = "mr_customer_credentials"
+    __table_args__ = (PrimaryKeyConstraint("tenant_id", "customer_id", name="pk_mr_customer_credentials"),)
+
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    customer_id: Mapped[uuid.UUID] = mapped_column(
+        UUIDType, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False
+    )
+    password_hash: Mapped[str | None] = mapped_column(Text)
+    must_change_password: Mapped[bool] = mapped_column(Boolean, default=False)
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class MrCustomerMagicLink(Base):
+    __tablename__ = "mr_customer_magic_links"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUIDType, primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    customer_id: Mapped[uuid.UUID] = mapped_column(
+        UUIDType, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    email: Mapped[str] = mapped_column(String(255), nullable=False)
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    used_from_ip: Mapped[str | None] = mapped_column(String(45))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class MrCustomerQrToken(Base):
+    __tablename__ = "mr_customer_qr_tokens"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUIDType, primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    customer_id: Mapped[uuid.UUID] = mapped_column(
+        UUIDType, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class MrQrScanEvent(Base):
+    __tablename__ = "mr_qr_scan_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUIDType, primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    customer_id: Mapped[uuid.UUID] = mapped_column(
+        UUIDType, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    staff_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUIDType, ForeignKey("users.id", ondelete="SET NULL")
+    )
+    qr_token_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUIDType, ForeignKey("mr_customer_qr_tokens.id", ondelete="SET NULL")
+    )
+    points_awarded: Mapped[int | None] = mapped_column(Integer)
+    scanned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class MrCustomerPushSubscription(Base):
+    __tablename__ = "mr_customer_push_subscriptions"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "customer_id", "endpoint", name="uq_mr_customer_push_endpoint"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUIDType, primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUIDType, ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    customer_id: Mapped[uuid.UUID] = mapped_column(
+        UUIDType, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    endpoint: Mapped[str] = mapped_column(Text, nullable=False)
+    p256dh: Mapped[str] = mapped_column(String(255), nullable=False)
+    auth: Mapped[str] = mapped_column(String(255), nullable=False)
+    user_agent: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class MrLandingConfig(Base):
     __tablename__ = "mr_landing_config"
 

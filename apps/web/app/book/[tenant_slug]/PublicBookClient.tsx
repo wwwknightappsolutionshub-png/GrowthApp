@@ -167,6 +167,8 @@ export function PublicBookClient({ slug, initialWidget, loadStatus }: Props) {
         services={active?.services ?? []}
         depositEnabled={active?.deposit_enabled}
         defaultDepositPence={active?.default_deposit_pence}
+        loyaltyProgramAvailable={active?.loyalty_program_available}
+        loyaltyProgramLabel={active?.loyalty_program_label}
         accent={accent}
         onSubmit={(payload) => bookMutation.mutate(payload)}
         isPending={bookMutation.isPending}

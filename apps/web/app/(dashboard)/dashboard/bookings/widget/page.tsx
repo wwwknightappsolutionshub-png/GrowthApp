@@ -37,6 +37,8 @@ export default function BookingWidgetPage() {
             rate_url?: string
             memberships_url?: string
             memberships_label?: string
+            rewards_portal_url?: string
+            rewards_portal_label?: string
           },
       ),
   })
@@ -87,6 +89,14 @@ export default function BookingWidgetPage() {
         label: links.memberships_label ?? 'Membership & Rewards',
         description: 'Public membership & loyalty landing page',
         value: links.memberships_url,
+      })
+    }
+    if (links?.rewards_portal_url) {
+      items.push({
+        id: 'rewards-wallet',
+        label: links.rewards_portal_label ?? 'Customer rewards wallet',
+        description: 'PWA wallet — points, rewards, in-store QR',
+        value: links.rewards_portal_url,
       })
     }
     return items

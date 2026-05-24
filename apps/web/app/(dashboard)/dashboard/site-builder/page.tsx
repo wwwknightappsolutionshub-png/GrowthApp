@@ -151,6 +151,9 @@ export default function SiteBuilderPage() {
               <p className="text-xs text-brand-teal-100/75 mt-1 break-all">
                 {(site as { memberships_url?: string }).memberships_url}
               </p>
+              <p className="text-[10px] text-brand-teal-100/50 mt-1">
+                Alias: /p/{site.tenant_slug}/loyalty
+              </p>
             </div>
           </div>
           <Link
@@ -158,6 +161,26 @@ export default function SiteBuilderPage() {
             className="text-sm font-medium text-brand-teal-300 hover:text-white"
           >
             Edit landing →
+          </Link>
+        </div>
+      )}
+
+      {(site as { rewards_portal_url?: string | null })?.rewards_portal_url && (
+        <div className="rounded-xl border border-brand-teal-500/30 bg-brand-teal-600/10 p-5 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <QrCode className="w-5 h-5 text-brand-teal-300 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-white text-sm">Customer rewards wallet</p>
+              <p className="text-xs text-brand-teal-100/75 mt-1 break-all">
+                {(site as { rewards_portal_url?: string }).rewards_portal_url}
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard/membership-rewards/scan"
+            className="text-sm font-medium text-brand-teal-300 hover:text-white"
+          >
+            Staff QR scan →
           </Link>
         </div>
       )}

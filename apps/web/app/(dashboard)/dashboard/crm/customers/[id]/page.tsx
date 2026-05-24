@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { ArrowLeft, Calendar, ExternalLink, Zap } from 'lucide-react'
+import { CustomerLoyaltyPanel } from '@/components/membership-rewards/CustomerLoyaltyPanel'
 import { crm } from '@/lib/api-client'
 import { formatDate } from '@/lib/utils'
 import { recurrencyLabel } from '@/components/quotes/RecurrencySelect'
@@ -98,6 +99,7 @@ export default function CustomerProfilePage() {
         </Card>
 
         <div className="space-y-4">
+          <CustomerLoyaltyPanel customerId={id} />
           {(customer.service_recurrency || customer.service_renewal_date) && (
             <Card>
               <CardHeader>

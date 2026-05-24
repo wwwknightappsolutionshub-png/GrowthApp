@@ -8,6 +8,8 @@ export type PublicWidgetPayload = {
   services?: { id: string; name: string; duration_minutes?: number; deposit_pence?: number }[]
   deposit_enabled?: boolean
   default_deposit_pence?: number
+  loyalty_program_available?: boolean
+  loyalty_program_label?: string
   error?: string
 }
 

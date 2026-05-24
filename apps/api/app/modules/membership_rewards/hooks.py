@@ -218,6 +218,36 @@ async def on_refer_win_submitted(
         )
 
 
+async def on_booking_created_for_loyalty(
+    db: AsyncSession,
+    *,
+    tenant_id: uuid.UUID,
+    booking: Booking,
+    join_loyalty_program: bool | None = None,
+) -> None:
+    """Provision customer rewards wallet on first booking or when opted in."""
+    if not booking.customer_id:
+        return
+    if not await tenant_has_membership_rewards(db, tenant_id):
+        return
+    try:
+        from app.modules.membership_rewards.customer_auth.provisioning import provision_from_booking
+
+        await provision_from_booking(
+            db,
+            tenant_id=tenant_id,
+            customer_id=booking.customer_id,
+            booking_id=booking.id,
+            join_loyalty_program=join_loyalty_program,
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception(
+            "Loyalty portal provisioning failed tenant=%s booking=%s",
+            tenant_id,
+            booking.id,
+        )
+
+
 async def on_tenant_signup(db: AsyncSession, tenant_id: uuid.UUID) -> None:
     """Start 7-day Membership & Rewards trial for new tenants (best-effort)."""
     try:

@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --tenant-primary: #2563eb;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --muted: #64748b;
+}
+
+body {
+  @apply bg-[var(--background)] text-[var(--foreground)] antialiased;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+.card {
+  @apply rounded-xl border border-slate-200 bg-[var(--card)] p-4 shadow-sm;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-opacity disabled:opacity-50;
+  background-color: var(--tenant-primary);
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800;
+}
+
+.input {
+  @apply w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[var(--tenant-primary)] focus:ring-2 focus:ring-[color-mix(in_srgb,var(--tenant-primary)_25%,transparent)];
+}

@@ -10,6 +10,7 @@ from app.core.dependencies import CurrentTenantContext, OwnerContext
 from app.modules.membership_rewards import service
 from app.modules.membership_rewards.entitlement import require_membership_rewards
 from app.modules.membership_rewards.schemas import (
+    AnalyticsResponse,
     CatalogItemCreate,
     CatalogItemResponse,
     CatalogListResponse,
@@ -20,6 +21,7 @@ from app.modules.membership_rewards.schemas import (
     CheckoutResponse,
     DashboardResponse,
     LandingConfigUpdate,
+    LoyaltyCustomerListResponse,
     LoyaltyLeaderboardResponse,
     MembershipStatusResponse,
     TrialStatusResponse,
@@ -28,10 +30,13 @@ from app.modules.membership_rewards.schemas import (
     PlanResponse,
     PlanUpdate,
     PointsAdjustRequest,
+    RedemptionListResponse,
     SubscriptionCreate,
     SubscriptionListResponse,
     SubscriptionResponse,
     PointsLedgerEntry,
+    QrScanRequest,
+    QrScanResponse,
     SettingsResponse,
     TierListResponse,
     TierResponse,
@@ -39,6 +44,28 @@ from app.modules.membership_rewards.schemas import (
 )
 
 router = APIRouter(prefix="/membership-rewards", tags=["Membership & Rewards"])
+
+
+@router.post(
+    "/qr/scan",
+    response_model=QrScanResponse,
+    dependencies=[Depends(require_membership_rewards)],
+)
+async def scan_customer_qr(
+    data: QrScanRequest,
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+):
+    """Staff scans a customer's in-store loyalty QR code."""
+    from app.modules.membership_rewards.services.qr_scan_service import staff_scan_qr
+
+    user, tenant, _ = ctx
+    return await staff_scan_qr(
+        db,
+        tenant_id=tenant.id,
+        payload=data.payload,
+        staff_user_id=user.id,
+    )
 
 
 @router.get("/status", response_model=MembershipStatusResponse)
@@ -89,6 +116,44 @@ async def membership_checkout(
 async def membership_dashboard(ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
     _, tenant, _ = ctx
     return await service.get_dashboard(db, tenant.id)
+
+
+@router.get("/analytics", response_model=AnalyticsResponse, dependencies=[Depends(require_membership_rewards)])
+async def membership_analytics(ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+    _, tenant, _ = ctx
+    return await service.get_analytics(db, tenant.id)
+
+
+@router.get(
+    "/loyalty/customers",
+    response_model=LoyaltyCustomerListResponse,
+    dependencies=[Depends(require_membership_rewards)],
+)
+async def loyalty_customers(
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+    search: str | None = None,
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    _, tenant, _ = ctx
+    return await service.list_loyalty_customers(db, tenant.id, search=search, limit=limit, offset=offset)
+
+
+@router.get(
+    "/redemptions",
+    response_model=RedemptionListResponse,
+    dependencies=[Depends(require_membership_rewards)],
+)
+async def list_redemptions(
+    ctx: CurrentTenantContext,
+    db: AsyncSession = Depends(get_db),
+    status: str | None = None,
+    limit: int = Query(50, ge=1, le=200),
+):
+    _, tenant, _ = ctx
+    items = await service.list_redemptions(db, tenant.id, status=status, limit=limit)
+    return {"items": items}
 
 
 @router.get(

@@ -290,6 +290,8 @@ class PublicWidgetConfigResponse(BaseModel):
     booking_form: dict[str, Any] = Field(default_factory=dict)
     deposit_enabled: bool
     default_deposit_pence: int
+    loyalty_program_available: bool = False
+    loyalty_program_label: str = "Join our rewards program — earn points on every visit"
 
 
 class PublicManageBookingRequest(BaseModel):
