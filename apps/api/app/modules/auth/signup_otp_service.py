@@ -152,11 +152,11 @@ async def verify_and_complete(
     else:
         # tenant signup → create tenant + owner membership (mirror service.register)
         from app.modules.tenants.models import Tenant, TenantMember
-        from app.modules.tenants.service import _slugify
+        from app.modules.tenants.service import unique_tenant_slug
 
         tenant = Tenant(
             id=uuid.uuid4(),
-            slug=_slugify(payload.get("business_name") or pending.email.split("@")[0]),
+            slug=await unique_tenant_slug(db, payload.get("business_name") or pending.email.split("@")[0]),
             name=payload.get("business_name") or "My Business",
             business_type=payload.get("business_type") or "other",
             postcode=(payload.get("postcode") or "").upper(),

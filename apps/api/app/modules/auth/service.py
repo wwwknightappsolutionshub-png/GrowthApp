@@ -59,6 +59,7 @@ async def register(db: AsyncSession, data: RegisterRequest) -> tuple[User, dict]
         phone=data.phone,
         user_type=data.user_type,
         estimated_client_count=data.estimated_client_count if data.user_type == "freelancer" else None,
+        totp_backup_codes=[],
     )
     db.add(user)
     await db.flush()
@@ -98,9 +99,9 @@ async def register(db: AsyncSession, data: RegisterRequest) -> tuple[User, dict]
 
     # ── Tenant signup (default, behaviour unchanged) ───────────────────────
     from app.modules.tenants.models import Tenant, TenantMember
-    from app.modules.tenants.service import _slugify
+    from app.modules.tenants.service import unique_tenant_slug
 
-    slug = _slugify(data.business_name)
+    slug = await unique_tenant_slug(db, data.business_name or data.email.split("@")[0])
     tenant = Tenant(
         id=uuid.uuid4(),
         slug=slug,

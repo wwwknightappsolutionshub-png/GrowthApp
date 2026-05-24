@@ -57,8 +57,9 @@ async def send_loyalty_push(
     title: str,
     body: str,
     path: str = "dashboard",
+    notification_id: uuid.UUID | None = None,
 ) -> int:
-    """Send a push notification to all active loyalty portal subscriptions for a customer."""
+    """Send a web push to all active loyalty portal subscriptions for a customer."""
     if not push_is_configured():
         return 0
 
@@ -79,7 +80,15 @@ async def send_loyalty_push(
     if not subscriptions:
         return 0
 
-    payload = {"title": title, "body": body, "data": {"url": url}}
+    payload: dict[str, Any] = {
+        "title": title,
+        "body": body,
+        "data": {"url": url},
+        "tag": f"loyalty:{notification_id}" if notification_id else "loyalty-update",
+    }
+    if notification_id:
+        payload["notification_id"] = str(notification_id)
+
     sent = 0
     for sub in subscriptions:
         ok = await _send_web_push(sub.endpoint, sub.p256dh, sub.auth, payload)

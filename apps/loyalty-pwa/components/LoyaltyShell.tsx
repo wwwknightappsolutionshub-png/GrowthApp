@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Gift, History, Home, QrCode, User, Users } from 'lucide-react'
 import clsx from 'clsx'
+import { LoyaltyNotificationBell } from '@/components/LoyaltyNotificationBell'
 import { useBranding } from '@/components/BrandingProvider'
 
 const NAV = [
@@ -40,6 +41,7 @@ export function LoyaltyShell({ tenant, children }: { tenant: string; children: R
             <p className="text-sm font-semibold text-white">{branding?.tenant_name ?? 'Rewards'}</p>
             <p className="text-xs text-white/75">Member wallet</p>
           </div>
+          <LoyaltyNotificationBell tenant={tenant} />
         </div>
       </header>
 

@@ -26,12 +26,12 @@ export function CustomerBroadcastSection() {
         send_email: sendEmail,
       }),
     onSuccess: (res) => {
-      const { push_sent, email_sent } = res.data
-      if (push_sent === 0 && email_sent === 0) {
-        toast.warning('Message queued but no push subscribers or email recipients matched your selection.')
+      const { push_sent, in_app_sent = 0, email_sent } = res.data
+      if (in_app_sent === 0 && push_sent === 0 && email_sent === 0) {
+        toast.warning('Message queued but no enrolled customers matched your selection.')
       } else {
         toast.success(
-          `Sent to ${push_sent} push subscriber(s) and ${email_sent} email recipient(s)`,
+          `Delivered to ${in_app_sent} wallet(s)${push_sent ? `, ${push_sent} push device(s)` : ''}${email_sent ? `, ${email_sent} email(s)` : ''}`,
         )
       }
       setTitle('')
@@ -51,7 +51,7 @@ export function CustomerBroadcastSection() {
           <div>
             <h2 className="text-base font-semibold">Message wallet customers</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Send offers and updates to enrolled loyalty customers via push and/or email.
+              Send offers and updates to enrolled loyalty customers via wallet notifications, push, and/or email.
             </p>
             {preview ? (
               <p className="mt-2 text-xs text-muted-foreground">
@@ -78,7 +78,7 @@ export function CustomerBroadcastSection() {
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={sendPush} onChange={(e) => setSendPush(e.target.checked)} />
                 <BellRing className="h-4 w-4" />
-                Push notification
+                Push + wallet bell
               </label>
               <label className="flex items-center gap-2">
                 <input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} />

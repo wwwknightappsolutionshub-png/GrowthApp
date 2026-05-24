@@ -40,6 +40,8 @@ from app.modules.membership_rewards.schemas import (
     PortalSetPasswordRequest,
     PushSubscribeRequest,
     PushSubscribeResponse,
+    CustomerNotificationListResponse,
+    CustomerNotificationResponse,
 )
 from app.modules.membership_rewards.services.portal_service import (
     build_customer_profile,
@@ -59,6 +61,7 @@ from app.modules.membership_rewards.services.customer_preferences_service import
     update_preferences,
 )
 from app.modules.membership_rewards.services.portal_upsell_service import build_portal_upsell
+from app.modules.membership_rewards.services import customer_notification_service as customer_notif_service
 
 router = APIRouter(prefix="/loyalty-portal", tags=["Loyalty Portal"])
 
@@ -244,3 +247,60 @@ async def portal_push_unsubscribe(ctx: CurrentCustomerContext, db: AsyncSession 
     customer, tenant = ctx
     await delete_customer_push_subscriptions(db, tenant.id, customer.id)
     return {"message": "Push notifications disabled for this device"}
+
+
+@router.get("/notifications", response_model=CustomerNotificationListResponse)
+async def portal_list_notifications(
+    ctx: CurrentCustomerContext,
+    db: AsyncSession = Depends(get_db),
+    limit: int = Query(25, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    customer, tenant = ctx
+    rows, unread = await customer_notif_service.list_customer_notifications(
+        db,
+        tenant_id=tenant.id,
+        customer_id=customer.id,
+        limit=limit,
+        offset=offset,
+    )
+    return {
+        "items": rows,
+        "unread": unread,
+        "limit": limit,
+        "offset": offset,
+    }
+
+
+@router.get("/notifications/unread-count")
+async def portal_unread_notification_count(ctx: CurrentCustomerContext, db: AsyncSession = Depends(get_db)):
+    customer, tenant = ctx
+    count = await customer_notif_service.unread_count(
+        db, tenant_id=tenant.id, customer_id=customer.id
+    )
+    return {"unread": count}
+
+
+@router.post("/notifications/{notification_id}/read", response_model=CustomerNotificationResponse)
+async def portal_mark_notification_read(
+    notification_id: uuid.UUID,
+    ctx: CurrentCustomerContext,
+    db: AsyncSession = Depends(get_db),
+):
+    customer, tenant = ctx
+    row = await customer_notif_service.mark_read(
+        db,
+        tenant_id=tenant.id,
+        customer_id=customer.id,
+        notification_id=notification_id,
+    )
+    return row
+
+
+@router.post("/notifications/read-all")
+async def portal_mark_all_notifications_read(ctx: CurrentCustomerContext, db: AsyncSession = Depends(get_db)):
+    customer, tenant = ctx
+    updated = await customer_notif_service.mark_all_read(
+        db, tenant_id=tenant.id, customer_id=customer.id
+    )
+    return {"updated": updated}

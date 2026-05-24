@@ -1051,6 +1051,16 @@ export type LoyaltyLedgerEntry = {
   expires_at?: string | null
 }
 
+export type LoyaltyWalletNotification = {
+  id: string
+  kind: string
+  title: string
+  body: string | null
+  link: string | null
+  read_at: string | null
+  created_at: string
+}
+
 export type LoyaltyPendingRedemption = {
   id: string
   reward_name: string
@@ -1155,6 +1165,36 @@ export const loyaltyPortalCustomer = {
     publicApiClient.post('/loyalty-portal/push/unsubscribe', {}, {
       headers: loyaltyAuthHeaders(tenant),
     }),
+
+  listNotifications: (tenant: string, limit = 25, offset = 0) =>
+    publicApiClient.get<{
+      items: LoyaltyWalletNotification[]
+      unread: number
+      limit: number
+      offset: number
+    }>('/loyalty-portal/notifications', {
+      headers: loyaltyAuthHeaders(tenant),
+      params: { limit, offset },
+    }),
+
+  unreadCount: (tenant: string) =>
+    publicApiClient.get<{ unread: number }>('/loyalty-portal/notifications/unread-count', {
+      headers: loyaltyAuthHeaders(tenant),
+    }),
+
+  markNotificationRead: (tenant: string, notificationId: string) =>
+    publicApiClient.post<LoyaltyWalletNotification>(
+      `/loyalty-portal/notifications/${notificationId}/read`,
+      {},
+      { headers: loyaltyAuthHeaders(tenant) },
+    ),
+
+  markAllNotificationsRead: (tenant: string) =>
+    publicApiClient.post<{ updated: number }>(
+      '/loyalty-portal/notifications/read-all',
+      {},
+      { headers: loyaltyAuthHeaders(tenant) },
+    ),
 
   updatePreferences: (
     tenant: string,

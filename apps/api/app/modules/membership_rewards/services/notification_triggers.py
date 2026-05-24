@@ -7,7 +7,7 @@ import uuid
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.modules.membership_rewards.services.customer_push_service import send_loyalty_push
+from app.modules.membership_rewards.services.customer_notification_service import notify_loyalty_customer
 
 logger = logging.getLogger(__name__)
 
@@ -22,22 +22,15 @@ async def notify_points_earned(
     description: str | None = None,
 ) -> None:
     detail = description or "Thanks for your loyalty!"
-    sent = await send_loyalty_push(
+    await notify_loyalty_customer(
         db,
         tenant_id=tenant_id,
         customer_id=customer_id,
         title=f"+{amount} points earned",
         body=f"{detail} Your balance is now {balance} pts.",
         path="dashboard",
+        kind="loyalty.points_earned",
     )
-    if not sent:
-        logger.info(
-            "loyalty points earned tenant=%s customer=%s amount=%s balance=%s",
-            tenant_id,
-            customer_id,
-            amount,
-            balance,
-        )
 
 
 async def notify_tier_upgrade(
@@ -47,21 +40,15 @@ async def notify_tier_upgrade(
     customer_id: uuid.UUID,
     tier_name: str,
 ) -> None:
-    sent = await send_loyalty_push(
+    await notify_loyalty_customer(
         db,
         tenant_id=tenant_id,
         customer_id=customer_id,
         title="Tier upgrade!",
         body=f"Congratulations — you've reached {tier_name}.",
         path="dashboard",
+        kind="loyalty.tier_upgrade",
     )
-    if not sent:
-        logger.info(
-            "loyalty tier upgrade tenant=%s customer=%s tier=%s",
-            tenant_id,
-            customer_id,
-            tier_name,
-        )
 
 
 async def notify_reward_redeemed(
@@ -75,21 +62,15 @@ async def notify_reward_redeemed(
     body = f"You redeemed {reward_name}."
     if fulfillment_code:
         body = f"{body} Show code {fulfillment_code} in store."
-    sent = await send_loyalty_push(
+    await notify_loyalty_customer(
         db,
         tenant_id=tenant_id,
         customer_id=customer_id,
         title="Reward redeemed",
         body=body,
         path="rewards",
+        kind="loyalty.reward_redeemed",
     )
-    if not sent:
-        logger.info(
-            "loyalty reward redeemed tenant=%s customer=%s reward=%s",
-            tenant_id,
-            customer_id,
-            reward_name,
-        )
 
 
 async def notify_points_expiring_soon(
@@ -100,19 +81,12 @@ async def notify_points_expiring_soon(
     points: int,
     days_left: int,
 ) -> None:
-    sent = await send_loyalty_push(
+    await notify_loyalty_customer(
         db,
         tenant_id=tenant_id,
         customer_id=customer_id,
         title="Points expiring soon",
         body=f"{points} points expire in {days_left} days. Redeem them before they're gone.",
         path="rewards",
+        kind="loyalty.points_expiring",
     )
-    if not sent:
-        logger.info(
-            "loyalty points expiring tenant=%s customer=%s points=%s days=%s",
-            tenant_id,
-            customer_id,
-            points,
-            days_left,
-        )

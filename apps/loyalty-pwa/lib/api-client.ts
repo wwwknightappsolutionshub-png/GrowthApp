@@ -91,6 +91,16 @@ export type LedgerEntry = {
   expires_at?: string | null
 }
 
+export type WalletNotification = {
+  id: string
+  kind: string
+  title: string
+  body: string | null
+  link: string | null
+  read_at: string | null
+  created_at: string
+}
+
 function authHeaders(tenant: string) {
   if (typeof window === 'undefined') return {}
   const token = localStorage.getItem(`loyalty:${tenant}:token`)
@@ -180,4 +190,27 @@ export const loyaltyPortal = {
 
   pushUnsubscribe: (tenant: string) =>
     api.post('/loyalty-portal/push/unsubscribe', {}, { headers: authHeaders(tenant) }),
+
+  listNotifications: (tenant: string, limit = 25, offset = 0) =>
+    api.get<{ items: WalletNotification[]; unread: number; limit: number; offset: number }>(
+      '/loyalty-portal/notifications',
+      { headers: authHeaders(tenant), params: { limit, offset } },
+    ),
+
+  unreadCount: (tenant: string) =>
+    api.get<{ unread: number }>('/loyalty-portal/notifications/unread-count', {
+      headers: authHeaders(tenant),
+    }),
+
+  markNotificationRead: (tenant: string, notificationId: string) =>
+    api.post<WalletNotification>(
+      `/loyalty-portal/notifications/${notificationId}/read`,
+      {},
+      { headers: authHeaders(tenant) },
+    ),
+
+  markAllNotificationsRead: (tenant: string) =>
+    api.post<{ updated: number }>('/loyalty-portal/notifications/read-all', {}, {
+      headers: authHeaders(tenant),
+    }),
 }

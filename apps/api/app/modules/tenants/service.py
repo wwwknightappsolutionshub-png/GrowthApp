@@ -21,6 +21,18 @@ def _slugify(name: str) -> str:
     return slug[:100]
 
 
+async def unique_tenant_slug(db: AsyncSession, name: str) -> str:
+    """Return a slug derived from *name* that is not already taken."""
+    base = _slugify(name) or "business"
+    slug = base
+    suffix = 2
+    while (await db.execute(select(Tenant.id).where(Tenant.slug == slug))).scalar_one_or_none():
+        tail = f"-{suffix}"
+        slug = f"{base[: max(1, 100 - len(tail))]}{tail}"
+        suffix += 1
+    return slug
+
+
 async def _query_primary_tenant_membership(
     db: AsyncSession,
     user_id: uuid.UUID,

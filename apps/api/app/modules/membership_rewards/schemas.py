@@ -565,4 +565,24 @@ class CustomerBroadcastPreviewResponse(BaseModel):
 class CustomerBroadcastResponse(BaseModel):
     customers: int
     push_sent: int
+    in_app_sent: int = 0
     email_sent: int
+
+
+class CustomerNotificationResponse(BaseModel):
+    id: uuid.UUID
+    kind: str
+    title: str
+    body: str | None = None
+    link: str | None = None
+    read_at: datetime | None = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class CustomerNotificationListResponse(BaseModel):
+    items: list[CustomerNotificationResponse]
+    unread: int
+    limit: int
+    offset: int
