@@ -7,10 +7,10 @@
 
 import { useState, useEffect, type ReactNode } from 'react'
 import Link from 'next/link'
+import { BrandMark } from '@/components/brand/BrandMark'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   X,
-  TrendingUp,
   Shield,
   Lock,
   BadgeCheck,
@@ -632,14 +632,8 @@ export function MarketingFooter() {
 
             {/* Col 1 — Brand */}
             <div className="lg:col-span-1">
-              <Link href="/" className="inline-flex items-center gap-2.5">
-                <span className="relative inline-flex h-8 w-8 items-center justify-center rounded-md bg-brand-forest-700">
-                  <TrendingUp className="h-4 w-4 text-white" strokeWidth={2.5} />
-                  <span aria-hidden className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full bg-brand-teal-400 ring-2 ring-brand-forest-950" />
-                </span>
-                <span className="font-display text-[17px] font-bold tracking-tight text-white">
-                  CustomerFlow<span className="text-brand-teal-300">.</span>AI
-                </span>
+              <Link href="/" aria-label="CustomerFlowai home">
+                <BrandMark variant="light" />
               </Link>
               <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/55">
                 The AI operating system for UK businesses. Lead generation,

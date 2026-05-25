@@ -1,6 +1,7 @@
 import Link from 'next/link'
-import { ArrowRight, Menu, TrendingUp } from 'lucide-react'
+import { ArrowRight, Menu } from 'lucide-react'
 
+import { BrandMark } from '@/components/brand/BrandMark'
 import { AnnouncementTicker } from '@/components/marketing/AnnouncementTicker'
 import { AnimatedCounter } from '@/components/marketing/AnimatedCounter'
 import { HeroSectionV2 } from '@/components/marketing/HeroSectionV2'
@@ -12,27 +13,10 @@ const navLinks = [
 
 const heroStats = [
   { value: 38, suffix: '+', label: 'Founding-cohort businesses' },
-  { value: 12_400, label: 'Conversations automated' },
-  { value: 1_280, suffix: '+', label: 'Reviews collected' },
+  { value: 860, suffix: '+', label: 'Automations run' },
   { value: 47, suffix: 's', label: 'Avg. response time' },
+  { value: 5, label: 'Journey steps unified' },
 ]
-
-function BrandMark() {
-  return (
-    <span className="inline-flex items-center gap-2.5">
-      <span className="relative inline-flex h-8 w-8 items-center justify-center rounded-md bg-brand-forest-700 text-brand-forest-foreground shadow-brand">
-        <span
-          aria-hidden
-          className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full bg-brand-teal-400 ring-2 ring-background"
-        />
-        <TrendingUp className="h-4 w-4" strokeWidth={2.5} />
-      </span>
-      <span className="font-display text-[17px] font-bold tracking-tight text-foreground">
-        CustomerFlow<span className="text-brand-teal-500">.</span>AI
-      </span>
-    </span>
-  )
-}
 
 export default function PreviewHeroPage() {
   return (

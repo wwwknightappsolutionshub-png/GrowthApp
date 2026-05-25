@@ -1,6 +1,6 @@
 {
-  "name": "CustomerFlow AI",
-  "short_name": "CustomerFlow",
+  "name": "CustomerFlowai",
+  "short_name": "CustomerFlowai",
   "description": "The AI operating system for UK businesses.",
   "start_url": "/dashboard?source=pwa",
   "scope": "/",

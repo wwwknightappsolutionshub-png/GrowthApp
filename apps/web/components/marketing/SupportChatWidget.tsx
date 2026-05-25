@@ -228,19 +228,6 @@ export function SupportChatWidget() {
     <>
       {/* Floating button */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
-        <AnimatePresence>
-          {!open && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.8, y: 10 }}
-              className="rounded-2xl border border-white/10 bg-[#025422] px-4 py-2 text-sm font-medium text-white shadow-xl"
-            >
-              Ask me anything about CustomerFlow AI
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         <button
           onClick={() => (open ? setOpen(false) : handleOpen())}
           className="relative flex h-14 w-14 items-center justify-center rounded-full bg-[#025422] shadow-xl ring-2 ring-white/10 transition-transform hover:scale-105 active:scale-95"
@@ -277,7 +264,7 @@ export function SupportChatWidget() {
                 <Sparkles className="h-4 w-4 text-white" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-white">CustomerFlow AI</p>
+                <p className="text-sm font-semibold text-white">CustomerFlowai</p>
                 <p className="text-[11px] text-white/60">Sales &amp; Support · Usually replies in 2h</p>
               </div>
               <a

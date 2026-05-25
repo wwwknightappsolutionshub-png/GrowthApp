@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
+import { BrandIcon, BrandMark } from '@/components/brand/BrandMark'
 import {
   LayoutDashboard,
   Users,
@@ -426,24 +427,15 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
       <div className="flex h-16 items-center justify-between border-b border-white/[0.06] px-4">
         {!collapsed ? (
           <Link href="/dashboard" className="inline-flex items-center gap-2.5">
-            <span className="relative inline-flex h-8 w-8 items-center justify-center rounded-md bg-brand-teal-400 text-brand-teal-foreground shadow-brand">
-              <TrendingUp className="h-4 w-4" strokeWidth={2.5} />
-              <span
-                aria-hidden
-                className="absolute -right-0.5 -bottom-0.5 h-2 w-2 rounded-full bg-white ring-2 ring-brand-forest-950"
-              />
-            </span>
-            <span className="font-display text-[15px] font-bold tracking-tight text-white">
-              CustomerFlow<span className="text-brand-teal-300">.</span>AI
-            </span>
+            <BrandMark variant="light" iconSize={32} textClassName="text-[15px] text-white" />
           </Link>
         ) : (
           <Link
             href="/dashboard"
-            className="mx-auto inline-flex h-8 w-8 items-center justify-center rounded-md bg-brand-teal-400 text-brand-teal-foreground"
-            aria-label="CustomerFlow AI"
+            className="mx-auto inline-flex h-8 w-8 items-center justify-center"
+            aria-label="CustomerFlowai"
           >
-            <TrendingUp className="h-4 w-4" strokeWidth={2.5} />
+            <BrandIcon size={32} />
           </Link>
         )}
 

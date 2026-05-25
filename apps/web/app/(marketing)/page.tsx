@@ -19,13 +19,13 @@ import {
   Sparkles,
   Star,
   Target,
-  TrendingUp,
   HeartHandshake,
   BadgeCheck,
   Users,
 } from 'lucide-react'
 
 import Image from 'next/image'
+import { BrandMark } from '@/components/brand/BrandMark'
 import { MarketingFooter } from '@/components/marketing/MarketingFooter'
 import { AnnouncementTicker } from '@/components/marketing/AnnouncementTicker'
 import { AnimatedCounter } from '@/components/marketing/AnimatedCounter'
@@ -69,22 +69,22 @@ async function loadMarketingBundle(): Promise<{
 // (also editable via /admin/marketing).
 const FALLBACK_STATS: { value: number; suffix?: string; prefix?: string; label: string }[] = [
   { value: 38, suffix: '+', label: 'Founding-cohort businesses' },
-  { value: 12_400, label: 'Conversations automated' },
-  { value: 1_280, suffix: '+', label: 'Reviews collected' },
+  { value: 860, suffix: '+', label: 'Automations run' },
   { value: 47, suffix: 's', label: 'Avg. response time' },
+  { value: 5, label: 'Journey steps unified' },
 ]
 
 const STAT_LABELS = FALLBACK_STATS.map((stat) => stat.label)
 
 export const metadata = {
   title:
-    'CustomerFlow AI — The AI Operating System for UK Businesses',
+    'CustomerFlowai — The AI Operating System for UK Businesses',
   description:
     'Enterprise-grade AI platform unifying lead generation, customer retention, reviews and money intelligence for UK businesses. Replaces 10+ tools with one subscription.',
   keywords:
     'AI CRM UK, customer retention software UK, lead generation AI, review automation UK, business operations platform, SMB SaaS UK, all-in-one CRM, cashflow intelligence, AI sales assistant UK, automated follow-up software',
   openGraph: {
-    title: 'CustomerFlow AI — One AI Platform for Every UK Business',
+    title: 'CustomerFlowai — One AI Platform for Every UK Business',
     description:
       'Lead generation, customer retention, reviews, operations and money intelligence — unified, AI-powered, automated.',
     type: 'website',
@@ -364,23 +364,6 @@ async function loadFaqs(): Promise<Array<{ q: string; a: string }>> {
 
 // ── Brand helpers ─────────────────────────────────────────────────────────────
 
-function BrandMark({ className = '' }: { className?: string }) {
-  return (
-    <span className={`inline-flex items-center gap-2.5 ${className}`}>
-      <span className="relative inline-flex h-8 w-8 items-center justify-center rounded-md bg-brand-forest-700 text-brand-forest-foreground shadow-brand">
-        <span
-          aria-hidden
-          className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full bg-brand-teal-400 ring-2 ring-background"
-        />
-        <TrendingUp className="h-4 w-4" strokeWidth={2.5} />
-      </span>
-      <span className="font-display text-[17px] font-bold tracking-tight text-foreground">
-        CustomerFlow<span className="text-brand-teal-500">.</span>AI
-      </span>
-    </span>
-  )
-}
-
 function EyebrowTag({ children }: { children: React.ReactNode }) {
   return (
     <span className="inline-flex items-center gap-2 rounded-full border border-border bg-muted/60 px-3 py-1 text-[11px] font-medium tracking-[0.14em] uppercase text-muted-foreground">
@@ -411,7 +394,7 @@ export default async function HomePage() {
       {/* ── Top navigation ─────────────────────────────────────────────── */}
       <header className="sticky top-0 z-[100] border-b border-border bg-background/80 backdrop-blur-md">
         <div className="container flex h-16 items-center justify-between">
-          <Link href="/" aria-label="CustomerFlow AI home">
+          <Link href="/" aria-label="CustomerFlowai home">
             <BrandMark />
           </Link>
 
@@ -436,10 +419,11 @@ export default async function HomePage() {
             </Link>
             <Link
               href="/register"
-              className="inline-flex items-center gap-1.5 rounded-md bg-brand-forest-700 px-4 py-2 text-sm font-semibold text-brand-forest-foreground shadow-brand transition-all hover:bg-brand-forest-800"
+              aria-label="Start free trial"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-brand-forest-700 text-brand-forest-foreground shadow-brand transition-all hover:bg-brand-forest-800 sm:h-auto sm:w-auto sm:gap-1.5 sm:px-4 sm:py-2"
             >
-              Start free trial
-              <ArrowRight className="h-3.5 w-3.5" />
+              <span className="hidden text-sm font-semibold sm:inline">Start free trial</span>
+              <ArrowRight className="h-4 w-4" />
             </Link>
             <details className="group relative z-[110] lg:hidden">
               <summary
@@ -518,7 +502,7 @@ export default async function HomePage() {
           <div className="max-w-3xl">
             <EyebrowTag>Platform modules</EyebrowTag>
             <h2 className="mt-6 font-display text-3xl font-bold leading-tight text-foreground sm:text-4xl lg:text-5xl">
-              Four engines. One subscription.
+              Unified engines. One subscription.
               <br />
               <span className="text-muted-foreground">Designed as a system, not a stack.</span>
             </h2>
@@ -596,7 +580,8 @@ export default async function HomePage() {
           <div className="max-w-3xl">
             <EyebrowTag>Built for your vertical</EyebrowTag>
             <h2 className="mt-6 font-display text-3xl font-bold leading-tight text-foreground sm:text-4xl lg:text-5xl">
-              Whatever your industry, CustomerFlow AI has you covered.
+              Whatever your industry,{' '}
+              <span className="text-brand-forest-700">CustomerFlowai</span> has you covered.
             </h2>
             <p className="mt-5 text-base leading-relaxed text-muted-foreground">
               Pre-configured workflows, templates and automations tuned for how
@@ -645,20 +630,22 @@ export default async function HomePage() {
           <div className="text-center">
             <EyebrowTag>The CustomerFlow difference</EyebrowTag>
             <h2 className="mx-auto mt-6 max-w-3xl font-display text-3xl font-bold leading-tight text-foreground sm:text-4xl lg:text-5xl">
-              Life before and after CustomerFlow AI.
+              Decide your realities
             </h2>
           </div>
 
           <div className="mt-14 overflow-hidden rounded-xl border border-border bg-card">
             <div className="grid grid-cols-3 border-b border-border bg-brand-forest-950 text-brand-forest-foreground">
-              <div className="px-6 py-4 text-xs font-semibold uppercase tracking-[0.18em] text-white/60">
+              <div className="px-3 py-4 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/60 sm:px-6 sm:text-xs sm:tracking-[0.18em]">
                 Metric
               </div>
-              <div className="border-l border-white/10 px-6 py-4 text-center text-xs font-semibold uppercase tracking-[0.18em] text-white/60">
-                Without CustomerFlow
+              <div className="border-l border-white/10 px-2 py-4 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-white/60 sm:px-6 sm:text-xs sm:tracking-[0.18em]">
+                <span className="sm:hidden">Without</span>
+                <span className="hidden sm:inline">Without CustomerFlow</span>
               </div>
-              <div className="border-l border-white/10 px-6 py-4 text-center text-xs font-semibold uppercase tracking-[0.18em] text-brand-teal-300">
-                With CustomerFlow
+              <div className="border-l border-white/10 px-2 py-4 text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-teal-300 sm:px-6 sm:text-xs sm:tracking-[0.18em]">
+                <span className="sm:hidden">With</span>
+                <span className="hidden sm:inline">With CustomerFlow</span>
               </div>
             </div>
             {comparisonRows.map((row, i) => (
@@ -869,17 +856,17 @@ export default async function HomePage() {
             More 5-star reviews.
           </h2>
           <p className="mx-auto mt-6 max-w-2xl text-base leading-relaxed text-white/70">
-            Join 2,400+ UK businesses already using CustomerFlow AI to grow on
-            autopilot. Your first 14 days are completely free — no credit card
-            required.
+            Join our founding cohort of UK businesses growing on autopilot. Your
+            first 14 days are completely free — no credit card required.
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               href="/register"
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-teal-400 px-7 py-3.5 text-sm font-bold text-brand-teal-foreground transition-all hover:bg-brand-teal-300"
+              aria-label="Start free trial"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-brand-teal-400 text-brand-teal-foreground transition-all hover:bg-brand-teal-300 sm:h-auto sm:w-auto sm:gap-2 sm:px-7 sm:py-3.5"
             >
-              Start free trial
+              <span className="hidden text-sm font-bold sm:inline">Start free trial</span>
               <ArrowRight className="h-4 w-4" />
             </Link>
             <a

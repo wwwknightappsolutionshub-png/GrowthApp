@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import { auth } from '@/lib/api-client'
 import { fetchMe } from '@/lib/auth'
+import { AuthPageHeader } from '@/components/brand/AuthPageHeader'
 import { cn } from '@/lib/utils'
 
 const schema = z.object({
@@ -90,17 +91,10 @@ export default function LoginPage() {
   return (
     <div>
       {/* Header */}
-      <div className="mb-8">
-        <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-brand-teal-500">
-          Sign in
-        </span>
-        <h1 className="mt-3 font-display text-3xl font-bold tracking-tight text-foreground">
-          Welcome back.
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Enter your credentials to access your CustomerFlow AI workspace.
-        </p>
-      </div>
+      <AuthPageHeader
+        eyebrow="Sign in"
+        description="Enter your credentials to access your CustomerFlowai workspace."
+      />
 
       {/* Security badge */}
       <div className="mb-6 flex items-start gap-2 rounded-md border border-brand-forest-100 bg-brand-forest-50/60 px-4 py-3">
@@ -277,7 +271,7 @@ export default function LoginPage() {
         </Link>
         .
         <br />
-        CustomerFlow AI is GDPR compliant and UK data is stored in the UK.
+        CustomerFlowai is GDPR compliant and UK data is stored in the UK.
       </p>
     </div>
   )

@@ -1,6 +1,7 @@
 import Link from 'next/link'
-import { ArrowRight, Menu, TrendingUp } from 'lucide-react'
+import { ArrowRight, Menu } from 'lucide-react'
 
+import { BrandMark } from '@/components/brand/BrandMark'
 import { AnnouncementTicker } from '@/components/marketing/AnnouncementTicker'
 import { HeroSectionV3 } from '@/components/marketing/HeroSectionV3'
 
@@ -9,22 +10,6 @@ const navLinks = [
   { href: '#goal', label: 'Product goal' },
 ]
 
-function BrandMark() {
-  return (
-    <span className="inline-flex items-center gap-2.5">
-      <span className="relative inline-flex h-8 w-8 items-center justify-center rounded-md bg-brand-forest-700 text-brand-forest-foreground shadow-brand">
-        <span
-          aria-hidden
-          className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full bg-brand-teal-400 ring-2 ring-background"
-        />
-        <TrendingUp className="h-4 w-4" strokeWidth={2.5} />
-      </span>
-      <span className="font-display text-[17px] font-bold tracking-tight text-foreground">
-        CustomerFlow<span className="text-brand-teal-500">.</span>AI
-      </span>
-    </span>
-  )
-}
 
 export default function PreviewHeroV3Page() {
   return (

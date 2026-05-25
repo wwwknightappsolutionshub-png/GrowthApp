@@ -163,7 +163,7 @@ function AdminSidebar({ pathname, me, onNavigate }: AdminSidebarProps) {
           <ShieldCheck className="w-4 h-4 text-amber-400" />
         </div>
         <div>
-          <div className="text-sm font-bold tracking-tight">CustomerFlow AI</div>
+          <div className="text-sm font-bold tracking-tight">CustomerFlowai</div>
           <div className="text-[10px] uppercase tracking-widest text-amber-400 font-semibold">
             Super Admin
           </div>
@@ -315,7 +315,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Menu className="h-4 w-4" />
           </button>
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-bold tracking-tight">CustomerFlow AI</div>
+            <div className="text-sm font-bold tracking-tight">CustomerFlowai</div>
             <div className="text-[10px] uppercase tracking-widest text-amber-400 font-semibold">
               Super Admin
             </div>

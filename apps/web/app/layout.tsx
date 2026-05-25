@@ -26,15 +26,15 @@ const appUrl =
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
-  title: { default: 'CustomerFlow AI', template: '%s | CustomerFlow AI' },
+  title: { default: 'CustomerFlowai', template: '%s | CustomerFlowai' },
   description:
     'The AI operating system for UK businesses — customers, retention, reviews and money intelligence in one enterprise-grade platform.',
   manifest: '/manifest.webmanifest',
-  applicationName: 'CustomerFlow AI',
+  applicationName: 'CustomerFlowai',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'CustomerFlow',
+    title: 'CustomerFlowai',
   },
   icons: {
     icon: [

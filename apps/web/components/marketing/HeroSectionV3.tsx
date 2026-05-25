@@ -28,20 +28,23 @@ export function HeroSectionV3() {
             Attract leads. Automate follow-ups. Keep customers loyal. Grow revenue.
           </HeroEyebrow>
 
-          <h1 className="mt-5 flex flex-col items-center gap-0 text-left leading-none lg:items-start">
-            <span className="font-display text-[65px] font-extrabold tracking-tight text-brand-forest-700">
+          <h1 className="mt-5 flex w-full flex-col items-start gap-0 text-left leading-none">
+            <span className="font-display text-4xl font-extrabold tracking-tight text-brand-forest-700 sm:text-5xl lg:text-[65px]">
               One Platform
             </span>
-            <span className="font-display -mt-1.5 text-[35px] font-medium text-foreground">
+            <span className="font-display mt-2 text-xl font-medium leading-snug text-foreground sm:text-2xl lg:hidden">
+              for your customer journey not ten tools duct-taped together
+            </span>
+            <span className="font-display -mt-1.5 hidden text-[35px] font-medium text-foreground lg:block">
               for your customer journey
             </span>
-            <span className="-mt-1 text-[25px] italic text-muted-foreground">
+            <span className="-mt-1 hidden text-[25px] italic text-muted-foreground lg:block">
               not ten tool duct-taped together
             </span>
           </h1>
 
           <p className="mx-auto mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground lg:mx-0">
-            CustomerFlow AI unifies lead generation, CRM, operations, invoicing, and retention in a
+            CustomerFlowai unifies lead generation, CRM, operations, invoicing, and retention in a
             single closed loop — with AI and automations running quietly behind every step.
           </p>
 
@@ -50,9 +53,10 @@ export function HeroSectionV3() {
           <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
             <Link
               href="/register"
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-forest-700 px-6 py-3 text-sm font-semibold text-brand-forest-foreground shadow-brand transition-all hover:bg-brand-forest-800"
+              aria-label="Start 14-day free trial"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-md bg-brand-forest-700 text-brand-forest-foreground shadow-brand transition-all hover:bg-brand-forest-800 sm:h-auto sm:w-auto sm:gap-2 sm:px-6 sm:py-3"
             >
-              Start 14-day free trial
+              <span className="hidden text-sm font-semibold sm:inline">Start 14-day free trial</span>
               <ArrowRight className="h-4 w-4" />
             </Link>
             <a

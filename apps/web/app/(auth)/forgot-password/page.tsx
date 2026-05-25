@@ -5,6 +5,10 @@ import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { auth } from '@/lib/api-client'
+import { AuthPageHeader } from '@/components/brand/AuthPageHeader'
+
+const inputBase =
+  'h-11 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground transition-colors placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0'
 
 export default function ForgotPasswordPage() {
   const [sent, setSent] = useState(false)
@@ -25,29 +29,53 @@ export default function ForgotPasswordPage() {
 
   if (sent) {
     return (
-      <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
+      <div className="text-center">
         <div className="text-4xl mb-4">📧</div>
-        <h2 className="text-xl font-bold text-gray-900 mb-2">Check your inbox</h2>
-        <p className="text-gray-500 text-sm">If that email exists, we've sent a reset link. Check your spam folder too.</p>
-        <Link href="/login" className="mt-6 inline-block text-blue-600 text-sm hover:underline">Back to login</Link>
+        <h2 className="font-display text-xl font-bold text-foreground mb-2">Check your inbox</h2>
+        <p className="text-sm text-muted-foreground">
+          If that email exists, we&apos;ve sent a reset link. Check your spam folder too.
+        </p>
+        <Link href="/login" className="mt-6 inline-block text-sm font-medium text-brand-forest-700 hover:underline">
+          Back to login
+        </Link>
       </div>
     )
   }
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-8">
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">Reset your password</h2>
-      <p className="text-sm text-gray-500 mb-6">Enter your email and we'll send a reset link.</p>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <div>
+      <AuthPageHeader
+        eyebrow="Reset password"
+        description="Enter your email and we'll send a secure reset link."
+      />
+
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Email address</label>
-          <input {...register('email')} type="email" required className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="you@business.com" />
+          <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-foreground/80">
+            Email address
+          </label>
+          <input
+            {...register('email')}
+            type="email"
+            required
+            className={inputBase}
+            placeholder="you@business.com"
+          />
         </div>
-        <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white rounded-lg py-2.5 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors">
+        <button
+          type="submit"
+          disabled={loading}
+          className="h-11 w-full rounded-md bg-brand-forest-700 text-sm font-semibold text-brand-forest-foreground transition-colors hover:bg-brand-forest-800 disabled:opacity-50"
+        >
           {loading ? 'Sending...' : 'Send reset link'}
         </button>
       </form>
-      <p className="mt-4 text-center"><Link href="/login" className="text-sm text-blue-600 hover:underline">Back to login</Link></p>
+
+      <p className="mt-6 text-center">
+        <Link href="/login" className="text-sm font-medium text-brand-forest-700 hover:underline">
+          Back to login
+        </Link>
+      </p>
     </div>
   )
 }

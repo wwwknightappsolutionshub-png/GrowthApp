@@ -9,6 +9,7 @@
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import { BrandMark } from '@/components/brand/BrandMark'
 import {
   ArrowRight,
   Shield,
@@ -148,16 +149,7 @@ export function SplashScreen() {
           {/* Top nav bar */}
           <header className="relative z-10 flex shrink-0 items-center border-b border-white/10 px-6 py-4 sm:px-10 sm:py-5">
             <span className="inline-flex items-center gap-2.5">
-              <span className="relative inline-flex h-8 w-8 items-center justify-center rounded-md bg-brand-teal-400 text-brand-teal-foreground shadow-brand">
-                <TrendingUp className="h-4 w-4" strokeWidth={2.5} />
-                <span
-                  aria-hidden
-                  className="absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full bg-white ring-2 ring-brand-forest-950"
-                />
-              </span>
-              <span className="font-display text-[17px] font-bold tracking-tight text-white">
-                CustomerFlow<span className="text-brand-teal-300">.</span>AI
-              </span>
+              <BrandMark variant="light" />
             </span>
           </header>
 

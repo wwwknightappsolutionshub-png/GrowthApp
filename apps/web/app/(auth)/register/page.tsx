@@ -25,6 +25,7 @@ import {
   ChevronDown,
 } from 'lucide-react'
 import { auth } from '@/lib/api-client'
+import { AuthPageHeader } from '@/components/brand/AuthPageHeader'
 import { cn } from '@/lib/utils'
 
 const BUSINESS_TYPES = [
@@ -237,19 +238,10 @@ export default function RegisterPage() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="mb-7">
-        <span className="inline-flex items-center gap-2 rounded-full border border-brand-teal-400/30 bg-brand-teal-400/10 px-3 py-1 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-brand-teal-700">
-          <span className="h-1.5 w-1.5 rounded-full bg-brand-teal-500" />
-          14-day free trial · No credit card required
-        </span>
-        <h1 className="mt-4 font-display text-3xl font-bold tracking-tight text-foreground">
-          Create your workspace.
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Set up CustomerFlow AI for your business in under 2 minutes.
-        </p>
-      </div>
+      <AuthPageHeader
+        eyebrow="Create account · 14-day free trial"
+        description="Set up CustomerFlowai for your business in under 2 minutes."
+      />
 
       {/* Security badge */}
       <div className="mb-6 flex items-start gap-2 rounded-md border border-brand-forest-100 bg-brand-forest-50/60 px-4 py-3">
@@ -640,7 +632,7 @@ function VerifyOtpStep({
         },
         ref || undefined,
       )
-      toast.success('Verified! Welcome to CustomerFlow AI.')
+      toast.success('Verified! Welcome to CustomerFlowai.')
       onComplete()
     } catch (err: any) {
       const msg = err.response?.data?.detail || 'Verification failed. Try again.'
