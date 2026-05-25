@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Sparkles, Target, Users, ListTodo, Calendar,
   FileText, CreditCard, PoundSterling, MessageSquare, PhoneCall,
   Inbox, Megaphone, Globe, Search as SearchIcon, Zap, Star,
-  TrendingUp, Settings, RotateCcw, Save, CheckCircle2, XCircle,
+  TrendingUp, Settings, RotateCcw, Save, CheckCircle2, XCircle, Link2,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -30,6 +30,7 @@ const ICON_MAP: Record<string, LucideIcon> = {
   '/dashboard/seo':          SearchIcon,
   '/dashboard/automations':  Zap,
   '/dashboard/reviews':      Star,
+  '/dashboard/integrations': Link2,
   '/dashboard/membership-rewards': TrendingUp,
   '/dashboard/settings':     Settings,
 }

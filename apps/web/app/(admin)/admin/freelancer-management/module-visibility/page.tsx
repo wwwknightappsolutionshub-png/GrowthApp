@@ -47,6 +47,7 @@ const GROUPS: Array<{ label: string; hrefs: string[] }> = [
       '/dashboard/seo',
       '/dashboard/automations',
       '/dashboard/reviews',
+      '/dashboard/integrations',
       '/dashboard/membership-rewards',
     ],
   },

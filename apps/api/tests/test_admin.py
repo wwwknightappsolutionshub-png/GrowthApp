@@ -141,6 +141,7 @@ async def test_admin_tool_config_meta_returns_tools(client, db_session):
     assert len(body["tools"]) >= 1
     assert all("href" in t and "label" in t for t in body["tools"])
     assert all(t["href"] for t in body["tools"])
+    assert any(t["href"] == "/dashboard/integrations" for t in body["tools"])
 
 
 @pytest.mark.asyncio

@@ -51,6 +51,7 @@ const NAV_GROUPS = [
     items: [
       { href: '/admin', label: 'Dashboard', icon: Activity, exact: true },
       { href: '/admin/tenants', label: 'Tenants', icon: Building2 },
+      { href: '/admin/integrations', label: 'Integrations', icon: Plug },
       { href: '/admin/tenant-health', label: 'Tenant Pulse', icon: BellRing },
       { href: '/admin/booking-forms', label: 'Booking Forms', icon: LayoutGrid },
     ],
@@ -79,7 +80,6 @@ const NAV_GROUPS = [
       { href: '/admin/billing', label: 'Billing', icon: CreditCard },
       { href: '/admin/users', label: 'Users & Roles', icon: Users },
       { href: '/admin/communications', label: 'Communications', icon: Mail },
-      { href: '/admin/integrations', label: 'Integrations', icon: Plug },
     ],
   },
   {
