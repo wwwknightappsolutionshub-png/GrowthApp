@@ -53,7 +53,6 @@ ALL_TOOL_HREFS: list[str] = [
     "/dashboard/auto-replies",
     "/dashboard/outreach",
     "/dashboard/site-builder",
-    "",
     "/dashboard/ads",
     "/dashboard/seo",
     "/dashboard/automations",

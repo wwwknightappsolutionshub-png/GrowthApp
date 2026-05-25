@@ -24,6 +24,7 @@ from app.modules.admin.deletion import (
 from app.modules.admin.schemas import (
     AdminUserSummary,
     DeleteResponse,
+    IntegrationsOverviewResponse,
     PlatformStats,
     RemindTenantResponse,
     TenantHealthMetricsOut,
@@ -31,6 +32,7 @@ from app.modules.admin.schemas import (
     TenantSummary,
     TenantToggleResponse,
 )
+from app.modules.admin.integrations_overview_service import snapshot_integrations_overview
 from app.modules.auth.models import User
 from app.modules.billing.models import Subscription, SubscriptionPlan
 from app.modules.crm.models import Deal
@@ -360,6 +362,12 @@ async def remove_freelancer(
     return DeleteResponse(id=uuid.UUID(out["id"]), message=out["message"])
 
 
+@router.get("/integrations/overview", response_model=IntegrationsOverviewResponse)
+async def integrations_overview(_: SuperAdmin, db: AsyncSession = Depends(get_db)):
+    """Read-only cross-tenant view of Google OAuth and social webhook integrations."""
+    return await snapshot_integrations_overview(db)
+
+
 @router.get("/tenant-health", response_model=list[TenantHealthRow])
 async def tenant_health_snapshot(admin: SuperAdmin, db: AsyncSession = Depends(get_db)):
     """Per-tenant operational flags (stale leads, open inboxes, overdue invoices, …)."""
@@ -446,7 +454,16 @@ async def tool_config_meta(_: SuperAdmin):
     """Return the canonical list of tool hrefs and labels, plus known categories."""
     return {
         "categories": KNOWN_CATEGORIES,
-        "tools": [{"href": h, "label": TOOL_LABELS[h]} for h in ALL_TOOL_HREFS],
+        "tools": [
+            {
+                "href": h,
+                "label": TOOL_LABELS.get(
+                    h,
+                    h.replace("/dashboard/", "").replace("-", " ").title() or h,
+                ),
+            }
+            for h in ALL_TOOL_HREFS
+        ],
     }
 
 

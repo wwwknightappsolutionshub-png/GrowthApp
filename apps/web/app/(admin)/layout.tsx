@@ -30,6 +30,7 @@ import {
   MailOpen,
   Menu,
   Monitor,
+  Plug,
   Play,
   Search,
   Settings,
@@ -78,6 +79,7 @@ const NAV_GROUPS = [
       { href: '/admin/billing', label: 'Billing', icon: CreditCard },
       { href: '/admin/users', label: 'Users & Roles', icon: Users },
       { href: '/admin/communications', label: 'Communications', icon: Mail },
+      { href: '/admin/integrations', label: 'Integrations', icon: Plug },
     ],
   },
   {

@@ -92,3 +92,65 @@ class RemindTenantResponse(BaseModel):
     notification_id: str
     owners_emailed: int
     flags: list[str]
+
+
+class IntegrationsOnboardingOut(BaseModel):
+    google_connected: bool = False
+    social_connected: bool = False
+    skipped: bool = False
+
+
+class SocialChannelSummary(BaseModel):
+    channel_type: str
+    status: str
+    connected_at: datetime | None = None
+    last_webhook_at: datetime | None = None
+
+
+class TenantGoogleSummary(BaseModel):
+    platform_connected: bool
+    platform_location_title: str | None = None
+    platform_last_sync_at: datetime | None = None
+    credentials_registered: bool
+    credentials_status: str | None = None
+    credentials_expires_at: datetime | None = None
+    review_count: int = 0
+    last_sync_at: datetime | None = None
+    last_sync_type: str | None = None
+    last_sync_status: str | None = None
+
+
+class TenantSocialSummary(BaseModel):
+    channels_provisioned: int = 0
+    channels_connected: int = 0
+    platforms: list[SocialChannelSummary] = []
+    last_webhook_at: datetime | None = None
+    last_webhook_status: str | None = None
+    webhook_failures_7d: int = 0
+
+
+class TenantIntegrationsRow(BaseModel):
+    tenant_id: uuid.UUID
+    tenant_name: str
+    tenant_slug: str
+    is_active: bool
+    integrations_onboarding: IntegrationsOnboardingOut
+    google: TenantGoogleSummary
+    social: TenantSocialSummary
+    health_flags: list[str]
+
+
+class IntegrationsOverviewTotals(BaseModel):
+    tenants_total: int
+    tenants_with_google_platform: int
+    tenants_with_google_credentials: int
+    tenants_with_any_social_channel: int
+    tenants_with_connected_social: int
+    onboarding_skipped: int
+    google_sync_failures_24h: int
+    social_webhook_failures_24h: int
+
+
+class IntegrationsOverviewResponse(BaseModel):
+    totals: IntegrationsOverviewTotals
+    tenants: list[TenantIntegrationsRow]

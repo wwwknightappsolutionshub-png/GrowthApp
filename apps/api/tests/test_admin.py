@@ -124,3 +124,47 @@ async def test_admin_suspend_and_reactivate_tenant(client, db_session):
     )
     assert react.status_code == 200
     assert react.json()["is_active"] is True
+
+
+@pytest.mark.asyncio
+async def test_admin_tool_config_meta_returns_tools(client, db_session):
+    admin = await _make_superadmin(db_session)
+    token = create_access_token(subject=admin.id, tenant_id=None, role=None)
+
+    res = await client.get(
+        "/api/v1/admin/tool-configs/meta",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert len(body["categories"]) >= 1
+    assert len(body["tools"]) >= 1
+    assert all("href" in t and "label" in t for t in body["tools"])
+    assert all(t["href"] for t in body["tools"])
+
+
+@pytest.mark.asyncio
+async def test_admin_integrations_overview(client, db_session):
+    admin = await _make_superadmin(db_session)
+    token = create_access_token(subject=admin.id, tenant_id=None, role=None)
+
+    reg = await client.post("/api/v1/auth/register", json={
+        "email": f"int-{uuid.uuid4().hex[:6]}@example.com",
+        "password": "TestPass123",
+        "full_name": "Integration Owner",
+        "business_name": f"Int Biz {uuid.uuid4().hex[:4]}",
+        "business_type": "plumber",
+        "postcode": "SW1A 1AA",
+    })
+    assert reg.status_code == 201
+
+    res = await client.get(
+        "/api/v1/admin/integrations/overview",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert "totals" in body
+    assert "tenants" in body
+    assert body["totals"]["tenants_total"] >= 1
+    assert any(t["tenant_name"].startswith("Int Biz") for t in body["tenants"])

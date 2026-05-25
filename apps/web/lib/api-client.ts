@@ -1356,6 +1356,7 @@ export const admin = {
   deleteUser: (id: string, permanent = true) =>
     apiClient.delete(`/admin/users/${id}`, { params: { permanent } }),
   listTenantHealth: () => apiClient.get('/admin/tenant-health'),
+  integrationsOverview: () => apiClient.get('/admin/integrations/overview'),
   remindTenant: (tenantId: string, params?: { note?: string }) =>
     apiClient.post(`/admin/tenant-health/${tenantId}/remind`, null, { params }),
   // Marketing CMS -----------------------------------------------------------
