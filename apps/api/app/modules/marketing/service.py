@@ -35,6 +35,13 @@ async def list_sections(db: AsyncSession, *, only_published: bool = True) -> lis
     return list((await db.execute(stmt)).scalars().all())
 
 
+async def ensure_marketing_seeded(db: AsyncSession, *, force: bool = False) -> dict[str, int]:
+    """Ensure default marketing CMS rows exist (idempotent unless `force=True`)."""
+    from app.modules.marketing.seed import seed_marketing_data
+
+    return await seed_marketing_data(db, replace=force)
+
+
 async def get_section(db: AsyncSession, key: str) -> MarketingSection:
     section = (
         await db.execute(select(MarketingSection).where(MarketingSection.key == key))

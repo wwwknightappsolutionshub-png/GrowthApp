@@ -1365,6 +1365,7 @@ export const admin = {
     apiClient.post(`/admin/tenant-health/${tenantId}/remind`, null, { params }),
   // Marketing CMS -----------------------------------------------------------
   listMarketingSections: () => apiClient.get('/admin/marketing/sections'),
+  seedMarketingDefaults: () => apiClient.post('/admin/marketing/seed'),
   getMarketingSection: (key: string) => apiClient.get(`/admin/marketing/sections/${key}`),
   upsertMarketingSection: (body: {
     key: string

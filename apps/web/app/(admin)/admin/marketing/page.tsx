@@ -106,6 +106,8 @@ export default function AdminMarketingPage() {
   const [sections, setSections] = useState<Section[]>([])
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [seeding, setSeeding] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
 
   const sensors = useSensors(
@@ -119,6 +121,7 @@ export default function AdminMarketingPage() {
 
   async function refresh() {
     setLoading(true)
+    setLoadError(null)
     try {
       const res = await admin.listMarketingSections()
       const rows = res.data as Section[]
@@ -129,10 +132,28 @@ export default function AdminMarketingPage() {
         return rows[0]?.key ?? null
       })
     } catch (err) {
+      const e = err as { response?: { data?: { detail?: string } }; message?: string }
+      const detail = e.response?.data?.detail || e.message || 'Unknown error'
+      setLoadError(String(detail))
       toast.error('Failed to load marketing sections')
       console.error(err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function seedDefaults() {
+    setSeeding(true)
+    try {
+      await admin.seedMarketingDefaults()
+      toast.success('Default marketing sections loaded')
+      await refresh()
+    } catch (err) {
+      const e = err as { response?: { data?: { detail?: string } } }
+      toast.error(e.response?.data?.detail || 'Could not seed defaults')
+      console.error(err)
+    } finally {
+      setSeeding(false)
     }
   }
 
@@ -185,7 +206,36 @@ export default function AdminMarketingPage() {
             Sections · drag to reorder
           </p>
           {loading && <p className="px-2 py-3 text-xs text-gray-500">Loading…</p>}
-          {!loading && (
+          {!loading && loadError && (
+            <div className="space-y-2 px-2 py-3">
+              <p className="text-xs text-rose-300">{loadError}</p>
+              <p className="text-[11px] text-gray-500">
+                If this is a fresh deploy, run database migrations on the API server, then retry.
+              </p>
+              <button
+                type="button"
+                onClick={() => void refresh()}
+                className="rounded-md border border-gray-700 px-2 py-1 text-xs text-gray-200 hover:bg-gray-800"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          {!loading && !loadError && sections.length === 0 && (
+            <div className="space-y-2 px-2 py-3">
+              <p className="text-xs text-gray-400">No sections yet.</p>
+              <button
+                type="button"
+                disabled={seeding}
+                onClick={() => void seedDefaults()}
+                className="inline-flex items-center gap-2 rounded-md bg-amber-500 px-2.5 py-1.5 text-xs font-semibold text-gray-950 hover:bg-amber-400 disabled:opacity-50"
+              >
+                {seeding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                Load defaults
+              </button>
+            </div>
+          )}
+          {!loading && !loadError && sections.length > 0 && (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
               <SortableContext items={sections.map((s) => s.key)} strategy={verticalListSortingStrategy}>
                 <ul className="space-y-1">

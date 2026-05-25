@@ -49,7 +49,18 @@ admin_router = APIRouter(prefix="/admin/marketing", tags=["Admin · Marketing"])
 
 @admin_router.get("/sections", response_model=list[MarketingSectionResponse])
 async def admin_list_sections(_: SuperAdmin, db: AsyncSession = Depends(get_db)):
-    return await service.list_sections(db, only_published=False)
+    sections = await service.list_sections(db, only_published=False)
+    if not sections:
+        await service.ensure_marketing_seeded(db)
+        sections = await service.list_sections(db, only_published=False)
+    return sections
+
+
+@admin_router.post("/seed", status_code=status.HTTP_200_OK)
+async def admin_seed_marketing(_: SuperAdmin, db: AsyncSession = Depends(get_db)):
+    """Idempotently seed default marketing CMS content (sections, reviews, templates)."""
+    counts = await service.ensure_marketing_seeded(db, force=True)
+    return {"ok": True, "created": counts}
 
 
 @admin_router.get("/sections/{key}", response_model=MarketingSectionResponse)
