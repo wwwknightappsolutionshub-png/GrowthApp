@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { cn } from '@/lib/utils'
 
 export const AUTH_HEADLINE = 'Lead + Book + CRM + Booking + Retention'
+export const AUTH_JOURNEY_HEADLINE = 'One Platform for your customer journey'
 
 type BrandIconProps = {
   size?: number
