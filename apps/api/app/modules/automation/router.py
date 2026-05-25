@@ -1,12 +1,14 @@
 from uuid import UUID
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.core.dependencies import CurrentTenantContext
 from app.modules.automation import service
+from app.modules.automation import presets
 from app.modules.automation.schemas import (
     AutomationCreate, AutomationUpdate, AutomationResponse,
     MessageTemplateCreate, MessageTemplateResponse,
+    PresetInfo, PresetInstallResponse,
 )
 from app.modules.auth.schemas import MessageResponse
 
@@ -25,23 +27,29 @@ async def create_automation(data: AutomationCreate, ctx: CurrentTenantContext, d
     return await service.create_automation(db, tenant.id, data)
 
 
-@router.get("/{automation_id}", response_model=AutomationResponse)
-async def get_automation(automation_id: UUID, ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+@router.get("/presets", response_model=list[PresetInfo])
+async def list_presets(ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
     _, tenant, _ = ctx
-    return await service.get_automation(db, tenant.id, automation_id)
+    return await presets.list_available_presets(db, tenant.id)
 
 
-@router.patch("/{automation_id}", response_model=AutomationResponse)
-async def update_automation(automation_id: UUID, data: AutomationUpdate, ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+@router.post("/presets/install-all", response_model=PresetInstallResponse)
+async def install_all_presets(ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
     _, tenant, _ = ctx
-    return await service.update_automation(db, tenant.id, automation_id, data)
+    installed = await presets.install_all_presets(db, tenant.id)
+    return PresetInstallResponse(
+        installed=installed,
+        message=f"Installed {len(installed)} recommended workflow(s)",
+    )
 
 
-@router.delete("/{automation_id}", response_model=MessageResponse)
-async def delete_automation(automation_id: UUID, ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+@router.post("/presets/{preset_key}", response_model=AutomationResponse, status_code=201)
+async def install_preset(preset_key: str, ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
     _, tenant, _ = ctx
-    await service.delete_automation(db, tenant.id, automation_id)
-    return MessageResponse(message="Automation deleted")
+    try:
+        return await presets.install_preset(db, tenant.id, preset_key)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/templates", response_model=list[MessageTemplateResponse])
@@ -61,3 +69,22 @@ async def delete_template(template_id: UUID, ctx: CurrentTenantContext, db: Asyn
     _, tenant, _ = ctx
     await service.delete_template(db, tenant.id, template_id)
     return MessageResponse(message="Template deleted")
+
+
+@router.get("/{automation_id}", response_model=AutomationResponse)
+async def get_automation(automation_id: UUID, ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+    _, tenant, _ = ctx
+    return await service.get_automation(db, tenant.id, automation_id)
+
+
+@router.patch("/{automation_id}", response_model=AutomationResponse)
+async def update_automation(automation_id: UUID, data: AutomationUpdate, ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+    _, tenant, _ = ctx
+    return await service.update_automation(db, tenant.id, automation_id, data)
+
+
+@router.delete("/{automation_id}", response_model=MessageResponse)
+async def delete_automation(automation_id: UUID, ctx: CurrentTenantContext, db: AsyncSession = Depends(get_db)):
+    _, tenant, _ = ctx
+    await service.delete_automation(db, tenant.id, automation_id)
+    return MessageResponse(message="Automation deleted")

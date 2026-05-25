@@ -1,5 +1,5 @@
 // Bump when deploy changes static assets so old caches are cleared on activate.
-const CACHE_VERSION = 'customerflow-pwa-v2'
+const CACHE_VERSION = 'customerflow-pwa-v3'
 const STATIC_CACHE = `${CACHE_VERSION}:static`
 const OFFLINE_URL = '/offline.html'
 
@@ -7,6 +7,7 @@ const PRECACHE_URLS = [
   OFFLINE_URL,
   '/manifest.webmanifest',
   '/icons/icon.svg',
+  '/icons/pwa-icon.svg',
   '/icons/maskable-icon.svg',
 ]
 

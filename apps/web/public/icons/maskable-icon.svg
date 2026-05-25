@@ -1,7 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CustomerFlow AI">
-  <rect width="512" height="512" fill="#025422"/>
-  <circle cx="382" cy="130" r="42" fill="#20ccce"/>
-  <path d="M104 328c74-140 176-202 284-210" fill="none" stroke="#ffffff" stroke-width="42" stroke-linecap="round"/>
-  <path d="M116 358c62-58 130-78 204-50" fill="none" stroke="#20ccce" stroke-width="42" stroke-linecap="round"/>
-  <path d="M104 398h304" fill="none" stroke="#ffffff" stroke-opacity=".9" stroke-width="32" stroke-linecap="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CustomerFlow AI install icon">
+  <defs>
+    <linearGradient id="pwa-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#025422"/>
+      <stop offset="100%" stop-color="#013318"/>
+    </linearGradient>
+  </defs>
+  <!-- Full-bleed background for maskable safe zone (Android/iOS install) -->
+  <rect width="512" height="512" fill="url(#pwa-bg)"/>
+  <!-- Content kept inside ~80% center safe area -->
+  <g transform="translate(56 56) scale(0.78)">
+    <circle cx="392" cy="120" r="34" fill="#20ccce"/>
+    <circle cx="392" cy="120" r="12" fill="#ffffff" fill-opacity="0.3"/>
+    <path d="M108 328 C 168 196, 268 148, 372 132" fill="none" stroke="#ffffff" stroke-width="44" stroke-linecap="round"/>
+    <path d="M124 360 C 178 308, 248 292, 332 312" fill="none" stroke="#20ccce" stroke-width="40" stroke-linecap="round"/>
+    <path d="M104 392 H 360" fill="none" stroke="#ffffff" stroke-opacity="0.9" stroke-width="30" stroke-linecap="round"/>
+  </g>
 </svg>

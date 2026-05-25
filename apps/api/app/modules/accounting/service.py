@@ -336,6 +336,7 @@ async def send_invoice(
         tenant_id=str(tenant_id),
         event="invoice_sent",
         entity_id=str(invoice_id),
+        entity_type="invoice",
     )
     return await qi_service.get_invoice(db, tenant_id, invoice_id)
 

@@ -6,10 +6,11 @@ logger = logging.getLogger(__name__)
 
 async def trigger_automation_for_event(ctx: dict, *, tenant_id: str, event: str, entity_id: str, entity_type: str = "deal"):
     """Find active automations for this event and start runs."""
-    logger.info("Automation event: tenant=%s event=%s entity=%s", tenant_id, event, entity_id)
+    logger.info("Automation event: tenant=%s event=%s entity=%s type=%s", tenant_id, event, entity_id, entity_type)
     async with get_db_context() as db:
         from sqlalchemy import select
         from app.modules.automation.models import Automation, AutomationRun
+        from app.modules.automation import service as automation_service
         import uuid
 
         result = await db.execute(
@@ -22,18 +23,22 @@ async def trigger_automation_for_event(ctx: dict, *, tenant_id: str, event: str,
         automations = result.scalars().all()
 
         for automation in automations:
+            entity_uuid = uuid.UUID(entity_id)
+            if await automation_service.run_exists_for_entity(db, automation.id, entity_uuid):
+                logger.info("Skipping duplicate automation run automation=%s entity=%s", automation.id, entity_id)
+                continue
+
             run = AutomationRun(
                 id=uuid.uuid4(),
                 tenant_id=uuid.UUID(tenant_id),
                 automation_id=automation.id,
                 entity_type=entity_type,
-                entity_id=uuid.UUID(entity_id),
+                entity_id=entity_uuid,
                 status="running",
             )
             db.add(run)
             await db.flush()
 
-            # Schedule first step
             from app.workers.queue import enqueue
             await enqueue("run_automation_step", run_id=str(run.id), step_index=0)
 
@@ -46,6 +51,7 @@ async def run_automation_step(ctx: dict, *, run_id: str, step_index: int):
     async with get_db_context() as db:
         from sqlalchemy import select
         from app.modules.automation.models import AutomationRun, AutomationStep
+        from app.modules.automation.execution import execute_send_step
         import uuid
 
         run_result = await db.execute(
@@ -64,7 +70,6 @@ async def run_automation_step(ctx: dict, *, run_id: str, step_index: int):
         step = step_result.scalar_one_or_none()
 
         if not step:
-            # All steps done
             run.status = "completed"
             from datetime import datetime, timezone
             run.completed_at = datetime.now(timezone.utc)
@@ -75,19 +80,29 @@ async def run_automation_step(ctx: dict, *, run_id: str, step_index: int):
         config = step.config or {}
         action = step.action_type
 
-        if action == "send_sms":
-            # Get entity phone number
-            from app.workers.queue import enqueue
-            # Simplified: would normally resolve entity -> customer -> phone
-            logger.info("Auto-SMS step: template=%s", config.get("template_id"))
+        try:
+            if action in ("send_sms", "send_email"):
+                await execute_send_step(
+                    db,
+                    tenant_id=run.tenant_id,
+                    entity_type=run.entity_type,
+                    entity_id=run.entity_id,
+                    action=action,
+                    config=config,
+                )
+            elif action == "wait":
+                pass
+            else:
+                logger.warning("Unsupported automation action=%s — skipping", action)
+        except Exception as exc:
+            logger.error("Automation step failed run=%s step=%s error=%s", run_id, step_index, exc, exc_info=True)
+            run.status = "failed"
+            from datetime import datetime, timezone
+            run.completed_at = datetime.now(timezone.utc)
+            db.add(run)
+            await db.commit()
+            return
 
-        elif action == "send_email":
-            logger.info("Auto-email step: template=%s", config.get("template_id"))
-
-        elif action == "wait":
-            pass  # delay_minutes handled by ARQ defer
-
-        # Schedule next step
         next_step_result = await db.execute(
             select(AutomationStep).where(
                 AutomationStep.automation_id == run.automation_id,

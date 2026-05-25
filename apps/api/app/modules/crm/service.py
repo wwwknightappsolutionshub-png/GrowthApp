@@ -164,11 +164,15 @@ async def move_deal(db: AsyncSession, tenant_id: uuid.UUID, deal_id: uuid.UUID, 
     deal.stage_order = stage_order
     if stage == "Completed" and not deal.completed_at:
         deal.completed_at = datetime.now(timezone.utc)
-        # Trigger review request + social post
         from app.workers.queue import enqueue
-        await enqueue("send_review_request", deal_id=str(deal.id), tenant_id=str(tenant_id), _defer_by=7200)
+        from app.modules.automation import service as automation_service
+
+        has_review_automation = await automation_service.tenant_has_active_automation(
+            db, tenant_id, "job_completed"
+        )
+        if not has_review_automation:
+            await enqueue("send_review_request", deal_id=str(deal.id), tenant_id=str(tenant_id), _defer_by=7200)
         await enqueue("generate_social_post", deal_id=str(deal.id), tenant_id=str(tenant_id))
-        # Trigger automation
         await enqueue("trigger_automation_for_event", tenant_id=str(tenant_id), event="job_completed", entity_id=str(deal.id))
     db.add(deal)
     activity = DealActivity(id=uuid.uuid4(), tenant_id=tenant_id, deal_id=deal.id, user_id=user_id, type="stage_changed", body=f"Moved from {old_stage} to {stage}", metadata={"from": old_stage, "to": stage})

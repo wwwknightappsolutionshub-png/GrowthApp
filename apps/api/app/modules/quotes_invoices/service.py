@@ -299,7 +299,7 @@ async def send_quote(
     await db.commit()
     from app.workers.queue import enqueue
 
-    await enqueue("trigger_automation_for_event", tenant_id=str(tenant_id), event="quote_sent", entity_id=str(q.id))
+    await enqueue("trigger_automation_for_event", tenant_id=str(tenant_id), event="quote_sent", entity_id=str(q.id), entity_type="quote")
     return await get_quote(db, tenant_id, quote_id)
 
 

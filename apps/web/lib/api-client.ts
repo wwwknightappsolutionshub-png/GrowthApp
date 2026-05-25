@@ -440,9 +440,13 @@ export const publicFeedback = {
 
 export const automations = {
   list: () => apiClient.get('/automations'),
+  get: (id: string) => apiClient.get(`/automations/${id}`),
   create: (data: object) => apiClient.post('/automations', data),
   update: (id: string, data: object) => apiClient.patch(`/automations/${id}`, data),
   delete: (id: string) => apiClient.delete(`/automations/${id}`),
+  listPresets: () => apiClient.get('/automations/presets'),
+  installPreset: (key: string) => apiClient.post(`/automations/presets/${key}`),
+  installAllPresets: () => apiClient.post('/automations/presets/install-all'),
   listTemplates: () => apiClient.get('/automations/templates'),
   createTemplate: (data: object) => apiClient.post('/automations/templates', data),
 }

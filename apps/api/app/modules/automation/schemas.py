@@ -43,8 +43,18 @@ class AutomationCreate(BaseModel):
 
 class AutomationUpdate(BaseModel):
     name: str | None = None
+    trigger_event: str | None = None
     is_active: bool | None = None
     trigger_conditions: dict | None = None
+    steps: list[AutomationStepIn] | None = None
+
+
+class PresetInfo(BaseModel):
+    key: str
+    name: str
+    description: str
+    trigger_event: str
+    installed: bool
 
 
 class AutomationResponse(BaseModel):
@@ -57,3 +67,8 @@ class AutomationResponse(BaseModel):
     is_active: bool
     created_at: datetime
     steps: list[AutomationStepResponse] = []
+
+
+class PresetInstallResponse(BaseModel):
+    installed: list[AutomationResponse]
+    message: str

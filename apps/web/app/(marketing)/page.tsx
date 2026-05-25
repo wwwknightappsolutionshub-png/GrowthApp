@@ -30,11 +30,9 @@ import { MarketingFooter } from '@/components/marketing/MarketingFooter'
 import { AnnouncementTicker } from '@/components/marketing/AnnouncementTicker'
 import { AnimatedCounter } from '@/components/marketing/AnimatedCounter'
 import { ExitIntentReviewPrompt } from '@/components/marketing/ExitIntentReviewPrompt'
-import { HeroDashboardPreview } from '@/components/marketing/HeroDashboardPreview'
+import { HeroSectionV3 } from '@/components/marketing/HeroSectionV3'
 import { GrowthLoopCards } from '@/components/marketing/GrowthLoopCards'
 import {
-  AdaptiveHeroContent,
-  AdaptiveHeroVisual,
   AdaptiveHomepageSections,
 } from '@/components/marketing/AdaptiveHomepagePersonalisation'
 import {
@@ -479,73 +477,7 @@ export default async function HomePage() {
       <AnnouncementTicker />
 
       {/* ── Hero ──────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden border-b border-border">
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-grid-faint opacity-50" />
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-[480px] bg-[radial-gradient(ellipse_50%_40%_at_50%_0%,hsl(var(--brand-teal)/0.10),transparent_70%)]"
-        />
-
-        <div className="container relative grid items-center gap-16 py-20 text-center lg:grid-cols-12 lg:py-28 lg:text-left">
-          <div className="lg:col-span-7">
-            <AdaptiveHeroContent
-              fallback={
-                <>
-                  <EyebrowTag>The AI operating system for UK businesses</EyebrowTag>
-
-                  <h1 className="mt-6 font-display text-4xl font-bold leading-[1.05] tracking-tight text-foreground sm:text-5xl xl:text-[64px] xl:leading-[1.04]">
-                    One enterprise platform for{' '}
-                    <span className="text-brand-forest-700">customers, retention,</span>{' '}
-                    reviews and <span className="text-brand-teal-500">money</span>.
-                  </h1>
-
-                  <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground lg:mx-0">
-                    CustomerFlow AI replaces ten point solutions with a single
-                    system of record: AI lead scoring, automated follow-ups, review
-                    flows, kanban operations, invoicing and cashflow intelligence —
-                    wired together and running quietly in the background.
-                  </p>
-
-                  <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
-                    <Link
-                      href="/register"
-                      className="inline-flex items-center justify-center gap-2 rounded-md bg-brand-forest-700 px-6 py-3.5 text-sm font-semibold text-brand-forest-foreground shadow-brand transition-all hover:bg-brand-forest-800"
-                    >
-                      Start 14-day free trial
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-                    <a
-                      href="#platform"
-                      className="inline-flex items-center justify-center gap-2 rounded-md border border-border bg-background px-6 py-3.5 text-sm font-semibold text-foreground transition-all hover:border-foreground/40 hover:bg-muted/50"
-                    >
-                      See the platform
-                    </a>
-                  </div>
-
-                  <ul className="mt-10 flex flex-wrap items-center justify-center gap-x-7 gap-y-3 text-sm text-muted-foreground lg:justify-start">
-                    {[
-                      'No credit card required',
-                      '14-day free trial',
-                      'GDPR compliant',
-                      'UK data residency',
-                    ].map((t) => (
-                      <li key={t} className="inline-flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-brand-forest-700" />
-                        {t}
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              }
-            />
-          </div>
-
-          {/* Animated hero dashboard preview */}
-          <div className="mx-auto w-full max-w-xl lg:col-span-5 lg:max-w-none">
-            <AdaptiveHeroVisual fallback={<HeroDashboardPreview />} />
-          </div>
-        </div>
-      </section>
+      <HeroSectionV3 />
 
       {/* ── Stat bar (live from CMS) ─────────────────────────────────── */}
       <section className="border-b border-border bg-card">

@@ -458,8 +458,13 @@ async def move_board_card(
         if stage.is_won and not deal.completed_at:
             deal.completed_at = datetime.now(timezone.utc)
             from app.workers.queue import enqueue
+            from app.modules.automation import service as automation_service
 
-            await enqueue("send_review_request", deal_id=str(deal.id), tenant_id=str(tenant_id), _defer_by=7200)
+            has_review_automation = await automation_service.tenant_has_active_automation(
+                db, tenant_id, "job_completed"
+            )
+            if not has_review_automation:
+                await enqueue("send_review_request", deal_id=str(deal.id), tenant_id=str(tenant_id), _defer_by=7200)
             await enqueue("generate_social_post", deal_id=str(deal.id), tenant_id=str(tenant_id))
             await enqueue(
                 "trigger_automation_for_event",

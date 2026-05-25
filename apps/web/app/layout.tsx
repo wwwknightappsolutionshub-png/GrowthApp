@@ -37,9 +37,12 @@ export const metadata: Metadata = {
     title: 'CustomerFlow',
   },
   icons: {
-    icon: '/icons/icon.svg',
+    icon: [
+      { url: '/icons/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon', sizes: '32x32', type: 'image/png' },
+    ],
     shortcut: '/icons/icon.svg',
-    apple: '/icons/icon.svg',
+    apple: [{ url: '/apple-icon', sizes: '180x180', type: 'image/png' }],
   },
 }
 

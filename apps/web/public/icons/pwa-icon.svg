@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CustomerFlow AI PWA">
+  <defs>
+    <linearGradient id="pwa" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#025422"/>
+      <stop offset="55%" stop-color="#014a1c"/>
+      <stop offset="100%" stop-color="#02140a"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="78%" cy="22%" r="45%">
+      <stop offset="0%" stop-color="#20ccce" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#20ccce" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#pwa)"/>
+  <rect width="512" height="512" fill="url(#halo)"/>
+  <g transform="translate(64 72)">
+    <rect x="0" y="0" width="384" height="368" rx="48" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.12"/>
+    <circle cx="312" cy="56" r="28" fill="#20ccce"/>
+    <path d="M48 248 C 108 128, 204 88, 296 76" fill="none" stroke="#ffffff" stroke-width="28" stroke-linecap="round"/>
+    <path d="M64 276 C 112 232, 188 216, 268 232" fill="none" stroke="#20ccce" stroke-width="24" stroke-linecap="round"/>
+    <path d="M48 300 H 280" fill="none" stroke="#ffffff" stroke-opacity="0.85" stroke-width="20" stroke-linecap="round"/>
+    <text x="48" y="340" fill="#ffffff" fill-opacity="0.55" font-family="system-ui,sans-serif" font-size="22" font-weight="600" letter-spacing="0.08em">CUSTOMERFLOW</text>
+  </g>
+</svg>
