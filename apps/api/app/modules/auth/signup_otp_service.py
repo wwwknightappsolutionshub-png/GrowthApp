@@ -70,6 +70,7 @@ async def initiate(db: AsyncSession, data: SignupInitiateRequest) -> dict:
         "business_type": data.business_type,
         "postcode": data.postcode,
         "estimated_client_count": data.estimated_client_count,
+        "enable_membership_rewards": data.enable_membership_rewards,
     }
     pending = PendingSignup(
         id=uuid.uuid4(),
@@ -131,6 +132,7 @@ async def verify_and_complete(
         estimated_client_count=(
             payload.get("estimated_client_count") if pending.user_type == "freelancer" else None
         ),
+        membership_rewards_opt_in=bool(payload.get("enable_membership_rewards", True)),
         onboarding_completed=False,
     )
     db.add(user)
@@ -192,7 +194,7 @@ async def verify_and_complete(
                     .where(TenantMember.user_id == user.id, TenantMember.role == "owner")
                 )
             ).scalar_one_or_none()
-            if tenant_row:
+            if tenant_row and user.membership_rewards_opt_in:
                 await on_tenant_signup(db, tenant_row.id)
         except Exception:  # noqa: BLE001
             log.exception("Post-signup membership trial start failed for user %s", user.id)

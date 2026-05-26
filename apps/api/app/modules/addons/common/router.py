@@ -16,6 +16,8 @@ from app.modules.addons.common.constants import (
 from app.modules.addons.common.entitlement import tenant_has_addon
 from app.modules.membership_rewards.constants import FEATURE_MEMBERSHIP_REWARDS
 from app.modules.membership_rewards.entitlement import tenant_has_membership_rewards
+from app.modules.pwa.constants import FEATURE_PWA_WHITE_LABEL
+from app.modules.pwa.entitlement import tenant_has_pwa_white_label
 from app.modules.addons.common.schemas import AddonStatusItem, AddonStatusResponse, SetVerticalRequest
 from app.modules.addons.common.vertical import get_tenant_vertical, set_tenant_vertical
 
@@ -33,6 +35,7 @@ async def addon_status(
     billing = await tenant_has_addon(db, tenant.id, FEATURE_INDUSTRY_BILLING)
     crm = await tenant_has_addon(db, tenant.id, FEATURE_INDUSTRY_CRM)
     membership = await tenant_has_membership_rewards(db, tenant.id)
+    pwa_white_label = await tenant_has_pwa_white_label(db, tenant.id)
     return AddonStatusResponse(
         vertical=vertical.value,
         industry_booking=booking,
@@ -44,6 +47,7 @@ async def addon_status(
             AddonStatusItem(feature_code=FEATURE_INDUSTRY_BILLING, active=billing),
             AddonStatusItem(feature_code=FEATURE_INDUSTRY_CRM, active=crm),
             AddonStatusItem(feature_code=FEATURE_MEMBERSHIP_REWARDS, active=membership),
+            AddonStatusItem(feature_code=FEATURE_PWA_WHITE_LABEL, active=pwa_white_label),
         ],
     )
 

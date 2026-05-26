@@ -19,6 +19,7 @@ import {
 import { auth } from '@/lib/api-client'
 import { fetchMe } from '@/lib/auth'
 import { AuthPageHeader } from '@/components/brand/AuthPageHeader'
+import { authPageTitle } from '@/components/brand/AuthJourneyHeadline'
 import { cn } from '@/lib/utils'
 
 const schema = z.object({
@@ -93,6 +94,7 @@ export default function LoginPage() {
       {/* Header */}
       <AuthPageHeader
         eyebrow="Sign in"
+        title={authPageTitle('Welcome')}
         description="Enter your credentials to access your CustomerFlowai workspace."
       />
 

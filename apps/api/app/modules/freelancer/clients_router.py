@@ -292,6 +292,13 @@ async def create_client(
     )
     await db.commit()
     await db.refresh(tenant)
+    if current_user.membership_rewards_opt_in:
+        try:
+            from app.modules.membership_rewards.hooks import on_tenant_signup
+
+            await on_tenant_signup(db, tenant.id)
+        except Exception:  # noqa: BLE001
+            pass
     return _serialize(tenant)
 
 

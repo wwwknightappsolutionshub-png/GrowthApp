@@ -42,6 +42,12 @@ class User(Base):
         server_default="0",
         nullable=False,
     )
+    membership_rewards_opt_in: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        server_default="1",
+        nullable=False,
+    )
 
     # ── 2FA / TOTP ────────────────────────────────────────────────────────
     totp_secret: Mapped[str | None] = mapped_column(String(64), nullable=True)

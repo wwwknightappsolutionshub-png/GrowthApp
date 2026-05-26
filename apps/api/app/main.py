@@ -52,9 +52,11 @@ from app.modules.addons.billing.router import router as addons_billing_router
 from app.modules.addons.crm.router import router as addons_crm_router
 from app.modules.accounting import models as _accounting_models  # noqa: F401
 from app.modules.membership_rewards import models as _membership_rewards_models  # noqa: F401
+from app.modules.pwa import models as _pwa_models  # noqa: F401
 from app.modules.auto_replies.router import router as auto_replies_router
 from app.modules.usage.router import router as usage_router
 from app.modules.outreach.router import router as outreach_router
+from app.modules.pwa.router import router as pwa_router
 from app.modules.whatsapp.router import router as whatsapp_router
 from app.modules.marketing.router import (
     admin_router as marketing_admin_router,
@@ -160,6 +162,7 @@ def create_app() -> FastAPI:
     app.include_router(admin_router, prefix=API_PREFIX)
     app.include_router(tasks_router, prefix=API_PREFIX)
     app.include_router(notifications_router, prefix=API_PREFIX)
+    app.include_router(pwa_router, prefix=API_PREFIX)
     app.include_router(api_keys_router, prefix=API_PREFIX)
     app.include_router(rbac_router, prefix=API_PREFIX)
     app.include_router(search_router, prefix=API_PREFIX)

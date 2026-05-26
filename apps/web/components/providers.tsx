@@ -5,6 +5,8 @@ import dynamic from 'next/dynamic'
 import { ThemeProvider } from 'next-themes'
 import { useState } from 'react'
 import { PWAInstallManager } from '@/components/pwa/PWAInstallManager'
+import { PWAExitMonitor } from '@/components/pwa/PWAExitMonitor'
+import { PwaBackgroundSyncListener } from '@/components/pwa/PwaBackgroundSyncListener'
 
 const ReactQueryDevtools = dynamic(
   () => import('@tanstack/react-query-devtools').then((m) => m.ReactQueryDevtools),
@@ -29,6 +31,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         {children}
         <PWAInstallManager />
+        <PWAExitMonitor />
+        <PwaBackgroundSyncListener />
         {process.env.NODE_ENV === 'development' && (
           <ReactQueryDevtools initialIsOpen={false} />
         )}

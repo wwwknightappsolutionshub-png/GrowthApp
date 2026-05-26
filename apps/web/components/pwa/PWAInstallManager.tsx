@@ -2,8 +2,8 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { BellRing, Download, Smartphone, X } from 'lucide-react'
-import { notifications } from '@/lib/api-client'
+import { Download, Gift, Smartphone, X } from 'lucide-react'
+import { enablePushAutomatically } from '@/lib/pwa/push-subscribe'
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>
@@ -13,7 +13,9 @@ type BeforeInstallPromptEvent = Event & {
 const DISMISS_KEY = 'cf:pwa:install-dismissed-at'
 const HARD_DISMISS_KEY = 'cf:pwa:install-dismissed-hard'
 const INSTALLED_KEY = 'cf:pwa:installed'
+const HIGH_VALUE_KEY = 'cf:pwa:high-value-prompt'
 const REMIND_AFTER_MS = 1000 * 60 * 60 * 24
+const GATE_DELAY_MS = 2500
 
 function isMobileDevice(): boolean {
   if (typeof window === 'undefined') return false
@@ -41,17 +43,6 @@ function canShowAgain(): boolean {
   return !dismissedAt || Date.now() - dismissedAt > REMIND_AFTER_MS
 }
 
-function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-  const rawData = window.atob(base64)
-  const outputArray = new Uint8Array(rawData.length)
-  for (let i = 0; i < rawData.length; i += 1) {
-    outputArray[i] = rawData.charCodeAt(i)
-  }
-  return outputArray.buffer as ArrayBuffer
-}
-
 function PWAInstallManagerInner() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -61,17 +52,15 @@ function PWAInstallManagerInner() {
   const [isStandalone, setIsStandalone] = useState(false)
   const [visible, setVisible] = useState(false)
   const [iosSafari, setIosSafari] = useState(false)
-  const [pushBusy, setPushBusy] = useState(false)
   const [pushMessage, setPushMessage] = useState<string | null>(null)
+  const [gateReady, setGateReady] = useState(false)
 
   const isAppArea = pathname?.startsWith('/dashboard') || pathname?.startsWith('/admin')
   const isAuthPage = pathname?.startsWith('/login') || pathname?.startsWith('/register')
 
   useEffect(() => {
     if (!('serviceWorker' in navigator) || process.env.NODE_ENV === 'test') return
-    navigator.serviceWorker.register('/sw.js').catch(() => {
-      // PWA registration is progressive enhancement; app usage should not fail.
-    })
+    navigator.serviceWorker.register('/sw.js').catch(() => {})
   }, [])
 
   useEffect(() => {
@@ -86,6 +75,9 @@ function PWAInstallManagerInner() {
       window.localStorage.setItem(INSTALLED_KEY, '1')
       setIsStandalone(true)
       setVisible(false)
+      void enablePushAutomatically({ force: true, silent: true }).then((res) => {
+        if (res.ok) setPushMessage(res.message)
+      })
     })
     return () => window.removeEventListener('resize', updateState)
   }, [])
@@ -100,6 +92,39 @@ function PWAInstallManagerInner() {
   }, [])
 
   useEffect(() => {
+    if (!isAppArea || isStandalone) return
+    const timer = window.setTimeout(() => setGateReady(true), GATE_DELAY_MS)
+    return () => window.clearTimeout(timer)
+  }, [isAppArea, isStandalone, pathname])
+
+  useEffect(() => {
+    if (isAppArea && !isStandalone) {
+      void enablePushAutomatically({ silent: true }).then((res) => {
+        if (res.ok) setPushMessage(res.message)
+      })
+    }
+  }, [isAppArea, isStandalone, pathname])
+
+  useEffect(() => {
+    const onExitIntent = () => {
+      if (!isAppArea || isStandalone || !isMobile) return
+      if (canShowAgain()) setVisible(true)
+    }
+    window.addEventListener('cf:pwa-exit-intent', onExitIntent)
+    return () => window.removeEventListener('cf:pwa-exit-intent', onExitIntent)
+  }, [isAppArea, isStandalone, isMobile])
+
+  useEffect(() => {
+    const onHighValue = () => {
+      if (isStandalone || !isMobile) return
+      window.localStorage.setItem(HIGH_VALUE_KEY, '1')
+      setVisible(true)
+    }
+    window.addEventListener('cf:pwa-high-value', onHighValue)
+    return () => window.removeEventListener('cf:pwa-high-value', onHighValue)
+  }, [isStandalone, isMobile])
+
+  useEffect(() => {
     if (forceInstall) {
       setVisible(true)
       return
@@ -109,11 +134,12 @@ function PWAInstallManagerInner() {
       return
     }
     if (isAppArea) {
-      setVisible(true)
+      const highValue = window.localStorage.getItem(HIGH_VALUE_KEY) === '1'
+      setVisible(gateReady && (highValue || canShowAgain()))
       return
     }
     setVisible(canShowAgain() && !isAuthPage)
-  }, [forceInstall, isAppArea, isAuthPage, isMobile, isStandalone, pathname])
+  }, [forceInstall, isAppArea, isAuthPage, isMobile, isStandalone, pathname, gateReady])
 
   const mode = useMemo<'gate' | 'banner'>(() => (isAppArea ? 'gate' : 'banner'), [isAppArea])
 
@@ -130,6 +156,8 @@ function PWAInstallManagerInner() {
       if (choice.outcome === 'accepted') {
         window.localStorage.setItem(INSTALLED_KEY, '1')
         setVisible(false)
+        const push = await enablePushAutomatically({ force: true })
+        if (push.message) setPushMessage(push.message)
       } else {
         dismiss()
       }
@@ -139,49 +167,10 @@ function PWAInstallManagerInner() {
     setVisible(true)
   }
 
-  const enablePush = async () => {
-    if (!('Notification' in window) || !('PushManager' in window) || !('serviceWorker' in navigator)) {
-      setPushMessage('Push alerts are not supported by this browser yet.')
-      return
-    }
-    setPushBusy(true)
-    setPushMessage(null)
-    try {
-      const keyRes = await notifications.pushPublicKey()
-      if (!keyRes.data.configured || !keyRes.data.public_key) {
-        setPushMessage('Push alerts are ready in the app, but VAPID keys are not configured on this environment yet.')
-        return
-      }
-      const permission = await window.Notification.requestPermission()
-      if (permission !== 'granted') {
-        setPushMessage('Notifications were not enabled. You can turn them on later in notification settings.')
-        return
-      }
-      const registration = await navigator.serviceWorker.ready
-      const subscription =
-        (await registration.pushManager.getSubscription()) ||
-        (await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToArrayBuffer(keyRes.data.public_key),
-        }))
-      const json = subscription.toJSON()
-      await notifications.upsertPushSubscription({
-        endpoint: json.endpoint || subscription.endpoint,
-        keys: {
-          p256dh: json.keys?.p256dh || '',
-          auth: json.keys?.auth || '',
-        },
-        user_agent: window.navigator.userAgent,
-      })
-      setPushMessage('Push alerts enabled for this device.')
-    } catch {
-      setPushMessage('Could not enable push alerts on this device.')
-    } finally {
-      setPushBusy(false)
-    }
-  }
-
   if ((!visible && !forceInstall) || (!forceInstall && !isMobile) || isStandalone) return null
+
+  const walletCopy =
+    'Give your customers a rewards wallet they can install — then get pinged when a new lead arrives or a booking is due.'
 
   if (mode === 'gate') {
     return (
@@ -190,11 +179,11 @@ function PWAInstallManagerInner() {
           <div className="mb-4 flex items-start justify-between gap-3">
             <div className="flex items-center gap-3">
               <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-teal-400 text-brand-teal-foreground">
-                <Smartphone className="h-5 w-5" />
+                <Gift className="h-5 w-5" />
               </span>
               <div>
-                <h2 className="font-display text-lg font-bold">Install CustomerFlow AI</h2>
-                <p className="text-xs text-white/55">Best experience on mobile</p>
+                <h2 className="font-display text-lg font-bold">Launch your customer wallet app</h2>
+                <p className="text-xs text-white/55">Membership &amp; Rewards on their home screen</p>
               </div>
             </div>
             <button
@@ -206,10 +195,7 @@ function PWAInstallManagerInner() {
               <X className="h-4 w-4" />
             </button>
           </div>
-          <p className="text-sm leading-relaxed text-white/72">
-            Install the app for faster access, a cleaner mobile dashboard, and future alerts for
-            leads, bookings, invoices and tasks.
-          </p>
+          <p className="text-sm leading-relaxed text-white/72">{walletCopy}</p>
           {iosSafari && (
             <div className="mt-4 rounded-xl border border-brand-teal-300/25 bg-brand-teal-300/10 p-3 text-xs text-brand-teal-50">
               On iPhone: tap Share, then choose <strong>Add to Home Screen</strong>.
@@ -227,22 +213,21 @@ function PWAInstallManagerInner() {
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-teal-400 px-4 py-3 text-sm font-bold text-brand-teal-foreground hover:bg-brand-teal-300"
             >
               <Download className="h-4 w-4" />
-              Install app
+              Install workspace app
             </button>
+            <a
+              href="/dashboard/membership-rewards"
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-brand-teal-300/25 px-4 py-3 text-sm font-semibold text-brand-teal-100 hover:bg-brand-teal-300/10"
+            >
+              <Smartphone className="h-4 w-4" />
+              Set up customer wallet
+            </a>
             <button
               type="button"
               onClick={() => dismiss()}
               className="rounded-lg border border-white/10 px-4 py-3 text-sm font-semibold text-white/70 hover:bg-white/5 hover:text-white"
             >
               Continue in browser
-            </button>
-            <button
-              type="button"
-              onClick={() => void enablePush()}
-              disabled={pushBusy}
-              className="rounded-lg border border-brand-teal-300/25 px-4 py-3 text-sm font-semibold text-brand-teal-100 hover:bg-brand-teal-300/10 disabled:opacity-60"
-            >
-              {pushBusy ? 'Enabling alerts...' : 'Enable lead and task alerts'}
             </button>
           </div>
         </section>
@@ -254,13 +239,11 @@ function PWAInstallManagerInner() {
     <div className="fixed inset-x-3 bottom-3 z-[70] rounded-2xl border border-brand-forest-700 bg-brand-forest-950 p-4 text-white shadow-2xl">
       <div className="flex items-start gap-3">
         <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-brand-teal-400 text-brand-teal-foreground">
-          <BellRing className="h-4 w-4" />
+          <Gift className="h-4 w-4" />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-bold">Get the mobile app experience</h2>
-          <p className="mt-1 text-xs leading-relaxed text-white/65">
-            Install CustomerFlow AI for quicker access and future lead, booking and invoice alerts.
-          </p>
+          <h2 className="text-sm font-bold">Give customers a wallet app on their phone</h2>
+          <p className="mt-1 text-xs leading-relaxed text-white/65">{walletCopy}</p>
           {iosSafari && (
             <p className="mt-2 text-[11px] text-brand-teal-100">
               iPhone: tap Share, then Add to Home Screen.
@@ -282,16 +265,6 @@ function PWAInstallManagerInner() {
             >
               Remind me later
             </button>
-            {isAppArea && (
-              <button
-                type="button"
-                onClick={() => void enablePush()}
-                disabled={pushBusy}
-                className="rounded-md border border-brand-teal-300/25 px-3 py-2 text-xs font-semibold text-brand-teal-100 disabled:opacity-60"
-              >
-                {pushBusy ? 'Enabling...' : 'Enable alerts'}
-              </button>
-            )}
           </div>
         </div>
         <button
@@ -313,4 +286,10 @@ export function PWAInstallManager() {
       <PWAInstallManagerInner />
     </Suspense>
   )
+}
+
+/** Call from dashboard after first lead or booking is created. */
+export function triggerHighValuePwaPrompt() {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new CustomEvent('cf:pwa-high-value'))
 }

@@ -75,6 +75,30 @@ export default function IndustryAddonsHubPage() {
             Open Membership &amp; Rewards →
           </Link>
         </div>
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-5 flex flex-col md:col-span-3">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="font-semibold text-white">PWA white-label icon</h2>
+            <span
+              className={
+                q.data?.items?.some((i) => i.feature_code === 'pwa_white_label' && i.active)
+                  ? 'rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-200'
+                  : 'rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-100'
+              }
+            >
+              {q.data?.items?.some((i) => i.feature_code === 'pwa_white_label' && i.active)
+                ? 'Active'
+                : 'Paid add-on'}
+            </span>
+          </div>
+          <p className="mt-2 flex-1 text-sm text-slate-400">
+            Replace the default CustomerFlow home-screen icon with your logo and brand colours when
+            staff install the workspace app.
+          </p>
+          <p className="mt-3 text-xs text-slate-500">
+            Upload your logo under Settings → Business profile, then contact sales to activate this
+            add-on.
+          </p>
+        </div>
         {CARDS.map((card) => {
           const active = q.data?.[card.flag] ?? false
           return (

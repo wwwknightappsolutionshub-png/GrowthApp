@@ -109,10 +109,8 @@ const navLinks = [
 ]
 
 const trustBadges = [
-  { label: 'GDPR Compliant', icon: Shield },
-  { label: 'ISO 27001 Ready', icon: Lock },
-  { label: 'Stripe Verified', icon: BadgeCheck },
-  { label: 'UK Data Residency', icon: MapPin },
+  { label: 'Cancel anytime', icon: RefreshCw },
+  { label: '14-day free trial', icon: Users },
 ]
 
 const platformPillars = [
@@ -501,8 +499,8 @@ export default async function HomePage() {
         <div className="container">
           <div className="max-w-3xl">
             <EyebrowTag>Platform modules</EyebrowTag>
-            <h2 className="mt-6 font-display text-3xl font-bold leading-tight text-foreground sm:text-4xl lg:text-5xl">
-              Unified engines. One subscription.
+            <h2 className="mt-6 font-display text-3xl font-bold leading-[1.08] tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+              <span className="text-brand-forest-700">Unified engines</span>. One subscription.
               <br />
               <span className="text-muted-foreground">Designed as a system, not a stack.</span>
             </h2>
@@ -880,10 +878,9 @@ export default async function HomePage() {
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-white/50">
             {[
-              { icon: Shield, label: 'GDPR Compliant' },
               { icon: RefreshCw, label: 'Cancel anytime' },
-              { icon: Lock, label: 'UK data residency' },
-              { icon: Users, label: '2,400+ businesses' },
+              { icon: Lock, label: '14-day free trial' },
+              { icon: Users, label: 'Founding cohort pricing' },
             ].map(({ icon: Icon, label }) => (
               <div key={label} className="inline-flex items-center gap-2">
                 <Icon className="h-3.5 w-3.5 text-brand-teal-300" />

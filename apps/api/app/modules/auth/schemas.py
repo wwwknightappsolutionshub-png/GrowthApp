@@ -18,6 +18,7 @@ class RegisterRequest(BaseModel):
     postcode: str | None = Field(default=None, max_length=10)
     # Freelancer info — required when user_type == "freelancer".
     estimated_client_count: int | None = Field(default=None, ge=0)
+    enable_membership_rewards: bool = True
 
     @field_validator("password")
     @classmethod

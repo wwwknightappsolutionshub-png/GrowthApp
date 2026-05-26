@@ -180,6 +180,12 @@ async def create_booking(db: AsyncSession, tenant_id: uuid.UUID, data: BookingCr
         entity_id=str(booking.id),
         entity_type="booking",
     )
+    try:
+        from app.modules.pwa.service import maybe_send_first_booking_email
+
+        await maybe_send_first_booking_email(db, tenant_id=tenant_id)
+    except Exception:  # noqa: BLE001
+        pass
     return booking
 
 

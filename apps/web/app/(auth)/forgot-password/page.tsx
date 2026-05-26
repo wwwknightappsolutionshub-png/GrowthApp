@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { auth } from '@/lib/api-client'
 import { AuthPageHeader } from '@/components/brand/AuthPageHeader'
+import { authPageTitle } from '@/components/brand/AuthJourneyHeadline'
 
 const inputBase =
   'h-11 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground transition-colors placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0'
@@ -46,6 +47,7 @@ export default function ForgotPasswordPage() {
     <div>
       <AuthPageHeader
         eyebrow="Reset password"
+        title={authPageTitle('Reset password')}
         description="Enter your email and we'll send a secure reset link."
       />
 

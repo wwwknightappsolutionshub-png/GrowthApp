@@ -59,6 +59,7 @@ async def register(db: AsyncSession, data: RegisterRequest) -> tuple[User, dict]
         phone=data.phone,
         user_type=data.user_type,
         estimated_client_count=data.estimated_client_count if data.user_type == "freelancer" else None,
+        membership_rewards_opt_in=data.enable_membership_rewards,
         totp_backup_codes=[],
     )
     db.add(user)
@@ -135,7 +136,8 @@ async def register(db: AsyncSession, data: RegisterRequest) -> tuple[User, dict]
     try:
         from app.modules.membership_rewards.hooks import on_tenant_signup
 
-        await on_tenant_signup(db, tenant.id)
+        if user.membership_rewards_opt_in:
+            await on_tenant_signup(db, tenant.id)
     except Exception:  # noqa: BLE001
         import logging
 

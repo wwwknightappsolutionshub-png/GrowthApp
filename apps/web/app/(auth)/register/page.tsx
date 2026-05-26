@@ -26,6 +26,7 @@ import {
 } from 'lucide-react'
 import { auth } from '@/lib/api-client'
 import { AuthPageHeader } from '@/components/brand/AuthPageHeader'
+import { authPageTitle } from '@/components/brand/AuthJourneyHeadline'
 import { cn } from '@/lib/utils'
 
 const BUSINESS_TYPES = [
@@ -82,6 +83,7 @@ const schema = z
       .optional()
       .transform((v) => (v === undefined || v === '' ? undefined : Number(v))),
     terms: z.literal(true, { errorMap: () => ({ message: 'You must agree to the terms' }) }),
+    enable_membership_rewards: z.boolean().default(true),
   })
   .superRefine((data, ctx) => {
     if (data.user_type === 'tenant') {
@@ -180,7 +182,7 @@ export default function RegisterPage() {
     formState: { errors },
   } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { user_type: 'tenant' },
+    defaultValues: { user_type: 'tenant', enable_membership_rewards: true },
   })
 
   const watchedPassword = watch('password', '')
@@ -201,6 +203,7 @@ export default function RegisterPage() {
               full_name: rest.full_name,
               phone: rest.phone?.trim() || undefined,
               estimated_client_count: Number(rest.estimated_client_count),
+              enable_membership_rewards: rest.enable_membership_rewards,
             }
           : {
               user_type: 'tenant' as const,
@@ -211,6 +214,7 @@ export default function RegisterPage() {
               business_name: rest.business_name,
               business_type: rest.business_type,
               postcode: rest.postcode,
+              enable_membership_rewards: rest.enable_membership_rewards,
             }
 
       const res = await auth.signupInitiate(payload)
@@ -240,6 +244,7 @@ export default function RegisterPage() {
     <div>
       <AuthPageHeader
         eyebrow="Create account · 14-day free trial"
+        title={authPageTitle('Create account')}
         description="Set up CustomerFlowai for your business in under 2 minutes."
       />
 
@@ -500,6 +505,24 @@ export default function RegisterPage() {
             </div>
           </>
         )}
+
+        {/* Membership & Rewards — pre-selected trial */}
+        <div className="rounded-md border border-brand-teal-200 bg-brand-teal-50/60 px-4 py-3">
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              {...register('enable_membership_rewards')}
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 cursor-pointer rounded border-input text-brand-forest-700 accent-brand-forest-700 focus:ring-brand-forest-500"
+            />
+            <span className="text-sm leading-relaxed text-brand-forest-900">
+              <strong>Include Membership &amp; Rewards</strong> (7-day trial, selected by default)
+              <span className="mt-1 block text-xs text-brand-forest-700/90">
+                Launch a customer rewards wallet app your clients can install — points, offers, and
+                booking reminders on their phone.
+              </span>
+            </span>
+          </label>
+        </div>
 
         {/* Terms */}
         <div>

@@ -1,10 +1,12 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect } from 'react'
 import { BellRing, Check, Download, ExternalLink, Settings, X } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { notifications } from '@/lib/api-client'
+import { enablePushAutomatically } from '@/lib/pwa/push-subscribe'
 
 interface NotificationItem {
   id: string
@@ -30,15 +32,6 @@ function timeLabel(iso: string): string {
     hour: '2-digit',
     minute: '2-digit',
   })
-}
-
-function urlBase64ToArrayBuffer(base64String: string): ArrayBuffer {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-  const rawData = window.atob(base64)
-  const outputArray = new Uint8Array(rawData.length)
-  for (let i = 0; i < rawData.length; i += 1) outputArray[i] = rawData.charCodeAt(i)
-  return outputArray.buffer as ArrayBuffer
 }
 
 export default function NotificationsPage() {
@@ -76,35 +69,16 @@ export default function NotificationsPage() {
     onError: () => toast.error('Could not save notification preferences'),
   })
 
-  const enablePush = async () => {
-    if (!('Notification' in window) || !('PushManager' in window) || !('serviceWorker' in navigator)) {
-      toast.error('Push alerts are not supported by this browser')
-      return
-    }
-    const keyRes = await notifications.pushPublicKey()
-    if (!keyRes.data.configured || !keyRes.data.public_key) {
-      toast.warning('Push alerts need VAPID keys configured on the API before devices can subscribe')
-      return
-    }
-    const permission = await window.Notification.requestPermission()
-    if (permission !== 'granted') {
-      toast.warning('Notifications were not enabled')
-      return
-    }
-    const registration = await navigator.serviceWorker.ready
-    const subscription =
-      (await registration.pushManager.getSubscription()) ||
-      (await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToArrayBuffer(keyRes.data.public_key),
-      }))
-    const json = subscription.toJSON()
-    await notifications.upsertPushSubscription({
-      endpoint: json.endpoint || subscription.endpoint,
-      keys: { p256dh: json.keys?.p256dh || '', auth: json.keys?.auth || '' },
-      user_agent: window.navigator.userAgent,
+  useEffect(() => {
+    void enablePushAutomatically({ silent: true }).then((res) => {
+      if (res.ok) toast.success(res.message)
     })
-    toast.success('Push alerts enabled for this device')
+  }, [])
+
+  const enablePush = async () => {
+    const res = await enablePushAutomatically({ force: true })
+    if (res.ok) toast.success(res.message)
+    else toast.warning(res.message)
   }
 
   const prefItems = prefs.data ?? []
@@ -118,7 +92,7 @@ export default function NotificationsPage() {
             <BellRing className="h-6 w-6 text-brand-teal-500" /> Notifications
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Review your in-app updates and choose which events can send mobile push alerts.
+            Review your in-app updates. Push alerts are enabled automatically — get pinged when a new lead arrives or a booking is due.
           </p>
         </div>
         <button

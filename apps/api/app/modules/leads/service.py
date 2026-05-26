@@ -57,6 +57,12 @@ async def create_lead_public(db: AsyncSession, tenant: Tenant, data: LeadCreate,
     from app.workers.queue import enqueue
     await enqueue("trigger_automation_for_event", tenant_id=str(tenant.id), event="lead_created", entity_id=str(lead.id), entity_type="lead")
     await enqueue("score_lead_task", lead_id=str(lead.id), tenant_id=str(tenant.id))
+    try:
+        from app.modules.pwa.service import maybe_send_first_lead_email
+
+        await maybe_send_first_lead_email(db, tenant_id=tenant.id)
+    except Exception:  # noqa: BLE001
+        pass
     return lead
 
 

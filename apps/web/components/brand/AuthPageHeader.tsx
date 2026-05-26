@@ -1,12 +1,10 @@
-import { AUTH_JOURNEY_HEADLINE } from '@/components/brand/BrandMark'
-
 type Props = {
   eyebrow: string
-  title?: string
+  title: string
   description: string
 }
 
-export function AuthPageHeader({ eyebrow, title = AUTH_JOURNEY_HEADLINE, description }: Props) {
+export function AuthPageHeader({ eyebrow, title, description }: Props) {
   return (
     <div className="mb-8">
       <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-brand-teal-500">

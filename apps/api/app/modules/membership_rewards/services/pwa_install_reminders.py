@@ -30,16 +30,25 @@ REMINDER_STAGES = (
 
 STAGE_COPY = {
     "30m": {
-        "headline": "Install your mobile app in one tap",
-        "intro": "You recently joined Membership & Rewards — add the app to your home screen so you never miss an update.",
+        "headline": "Give customers a wallet app on their phone",
+        "intro": (
+            "You enabled Membership & Rewards — share a installable wallet your customers can "
+            "add to their home screen for points, offers, and booking reminders."
+        ),
     },
     "1h": {
-        "headline": "Quick reminder: install the app for instant alerts",
-        "intro": "Customers who install the app get offers, points updates, and booking reminders straight to their phone.",
+        "headline": "Quick reminder: launch your customer wallet app",
+        "intro": (
+            "Businesses that give customers a wallet app see stronger repeat bookings. Install "
+            "your workspace app too — get pinged when a new lead arrives or a booking is due."
+        ),
     },
     "3h": {
-        "headline": "Last reminder — enable mobile alerts today",
-        "intro": "It only takes a minute to install the app and turn on push notifications. Here’s how.",
+        "headline": "Last reminder — wallet app + mobile alerts",
+        "intro": (
+            "Set up your customer rewards wallet and turn on push alerts in one minute. "
+            "Your team gets lead and booking pings; customers get points and offers on their phone."
+        ),
     },
 }
 
@@ -55,7 +64,7 @@ def _utc(dt: datetime) -> datetime:
 
 
 def tenant_install_url() -> str:
-    return f"{_frontend()}/dashboard/membership-rewards?install=1"
+    return f"{_frontend()}/dashboard?install=1"
 
 
 def customer_install_url(tenant_slug: str) -> str:
@@ -200,7 +209,7 @@ async def _process_row(db: AsyncSession, row: MrPwaInstallReminder, now: datetim
         recipient_name = user.full_name or user.email.split("@")[0]
         recipient_email = user.email
         install_url = tenant_install_url()
-        alert_examples = "new leads, bookings, and customer messages"
+        alert_examples = "new leads, bookings, and customer wallet activity"
     elif row.audience == "customer" and row.customer_id:
         if await _customer_has_push(db, row.tenant_id, row.customer_id):
             row.completed_at = now

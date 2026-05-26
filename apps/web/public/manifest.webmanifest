@@ -1,7 +1,7 @@
 {
   "name": "CustomerFlowai",
   "short_name": "CustomerFlowai",
-  "description": "The AI operating system for UK businesses.",
+  "description": "Give customers a rewards wallet and run your business from one mobile workspace.",
   "start_url": "/dashboard?source=pwa",
   "scope": "/",
   "display": "standalone",
@@ -49,6 +49,34 @@
       "short_name": "Leads",
       "description": "Review new leads",
       "url": "/dashboard/leads",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Bookings",
+      "short_name": "Bookings",
+      "description": "Open your calendar and bookings",
+      "url": "/dashboard/bookings",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Quotes",
+      "short_name": "Quotes",
+      "description": "Create and send quotes",
+      "url": "/dashboard/quotes",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Invoices",
+      "short_name": "Invoices",
+      "description": "Track invoices and payments",
+      "url": "/dashboard/invoices",
+      "icons": [{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Customer wallet",
+      "short_name": "Wallet",
+      "description": "Set up your customer rewards wallet app",
+      "url": "/dashboard/membership-rewards",
       "icons": [{ "src": "/icons/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
     }
   ]

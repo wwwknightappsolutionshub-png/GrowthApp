@@ -610,13 +610,6 @@ function LegalModal({ id, open, onClose }: { id: ModalId; open: boolean; onClose
 
 // ── Footer ────────────────────────────────────────────────────────────────────
 
-const trustBadges = [
-  { label: 'GDPR Compliant', icon: Shield },
-  { label: 'ISO 27001 Ready', icon: Lock },
-  { label: 'Stripe Verified', icon: BadgeCheck },
-  { label: 'UK Data Residency', icon: MapPin },
-]
-
 export function MarketingFooter() {
   const [modal, setModal] = useState<ModalId>(null)
 
@@ -639,14 +632,6 @@ export function MarketingFooter() {
                 The AI operating system for UK businesses. Lead generation,
                 retention, reviews and money intelligence — unified and automated.
               </p>
-              <div className="mt-5 flex flex-wrap gap-2">
-                {trustBadges.map((b) => (
-                  <span key={b.label} className="inline-flex items-center gap-1 rounded border border-white/10 bg-white/5 px-2 py-1 font-mono text-[10px] font-medium uppercase tracking-wider text-white/60">
-                    <b.icon className="h-3 w-3 text-brand-teal-300" />
-                    {b.label}
-                  </span>
-                ))}
-              </div>
             </div>
 
             {/* Col 2 — Product */}
@@ -710,16 +695,6 @@ export function MarketingFooter() {
             <p className="text-white/40">
               © {new Date().getFullYear()} CustomerFlow AI Ltd · Registered in England &amp; Wales · Built for UK businesses.
             </p>
-            <div className="flex items-center gap-3 text-white/40">
-              <span className="inline-flex items-center gap-1.5">
-                <Shield className="h-3.5 w-3.5 text-brand-teal-300" />
-                GDPR Compliant
-              </span>
-              <span className="text-white/20">·</span>
-              <span>ISO 27001 Ready</span>
-              <span className="text-white/20">·</span>
-              <span>UK Data Hosting</span>
-            </div>
           </div>
         </div>
       </footer>

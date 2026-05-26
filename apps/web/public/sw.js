@@ -1,6 +1,7 @@
 // Bump when deploy changes static assets so old caches are cleared on activate.
-const CACHE_VERSION = 'customerflow-pwa-v3'
+const CACHE_VERSION = 'customerflow-pwa-v4'
 const STATIC_CACHE = `${CACHE_VERSION}:static`
+const API_CACHE = `${CACHE_VERSION}:api`
 const OFFLINE_URL = '/offline.html'
 
 const PRECACHE_URLS = [
@@ -10,6 +11,17 @@ const PRECACHE_URLS = [
   '/icons/pwa-icon.svg',
   '/icons/maskable-icon.svg',
 ]
+
+const OFFLINE_API_PREFIXES = [
+  '/api/v1/leads',
+  '/api/v1/quotes',
+  '/api/v1/bookings',
+  '/api/v1/crm/customers',
+]
+
+function isOfflineApiPath(pathname) {
+  return OFFLINE_API_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -35,6 +47,25 @@ self.addEventListener('fetch', (event) => {
 
   if (request.method !== 'GET' || url.origin !== self.location.origin) return
 
+  if (url.pathname.startsWith('/api/') && isOfflineApiPath(url.pathname)) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (!response.ok) return response
+          const copy = response.clone()
+          caches.open(API_CACHE).then((cache) => cache.put(request, copy))
+          return response
+        })
+        .catch(() =>
+          caches.match(request).then((cached) => cached || new Response(JSON.stringify({ offline: true, items: [] }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          })),
+        ),
+    )
+    return
+  }
+
   if (url.pathname.startsWith('/api/')) return
 
   if (request.mode === 'navigate') {
@@ -44,7 +75,6 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Never cache Next.js build chunks — hashes change every deploy; caching breaks the app.
   if (url.pathname.startsWith('/_next/')) return
 
   if (url.pathname.startsWith('/icons/') || url.pathname === '/manifest.webmanifest') {
@@ -60,6 +90,15 @@ self.addEventListener('fetch', (event) => {
       }),
     )
   }
+})
+
+self.addEventListener('sync', (event) => {
+  if (event.tag !== 'customerflow-mutation-sync') return
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+      clients.forEach((client) => client.postMessage({ type: 'CF_SYNC_QUEUE' }))
+    }),
+  )
 })
 
 self.addEventListener('push', (event) => {

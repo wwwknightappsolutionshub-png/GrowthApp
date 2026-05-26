@@ -567,6 +567,18 @@ export const tasks = {
   delete: (id: string) => apiClient.delete(`/tasks/${id}`),
 }
 
+export const pwaEngagement = {
+  recordExitIntent: () => apiClient.post('/pwa/exit-intent'),
+  branding: () =>
+    apiClient.get<{
+      enabled: boolean
+      name: string
+      short_name: string
+      theme_color: string
+      icon_url: string | null
+    }>('/pwa/branding'),
+}
+
 export const notifications = {
   list: (params?: { page?: number; page_size?: number; unread_only?: boolean; include_archived?: boolean }) =>
     apiClient.get('/notifications', { params }),

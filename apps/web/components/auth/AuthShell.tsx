@@ -2,9 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BadgeCheck, Lock, Shield } from 'lucide-react'
 
-import { AUTH_JOURNEY_HEADLINE, BrandMark } from '@/components/brand/BrandMark'
+import { AuthJourneyHeadline } from '@/components/brand/AuthJourneyHeadline'
+import { BrandMark } from '@/components/brand/BrandMark'
 
 const AUTH_BACKGROUNDS: Record<string, string> = {
   '/login':
@@ -65,28 +65,13 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
               {badge}
             </span>
 
-            <h2 className="mt-6 font-display text-3xl font-bold leading-[1.08] tracking-tight text-white xl:text-[40px]">
-              {AUTH_JOURNEY_HEADLINE}
+            <h2 className="mt-6 text-3xl xl:text-[40px]">
+              <AuthJourneyHeadline lineClassName="text-3xl xl:text-[40px] leading-[1.08]" />
             </h2>
             <p className="mt-5 max-w-md text-base leading-relaxed text-white/80">
-              Capture leads, book jobs, run your CRM, invoice customers, and win them back — connected
-              in one place with AI automations behind every step.
+              Give customers a rewards wallet on their phone, then run leads, bookings, CRM and
+              invoices from one connected workspace.
             </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-white/10 pt-6 text-xs text-white/55">
-            <div className="inline-flex items-center gap-1.5">
-              <Shield className="h-3.5 w-3.5 text-brand-teal-300" />
-              GDPR compliant
-            </div>
-            <div className="inline-flex items-center gap-1.5">
-              <Lock className="h-3.5 w-3.5 text-brand-teal-300" />
-              256-bit SSL
-            </div>
-            <div className="inline-flex items-center gap-1.5">
-              <BadgeCheck className="h-3.5 w-3.5 text-brand-teal-300" />
-              UK data residency
-            </div>
           </div>
         </div>
       </aside>
