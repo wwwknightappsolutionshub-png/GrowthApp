@@ -18,26 +18,40 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "users",
-        sa.Column("membership_rewards_opt_in", sa.Boolean(), nullable=False, server_default=sa.text("true")),
-    )
-    op.create_table(
-        "pwa_engagement_emails",
-        sa.Column("id", UUIDType(), nullable=False),
-        sa.Column("tenant_id", UUIDType(), nullable=False),
-        sa.Column("user_id", UUIDType(), nullable=False),
-        sa.Column("kind", sa.String(length=40), nullable=False),
-        sa.Column("sent_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("tenant_id", "user_id", "kind", name="uq_pwa_engagement_once"),
-    )
-    op.create_index("ix_pwa_engagement_emails_tenant_id", "pwa_engagement_emails", ["tenant_id"])
-    op.create_index("ix_pwa_engagement_emails_user_id", "pwa_engagement_emails", ["user_id"])
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    user_cols = {c["name"] for c in inspector.get_columns("users")}
+
+    if "membership_rewards_opt_in" not in user_cols:
+        op.add_column(
+            "users",
+            sa.Column("membership_rewards_opt_in", sa.Boolean(), nullable=False, server_default=sa.text("true")),
+        )
+
+    if "pwa_engagement_emails" not in inspector.get_table_names():
+        op.create_table(
+            "pwa_engagement_emails",
+            sa.Column("id", UUIDType(), nullable=False),
+            sa.Column("tenant_id", UUIDType(), nullable=False),
+            sa.Column("user_id", UUIDType(), nullable=False),
+            sa.Column("kind", sa.String(length=40), nullable=False),
+            sa.Column("sent_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
+            sa.PrimaryKeyConstraint("id"),
+            sa.UniqueConstraint("tenant_id", "user_id", "kind", name="uq_pwa_engagement_once"),
+        )
+        op.create_index("ix_pwa_engagement_emails_tenant_id", "pwa_engagement_emails", ["tenant_id"])
+        op.create_index("ix_pwa_engagement_emails_user_id", "pwa_engagement_emails", ["user_id"])
 
 
 def downgrade() -> None:
-    op.drop_index("ix_pwa_engagement_emails_user_id", table_name="pwa_engagement_emails")
-    op.drop_index("ix_pwa_engagement_emails_tenant_id", table_name="pwa_engagement_emails")
-    op.drop_table("pwa_engagement_emails")
-    op.drop_column("users", "membership_rewards_opt_in")
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    tables = set(inspector.get_table_names())
+    user_cols = {c["name"] for c in inspector.get_columns("users")}
+
+    if "pwa_engagement_emails" in tables:
+        op.drop_index("ix_pwa_engagement_emails_user_id", table_name="pwa_engagement_emails")
+        op.drop_index("ix_pwa_engagement_emails_tenant_id", table_name="pwa_engagement_emails")
+        op.drop_table("pwa_engagement_emails")
+    if "membership_rewards_opt_in" in user_cols:
+        op.drop_column("users", "membership_rewards_opt_in")

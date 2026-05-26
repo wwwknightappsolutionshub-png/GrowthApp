@@ -32,7 +32,10 @@ export function enqueueBackgroundSync(item: Omit<SyncQueueItem, 'id' | 'createdA
   writeQueue(queue)
   if ('serviceWorker' in navigator && 'SyncManager' in window) {
     void navigator.serviceWorker.ready.then((reg) => {
-      void reg.sync.register('customerflow-mutation-sync').catch(() => {})
+      const syncReg = reg as ServiceWorkerRegistration & {
+        sync: { register: (tag: string) => Promise<void> }
+      }
+      void syncReg.sync.register('customerflow-mutation-sync').catch(() => {})
     })
   }
 }
