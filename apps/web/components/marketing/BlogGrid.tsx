@@ -8,6 +8,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Clock, Tag, ArrowRight, ChevronLeft } from 'lucide-react'
+import { sanitizeHtml } from '@/lib/sanitize'
 
 export interface BlogPostItem {
   id: string
@@ -252,8 +253,7 @@ export function BlogGrid({ initialPosts, initialTotal }: Props) {
                 {selected.content ? (
                   <div
                     className="prose prose-sm mt-6 max-w-none prose-headings:font-display prose-headings:text-foreground prose-p:text-foreground/80 prose-li:text-foreground/80 prose-strong:text-foreground prose-a:text-brand-teal-500"
-                    // content from our own CMS — trusted HTML
-                    dangerouslySetInnerHTML={{ __html: selected.content }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(selected.content) }}
                   />
                 ) : (
                   <p className="mt-6 text-sm text-muted-foreground italic">Full post content coming soon.</p>

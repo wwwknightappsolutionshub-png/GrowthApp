@@ -174,7 +174,7 @@ export default function StaticPagesAdminPage() {
               </div>
               <p className="mt-2 text-xs text-white/40 font-mono">/{page.slug}</p>
               {page.content ? (
-                <p className="mt-2 text-xs text-white/50 line-clamp-2" dangerouslySetInnerHTML={{ __html: page.content.replace(/<[^>]+>/g, ' ').slice(0, 100) + '…' }} />
+                <p className="mt-2 text-xs text-white/50 line-clamp-2">{page.content.replace(/<[^>]+>/g, ' ').slice(0, 100)}…</p>
               ) : (
                 <p className="mt-2 text-xs text-white/30 italic">Using hardcoded default content</p>
               )}

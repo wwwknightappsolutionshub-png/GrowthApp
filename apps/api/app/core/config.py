@@ -200,6 +200,11 @@ class Settings(BaseSettings):
             errors.append("STRIPE_WEBHOOK_SECRET is required when PAYMENT_PROVIDER=stripe.")
         if self.SMS_PROVIDER == "twilio" and not self.TWILIO_AUTH_TOKEN:
             errors.append("TWILIO_AUTH_TOKEN is required when SMS_PROVIDER=twilio (used for inbound webhook signature verification).")
+        if self.EMAIL_PROVIDER == "resend" and not self.RESEND_WEBHOOK_SECRET:
+            errors.append("RESEND_WEBHOOK_SECRET is required when EMAIL_PROVIDER=resend (used for inbound webhook signature verification).")
+
+        if self.INTEGRATIONS_TOKEN_ENCRYPTION_KEY in _PLACEHOLDER_SECRETS:
+            errors.append("INTEGRATIONS_TOKEN_ENCRYPTION_KEY must be set to a strong random value in production.")
 
         if errors:
             joined = "\n  - ".join(errors)
