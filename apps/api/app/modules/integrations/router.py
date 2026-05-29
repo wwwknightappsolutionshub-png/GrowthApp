@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import orjson
+from urllib.parse import quote as url_quote
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Query, Request
@@ -67,7 +68,11 @@ async def google_callback(
     """Platform OAuth redirect target."""
     base = _integrations_redirect()
     if error:
-        return RedirectResponse(url=f"{base}?google=error&reason={error}", status_code=302)
+        reason = url_quote(str(error)[:80], safe="")
+        return RedirectResponse(
+            url=f"{base}?google=error&reason={reason}",
+            status_code=302,
+        )
     if not code or not state:
         return RedirectResponse(url=f"{base}?google=error&reason=missing_code", status_code=302)
 
@@ -75,8 +80,9 @@ async def google_callback(
         tenant_id, _user_id = service.parse_oauth_state(state)
         await service.complete_oauth_callback(db, code=code, tenant_id=tenant_id)
     except BadRequestException as exc:
+        reason = url_quote(str(exc.detail)[:80], safe="")
         return RedirectResponse(
-            url=f"{base}?google=error&reason={str(exc.detail)[:80]}",
+            url=f"{base}?google=error&reason={reason}",
             status_code=302,
         )
     except Exception:  # noqa: BLE001
@@ -173,7 +179,11 @@ async def google_oauth_callback(
     """Tenant-owned OAuth redirect — CustomerFlow hosts URI only."""
     base = _integrations_redirect("/google")
     if error:
-        return RedirectResponse(url=f"{base}?google=error&reason={error}", status_code=302)
+        reason = url_quote(str(error)[:80], safe="")
+        return RedirectResponse(
+            url=f"{base}?google=error&reason={reason}",
+            status_code=302,
+        )
     if not code or not state:
         return RedirectResponse(url=f"{base}?google=error&reason=missing_code", status_code=302)
 
@@ -181,8 +191,9 @@ async def google_oauth_callback(
         tenant_id, _user_id = service.parse_oauth_state(state)
         await tenant_google.complete_oauth_callback(db, code=code, tenant_id=tenant_id)
     except BadRequestException as exc:
+        reason = url_quote(str(exc.detail)[:80], safe="")
         return RedirectResponse(
-            url=f"{base}?google=error&reason={str(exc.detail)[:80]}",
+            url=f"{base}?google=error&reason={reason}",
             status_code=302,
         )
     except Exception:  # noqa: BLE001

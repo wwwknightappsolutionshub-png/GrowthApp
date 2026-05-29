@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.core.dependencies import CurrentTenantContext, OwnerContext
 from app.core.exceptions import NotFoundException
@@ -77,7 +78,7 @@ async def create_portal(ctx: OwnerContext, db: AsyncSession = Depends(get_db)):
     adapter = get_payment_adapter()
     url = await adapter.create_customer_portal(
         customer_id=sub.stripe_customer_id,
-        return_url=f"{__import__('app.core.config', fromlist=['settings']).settings.FRONTEND_URL}/dashboard/settings/billing",
+        return_url=f"{settings.FRONTEND_URL}/dashboard/settings/billing",
     )
     return PortalResponse(portal_url=url)
 

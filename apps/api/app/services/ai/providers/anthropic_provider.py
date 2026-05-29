@@ -1,6 +1,7 @@
 """Anthropic (Claude) provider."""
 from __future__ import annotations
 
+import json
 import time
 from typing import Any
 
@@ -112,7 +113,7 @@ class AnthropicProvider(AIProvider):
                     "type": "function",
                     "function": {
                         "name": block.get("name"),
-                        "arguments": __import__("json").dumps(block.get("input", {})),
+                        "arguments": json.dumps(block.get("input", {})),
                     },
                 })
         content = "".join(text_parts).strip()

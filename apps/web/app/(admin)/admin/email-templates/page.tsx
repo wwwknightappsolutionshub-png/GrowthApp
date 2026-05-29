@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
+import { sanitizeHtml } from '@/lib/sanitize'
 import {
   AlertCircle,
   Code2,
@@ -334,7 +335,7 @@ export default function EmailTemplatesPage() {
                   ref={wysiwygRef}
                   contentEditable
                   suppressContentEditableWarning
-                  dangerouslySetInnerHTML={{ __html: html }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }}
                   onInput={(event) => {
                     const next = event.currentTarget.innerHTML
                     setHtml(next)

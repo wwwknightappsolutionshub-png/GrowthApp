@@ -48,9 +48,15 @@ class SearchResponse(BaseModel):
     by_type: dict[str, int]
 
 
+def _escape_like(term: str) -> str:
+    """Escape LIKE-special characters so user input is treated as literals."""
+    return term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 def _ilike(col, term: str):
     """Cross-dialect case-insensitive substring filter."""
-    return func.lower(col).like(f"%{term.lower()}%")
+    safe = _escape_like(term.lower())
+    return func.lower(col).like(f"%{safe}%", escape="\\")
 
 
 @router.get("", response_model=SearchResponse)
