@@ -23,6 +23,7 @@ const PUBLIC_PREFIXES = [
   '/reset-password',
   '/verify-2fa',
   '/pricing',
+  '/blog',
   '/privacy',
   '/terms',
 ]

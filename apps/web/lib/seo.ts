@@ -18,6 +18,7 @@ export const RESERVED_PUBLIC_SLUGS = new Set([
   'icon',
   'opengraph-image',
   'twitter-image',
+  'blog',
 ])
 
 export function canonical(path = '/'): string {

@@ -40,6 +40,7 @@ import {
   type Review as CarouselReview,
 } from '@/components/marketing/TestimonialsCarousel'
 import { HomepageJsonLd } from '@/components/seo/HomepageJsonLd'
+import { FaqJsonLd } from '@/components/seo/FaqJsonLd'
 import { canonical, DEFAULT_OG_IMAGE } from '@/lib/seo'
 
 /**
@@ -398,6 +399,7 @@ export default async function HomePage() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <HomepageJsonLd />
+      <FaqJsonLd items={liveFaqs} />
       {/* Exit-intent review capture (mounts once globally) */}
       <ExitIntentReviewPrompt />
 

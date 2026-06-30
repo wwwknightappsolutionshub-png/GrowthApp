@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft, BookOpen } from 'lucide-react'
-import { BlogGrid, type BlogPostItem } from '@/components/marketing/BlogGrid'
-import { canonical, SITE_URL } from '@/lib/seo'
+import { BlogGrid } from '@/components/marketing/BlogGrid'
+import { BreadcrumbJsonLd } from '@/components/seo/BreadcrumbJsonLd'
+import { fetchBlogList } from '@/lib/blog'
+import { canonical } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'Blog — CustomerFlow AI | Growth Strategies for UK Businesses',
@@ -20,139 +22,8 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 }
 
-const FALLBACK_POSTS: BlogPostItem[] = [
-  {
-    id: '1',
-    title: 'How UK Tradesmen Are Winning More Jobs with AI-Powered Follow-Ups',
-    slug: 'ai-follow-ups-uk-tradesmen',
-    excerpt:
-      'Discover how plumbers, electricians and builders across the UK are using CustomerFlow AI to automate follow-ups and convert 40% more enquiries into booked jobs.',
-    content: null,
-    category: 'Trades',
-    image_url:
-      'https://images.pexels.com/photos/1216589/pexels-photo-1216589.jpeg?auto=compress&cs=tinysrgb&w=800&q=80',
-    author_name: 'CustomerFlow Team',
-    read_minutes: 6,
-    published_at: '2026-05-01T09:00:00Z',
-  },
-  {
-    id: '2',
-    title: '5 Signs Your UK Small Business Needs a Customer Retention Strategy',
-    slug: 'customer-retention-strategy-uk-small-business',
-    excerpt:
-      'If you are spending more on acquiring new customers than keeping existing ones, you are leaving serious money on the table.',
-    content: null,
-    category: 'Strategy',
-    image_url:
-      'https://images.pexels.com/photos/3184418/pexels-photo-3184418.jpeg?auto=compress&cs=tinysrgb&w=800&q=80',
-    author_name: 'CustomerFlow Team',
-    read_minutes: 5,
-    published_at: '2026-04-28T09:00:00Z',
-  },
-  {
-    id: '3',
-    title: 'The Complete Guide to Google Review Automation for UK Businesses',
-    slug: 'google-review-automation-uk-businesses',
-    excerpt:
-      'More Google reviews mean higher rankings, more trust and more bookings. This guide shows exactly how UK businesses automate review collection without lifting a finger.',
-    content: null,
-    category: 'Reviews',
-    image_url:
-      'https://images.pexels.com/photos/6476255/pexels-photo-6476255.jpeg?auto=compress&cs=tinysrgb&w=800&q=80',
-    author_name: 'CustomerFlow Team',
-    read_minutes: 7,
-    published_at: '2026-04-22T09:00:00Z',
-  },
-  {
-    id: '4',
-    title: 'How to Reduce No-Shows by 80% with Automated Booking Reminders',
-    slug: 'reduce-no-shows-automated-booking-reminders',
-    excerpt:
-      'No-shows cost UK service businesses thousands of pounds every year. CustomerFlow AI brings no-show rates below 5% without any manual effort.',
-    content: null,
-    category: 'Bookings',
-    image_url:
-      'https://images.pexels.com/photos/1181406/pexels-photo-1181406.jpeg?auto=compress&cs=tinysrgb&w=800&q=80',
-    author_name: 'CustomerFlow Team',
-    read_minutes: 4,
-    published_at: '2026-04-15T09:00:00Z',
-  },
-  {
-    id: '5',
-    title: 'AI Lead Scoring: Stop Chasing Cold Leads and Close More Business',
-    slug: 'ai-lead-scoring-uk-business-close-more',
-    excerpt:
-      'Not all leads are equal. CustomerFlow AI scores every inbound lead in real time so your team spends time on prospects most likely to convert.',
-    content: null,
-    category: 'Lead Generation',
-    image_url:
-      'https://images.pexels.com/photos/7376/startup-photos.jpg?auto=compress&cs=tinysrgb&w=800&q=80',
-    author_name: 'CustomerFlow Team',
-    read_minutes: 6,
-    published_at: '2026-04-10T09:00:00Z',
-  },
-  {
-    id: '6',
-    title: 'Why UK Restaurants Are Switching to Automated Customer Win-Back Campaigns',
-    slug: 'automated-win-back-campaigns-uk-restaurants',
-    excerpt:
-      'A customer who visited 6 months ago and never returned is not lost — they just need the right message at the right time.',
-    content: null,
-    category: 'Hospitality',
-    image_url:
-      'https://images.pexels.com/photos/262978/pexels-photo-262978.jpeg?auto=compress&cs=tinysrgb&w=800&q=80',
-    author_name: 'CustomerFlow Team',
-    read_minutes: 5,
-    published_at: '2026-04-05T09:00:00Z',
-  },
-  {
-    id: '7',
-    title: 'The ROI of Missed-Call SMS Recovery for UK Trades Businesses',
-    slug: 'missed-call-sms-recovery-roi-uk-trades',
-    excerpt:
-      'Every missed call is a missed job. CustomerFlow AI\'s 60-second SMS recovery feature recaptures prospects before they dial your competitor.',
-    content: null,
-    category: 'Trades',
-    image_url:
-      'https://images.pexels.com/photos/3807517/pexels-photo-3807517.jpeg?auto=compress&cs=tinysrgb&w=800&q=80',
-    author_name: 'CustomerFlow Team',
-    read_minutes: 4,
-    published_at: '2026-03-28T09:00:00Z',
-  },
-  {
-    id: '8',
-    title: 'GDPR-Compliant Customer Marketing: What Every UK Business Must Know in 2026',
-    slug: 'gdpr-compliant-customer-marketing-uk-2026',
-    excerpt:
-      'GDPR fines reached £1.1bn in 2025. CustomerFlow AI is built from the ground up for UK and EU compliance.',
-    content: null,
-    category: 'Compliance',
-    image_url:
-      'https://images.pexels.com/photos/5668859/pexels-photo-5668859.jpeg?auto=compress&cs=tinysrgb&w=800&q=80',
-    author_name: 'CustomerFlow Team',
-    read_minutes: 8,
-    published_at: '2026-03-20T09:00:00Z',
-  },
-]
-
-async function loadPosts(): Promise<{ items: BlogPostItem[]; total: number }> {
-  const base = process.env.INTERNAL_API_URL
-  if (!base) return { items: FALLBACK_POSTS, total: FALLBACK_POSTS.length }
-  try {
-    const res = await fetch(`${base}/api/v1/public/blog?page=1&per_page=8`, {
-      next: { revalidate: 120 },
-    })
-    if (!res.ok) return { items: FALLBACK_POSTS, total: FALLBACK_POSTS.length }
-    const data = await res.json()
-    const items = Array.isArray(data.items) && data.items.length > 0 ? data.items : FALLBACK_POSTS
-    return { items, total: data.total || items.length }
-  } catch {
-    return { items: FALLBACK_POSTS, total: FALLBACK_POSTS.length }
-  }
-}
-
 export default async function BlogPage() {
-  const { items, total } = await loadPosts()
+  const { items, total } = await fetchBlogList()
 
   return (
     <div className="min-h-screen bg-background">
@@ -190,19 +61,11 @@ export default async function BlogPage() {
             with CustomerFlow AI.
           </p>
 
-          {/* Schema.org BreadcrumbList for SEO */}
-          <script
-            type="application/ld+json"
-            dangerouslySetInnerHTML={{
-              __html: JSON.stringify({
-                '@context': 'https://schema.org',
-                '@type': 'BreadcrumbList',
-                itemListElement: [
-                  { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
-                  { '@type': 'ListItem', position: 2, name: 'Blog', item: canonical('/blog') },
-                ],
-              }),
-            }}
+          <BreadcrumbJsonLd
+            items={[
+              { name: 'Home', path: '/' },
+              { name: 'Blog', path: '/blog' },
+            ]}
           />
         </div>
       </section>
