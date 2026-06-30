@@ -1,4 +1,6 @@
 import { Metadata } from 'next'
+import { notFound } from 'next/navigation'
+import { RESERVED_PUBLIC_SLUGS } from '@/lib/seo'
 
 interface Props {
   params: { tenantSlug: string }
@@ -19,6 +21,9 @@ async function getTenantData(slug: string) {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  if (RESERVED_PUBLIC_SLUGS.has(params.tenantSlug.toLowerCase())) {
+    return {}
+  }
   const tenant = await getTenantData(params.tenantSlug)
   return {
     title: tenant ? `${tenant.name} — Get a Free Quote` : 'Get a Free Quote',
@@ -78,17 +83,14 @@ function LeadForm({ tenantSlug, tenantName }: { tenantSlug: string; tenantName: 
 }
 
 export default async function TenantLandingPage({ params }: Props) {
+  if (RESERVED_PUBLIC_SLUGS.has(params.tenantSlug.toLowerCase())) {
+    notFound()
+  }
+
   const tenant = await getTenantData(params.tenantSlug)
 
   if (!tenant) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Business not found</h1>
-          <p className="text-gray-500">This link may have expired or the business is no longer active.</p>
-        </div>
-      </div>
-    )
+    notFound()
   }
 
   const primaryColor = tenant.primary_color || '#2563EB'

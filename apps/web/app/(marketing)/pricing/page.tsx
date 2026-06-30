@@ -1,5 +1,23 @@
 import Link from 'next/link'
 import { CheckCircle } from 'lucide-react'
+import type { Metadata } from 'next'
+import { canonical, DEFAULT_OG_IMAGE } from '@/lib/seo'
+
+export const metadata: Metadata = {
+  title: 'Pricing — Honest, Predictable Plans for UK Businesses',
+  description:
+    'CustomerFlowai pricing from £99/month. Starter, Growth and Pro plans with 14-day free trial. No setup fees, no long contracts. CRM, leads, bookings and review automation for UK SMBs.',
+  keywords:
+    'CustomerFlowai pricing, UK CRM pricing, SMB SaaS UK cost, lead generation software price, review automation pricing UK',
+  openGraph: {
+    title: 'CustomerFlowai Pricing — Plans from £99/month',
+    description: '14-day free trial on every plan. Starter, Growth and Pro for UK businesses.',
+    type: 'website',
+    images: [DEFAULT_OG_IMAGE],
+  },
+  alternates: { canonical: canonical('/pricing') },
+  robots: { index: true, follow: true },
+}
 
 const plans = [
   {

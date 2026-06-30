@@ -1,9 +1,13 @@
 import Link from 'next/link'
 import { PRIVACY_POLICY } from '@/lib/legal/privacy-content'
+import type { Metadata } from 'next'
+import { canonical } from '@/lib/seo'
 
-export const metadata = {
+export const metadata: Metadata = {
   title: 'Privacy Policy | CustomerFlow AI',
   description: 'How CustomerFlow AI collects, uses, and protects your personal data (UK GDPR).',
+  alternates: { canonical: canonical('/privacy') },
+  robots: { index: true, follow: true },
 }
 
 export default function PrivacyPage() {

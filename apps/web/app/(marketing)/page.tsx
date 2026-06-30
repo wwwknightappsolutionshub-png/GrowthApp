@@ -39,6 +39,8 @@ import {
   TestimonialsCarousel,
   type Review as CarouselReview,
 } from '@/components/marketing/TestimonialsCarousel'
+import { HomepageJsonLd } from '@/components/seo/HomepageJsonLd'
+import { canonical, DEFAULT_OG_IMAGE } from '@/lib/seo'
 
 /**
  * The marketing page can run with the API offline — we hydrate from
@@ -88,9 +90,18 @@ export const metadata = {
     description:
       'Lead generation, customer retention, reviews, operations and money intelligence — unified, AI-powered, automated.',
     type: 'website',
-    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'CustomerFlow AI Dashboard' }],
+    locale: 'en_GB',
+    siteName: 'CustomerFlowai',
+    images: [DEFAULT_OG_IMAGE],
   },
-  alternates: { canonical: 'https://customerflow.ai' },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'CustomerFlowai — The AI Operating System for UK Businesses',
+    description:
+      'Lead generation, CRM, bookings, invoicing and retention — unified for UK businesses.',
+    images: [DEFAULT_OG_IMAGE.url],
+  },
+  alternates: { canonical: canonical('/') },
   robots: {
     index: true,
     follow: true,
@@ -386,6 +397,7 @@ export default async function HomePage() {
   const liveReviews = bundle?.reviews ?? []
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <HomepageJsonLd />
       {/* Exit-intent review capture (mounts once globally) */}
       <ExitIntentReviewPrompt />
 

@@ -1,28 +1,37 @@
 import type { Metadata, Viewport } from 'next'
-import { Anek_Latin } from 'next/font/google'
+import { Anek_Latin, Montserrat } from 'next/font/google'
 import './globals.css'
 import { Providers } from '@/components/providers'
-import { Toaster } from 'sonner'
+import { ResponsiveToaster } from '@/components/ui/ResponsiveToaster'
+import { SITE_URL } from '@/lib/seo'
 
 /**
  * Typography
  * ────────────────────────────────────────────────────────────────────────────
- *  Body / UI : Anek Latin   (variable, Google Fonts, loaded via next/font)
- *  Display   : Cabinet Grotesk (Fontshare CDN, loaded via <link> below)
+ *  Body / UI : Montserrat  (variable, Google Fonts, loaded via next/font)
+ *  Display   : Anek Latin  (variable, Google Fonts, loaded via next/font)
  *
+ *  Typography — Montserrat + Anek Latin only. No other typefaces permitted.
  *  Both font-family CSS variables are wired to `globals.css` design tokens
- *  (`--font-anek`, `--font-cabinet`).
+ *  (`--font-montserrat`, `--font-anek`).
  */
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  display: 'swap',
+  adjustFontFallback: false,
+  variable: '--font-montserrat',
+})
+
 const anek = Anek_Latin({
   subsets: ['latin'],
   weight: ['300', '400', '500', '600', '700'],
   display: 'swap',
+  adjustFontFallback: false,
   variable: '--font-anek',
 })
 
-const appUrl =
-  process.env.NEXT_PUBLIC_APP_URL ||
-  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+const appUrl = SITE_URL
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
@@ -31,6 +40,15 @@ export const metadata: Metadata = {
     'The AI operating system for UK businesses — customers, retention, reviews and money intelligence in one enterprise-grade platform.',
   manifest: '/manifest.webmanifest',
   applicationName: 'CustomerFlowai',
+  robots: { index: true, follow: true },
+  openGraph: {
+    type: 'website',
+    locale: 'en_GB',
+    siteName: 'CustomerFlowai',
+  },
+  twitter: {
+    card: 'summary_large_image',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -47,6 +65,10 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: 'cover',
   themeColor: '#025422',
 }
 
@@ -55,25 +77,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${anek.variable} --font-cabinet-loader`}
-      style={{ ['--font-cabinet' as string]: '"Cabinet Grotesk"' }}
+      className={`${montserrat.variable} ${anek.variable}`}
     >
       <head>
-        {/* Cabinet Grotesk from Fontshare — heading font */}
-        <link rel="preconnect" href="https://api.fontshare.com" crossOrigin="" />
-        <link
-          rel="stylesheet"
-          href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800,900&display=swap"
-        />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-title" content="CustomerFlow" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body className={anek.className}>
+      <body className="font-sans antialiased">
         <Providers>
           {children}
-          <Toaster position="top-right" richColors theme="system" />
+          <ResponsiveToaster richColors theme="system" />
         </Providers>
       </body>
     </html>

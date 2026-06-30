@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { ArrowLeft, BookOpen } from 'lucide-react'
 import { BlogGrid, type BlogPostItem } from '@/components/marketing/BlogGrid'
+import { canonical, SITE_URL } from '@/lib/seo'
 
 export const metadata: Metadata = {
   title: 'Blog — CustomerFlow AI | Growth Strategies for UK Businesses',
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
       'Expert content on AI-powered lead generation, customer retention and growth for UK SMBs.',
     type: 'website',
   },
-  alternates: { canonical: 'https://customerflow.ai/blog' },
+  alternates: { canonical: canonical('/blog') },
   robots: { index: true, follow: true },
 }
 
@@ -197,8 +198,8 @@ export default async function BlogPage() {
                 '@context': 'https://schema.org',
                 '@type': 'BreadcrumbList',
                 itemListElement: [
-                  { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://customerflow.ai' },
-                  { '@type': 'ListItem', position: 2, name: 'Blog', item: 'https://customerflow.ai/blog' },
+                  { '@type': 'ListItem', position: 1, name: 'Home', item: SITE_URL },
+                  { '@type': 'ListItem', position: 2, name: 'Blog', item: canonical('/blog') },
                 ],
               }),
             }}

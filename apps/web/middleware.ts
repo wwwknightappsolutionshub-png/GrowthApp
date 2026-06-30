@@ -70,6 +70,8 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/api') ||
     pathname.startsWith('/favicon') ||
     pathname === '/manifest.webmanifest' ||
+    pathname === '/robots.txt' ||
+    pathname === '/sitemap.xml' ||
     pathname === '/sw.js' ||
     pathname === '/offline.html' ||
     pathname.startsWith('/icons/') ||
